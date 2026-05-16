@@ -1,0 +1,14 @@
+import {
+  "moonbitlang/core/math",
+  "moonbitlang/core/string",
+  "mizchi/css/token",
+  "mizchi/css/selector",
+  "mizchi/css/cascade",
+  "mizchi/css/media",
+  "mizchi/css/diagnostics",
+  "mizchi/css/style",
+  "mizchi/css/values" @types,
+}
+
+import {
+} for "wbtest"

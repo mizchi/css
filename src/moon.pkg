@@ -1,0 +1,15 @@
+import {
+  "mizchi/css/style",
+  "mizchi/css/cascade",
+  "mizchi/css/computed",
+  "mizchi/css/diagnostics",
+  "mizchi/css/media",
+  "mizchi/css/parser",
+  "mizchi/css/selector",
+}
+
+import {
+  "mizchi/css/values" @types,
+} for "test"
+
+warnings = "-unused_package"
