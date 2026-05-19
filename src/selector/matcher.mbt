@@ -190,10 +190,7 @@ fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
       }
       false
     }
-    Has(_) =>
-      // :has() requires checking descendants/siblings
-      // Complex to implement, return false for now
-      false
+    Has(selectors) => matches_has(element, selectors)
     State(state) => {
       for token in element.custom_states {
         if token == state {
@@ -223,6 +220,92 @@ fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
     | ReadOnly
     | ReadWrite => false
   }
+}
+
+///|
+fn descendant_matches_complex(
+  element : Element,
+  selector : ComplexSelector,
+) -> Bool {
+  for child in element.children {
+    if matches_complex(child, selector) {
+      return true
+    }
+    if descendant_matches_complex(child, selector) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn direct_child_matches_complex(
+  element : Element,
+  selector : ComplexSelector,
+) -> Bool {
+  for child in element.children {
+    if matches_complex(child, selector) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn next_sibling_matches_complex(
+  element : Element,
+  selector : ComplexSelector,
+) -> Bool {
+  match element.next_sibling {
+    Some(next) => matches_complex(next, selector)
+    None => false
+  }
+}
+
+///|
+fn subsequent_sibling_matches_complex(
+  element : Element,
+  selector : ComplexSelector,
+) -> Bool {
+  let mut sibling = element.next_sibling
+  while true {
+    match sibling {
+      None => break
+      Some(sib) => {
+        if matches_complex(sib, selector) {
+          return true
+        }
+        sibling = sib.next_sibling
+      }
+    }
+  }
+  false
+}
+
+///|
+fn matches_relative_selector(
+  element : Element,
+  relative : RelativeSelector,
+) -> Bool {
+  match relative.combinator {
+    None => descendant_matches_complex(element, relative.selector)
+    Some(Descendant) => descendant_matches_complex(element, relative.selector)
+    Some(Child) => direct_child_matches_complex(element, relative.selector)
+    Some(NextSibling) =>
+      next_sibling_matches_complex(element, relative.selector)
+    Some(SubsequentSibling) =>
+      subsequent_sibling_matches_complex(element, relative.selector)
+  }
+}
+
+///|
+fn matches_has(element : Element, selectors : Array[RelativeSelector]) -> Bool {
+  for relative in selectors {
+    if matches_relative_selector(element, relative) {
+      return true
+    }
+  }
+  false
 }
 
 ///|

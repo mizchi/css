@@ -119,3 +119,18 @@ test "media_query_list_or_semantics" {
   // First query (screen) matches, so whole list matches
   inspect(mq_list.evaluate(env), content="true")
 }
+
+///|
+test "media_query_level_4_or_range_evaluation" {
+  let mq = parse_media_query_list("(width <= 769px) or (width > 1006px)")
+  inspect(mq.evaluate(MediaEnvironment::new(500.0, 600.0)), content="true")
+  inspect(mq.evaluate(MediaEnvironment::new(800.0, 600.0)), content="false")
+  inspect(mq.evaluate(MediaEnvironment::new(1440.0, 600.0)), content="true")
+}
+
+///|
+test "media_query_calc_range_evaluation" {
+  let mq = parse_media_query_list("(width >= calc(40rem + 1px))")
+  inspect(mq.evaluate(MediaEnvironment::new(640.0, 600.0)), content="false")
+  inspect(mq.evaluate(MediaEnvironment::new(641.0, 600.0)), content="true")
+}

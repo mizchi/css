@@ -843,6 +843,22 @@ test "parse @supports condition with function followed by normal rule" {
 }
 
 ///|
+test "parse @supports not light-dark skips fallback block" {
+  let css =
+    #|@supports (color: light-dark(red, red)) {
+    #|  .native { color: light-dark(#000, #fff); }
+    #|}
+    #|@supports not (color: light-dark(tan, tan)) {
+    #|  .fallback { color: red; }
+    #|}
+    #|.outside { color: blue; }
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="2")
+  inspect(stylesheet.rules[0].selector_text, content=".native")
+  inspect(stylesheet.rules[1].selector_text, content=".outside")
+}
+
+///|
 test "parse nested @supports inside @media" {
   let css =
     #|@media screen {

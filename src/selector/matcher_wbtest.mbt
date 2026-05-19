@@ -275,3 +275,44 @@ test "match :not with class - Wikipedia-style body:not(.vector-sticky-header-vis
     content="false",
   )
 }
+
+///|
+test "match :has descendant class" {
+  let base = Element::new("div").add_class("box")
+  let child = Element::new("span").add_class("child").set_parent(base)
+  let elem = { ..base, children: [child] }
+  inspect(matches_selector_text(elem, ".box:has(.child)"), content="true")
+  inspect(matches_selector_text(elem, ".box:has(.missing)"), content="false")
+}
+
+///|
+test "match :has direct child combinator" {
+  let base = Element::new("div").add_class("box")
+  let child = Element::new("span").add_class("child").set_parent(base)
+  let elem = { ..base, children: [child] }
+  inspect(matches_selector_text(elem, ".box:has(> .child)"), content="true")
+  inspect(matches_selector_text(elem, ".box:has(> .missing)"), content="false")
+}
+
+///|
+test "match :has next sibling combinator" {
+  let next = Element::new("span").add_class("next")
+  let elem = { ..Element::new("div"), next_sibling: Some(next) }
+  inspect(matches_selector_text(elem, "div:has(+ .next)"), content="true")
+  inspect(matches_selector_text(elem, "div:has(+ .missing)"), content="false")
+}
+
+///|
+test "match :has selector list with attribute substring" {
+  let base = Element::new("div").add_class("code-example")
+  let child = Element::new("section")
+    .set_attribute("class", "interactive-example-shell")
+    .set_parent(base)
+  let elem = { ..base, children: [child] }
+  inspect(
+    matches_selector_text(
+      elem, ".code-example:has(.hidden, [class*=interactive-example])",
+    ),
+    content="true",
+  )
+}

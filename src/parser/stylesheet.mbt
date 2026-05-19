@@ -159,9 +159,14 @@ fn parse_supports_rule_with_media(
   let mut pos = start + 1 // Skip @supports token
 
   // Skip condition tokens until '{' (handling nested parens)
+  let condition_start = pos
   pos = skip_supports_condition_to_block(tokens, pos)
   if pos >= tokens.length() {
     return pos
+  }
+  let condition_text = tokens_to_string(tokens, condition_start, pos)
+  if !supports_condition_matches(condition_text) {
+    return skip_at_rule(tokens, start)
   }
 
   // Skip '{'
@@ -217,9 +222,14 @@ fn parse_supports_rule(
   let mut pos = start + 1 // Skip @supports token
 
   // Skip condition tokens until '{' (handling nested parens)
+  let condition_start = pos
   pos = skip_supports_condition_to_block(tokens, pos)
   if pos >= tokens.length() {
     return pos
+  }
+  let condition_text = tokens_to_string(tokens, condition_start, pos)
+  if !supports_condition_matches(condition_text) {
+    return skip_at_rule(tokens, start)
   }
 
   // Skip '{'
@@ -314,6 +324,51 @@ fn skip_supports_condition_to_block(
     }
   }
   pos
+}
+
+///|
+fn compact_supports_condition(condition : String) -> String {
+  let lower = condition.to_lower()
+  let out = StringBuilder::new()
+  for i = 0; i < lower.length(); i = i + 1 {
+    let c = lower[i].to_int().unsafe_to_char()
+    if c == ' ' || c == '\t' || c == '\n' {
+      continue
+    }
+    out.write_char(c)
+  }
+  out.to_string()
+}
+
+///|
+fn supports_known_positive_condition(compact : String) -> Bool? {
+  if compact.contains("color:light-dark(") {
+    return Some(true)
+  }
+  None
+}
+
+///|
+fn supports_condition_matches(condition : String) -> Bool {
+  let compact = compact_supports_condition(condition)
+  if compact.has_prefix("not(") && compact.has_suffix(")") {
+    let inner = compact.unsafe_substring(start=4, end=compact.length() - 1)
+    match supports_known_positive_condition(inner) {
+      Some(value) => return !value
+      None => return true
+    }
+  }
+  if compact.has_prefix("not") {
+    let inner = compact.unsafe_substring(start=3, end=compact.length())
+    match supports_known_positive_condition(inner) {
+      Some(value) => return !value
+      None => return true
+    }
+  }
+  match supports_known_positive_condition(compact) {
+    Some(value) => value
+    None => true
+  }
 }
 
 ///|
@@ -998,9 +1053,14 @@ fn parse_supports_rule_with_diagnostics(
   let mut pos = start + 1 // Skip @supports token
 
   // Skip condition tokens until '{' (handling nested parens)
+  let condition_start = pos
   pos = skip_supports_condition_to_block(tokens, pos)
   if pos >= tokens.length() {
     return pos
+  }
+  let condition_text = tokens_to_string(tokens, condition_start, pos)
+  if !supports_condition_matches(condition_text) {
+    return skip_at_rule(tokens, start)
   }
 
   // Skip '{'

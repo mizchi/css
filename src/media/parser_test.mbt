@@ -227,6 +227,30 @@ test "parse range syntax - height" {
 }
 
 ///|
+test "parse top-level or media range as query list" {
+  let mq = parse_media_query_list("(width <= 769px) or (width > 1006px)")
+  inspect(mq.queries.length(), content="2")
+  inspect(
+    mq.queries[0].conditions[0],
+    content="WidthRange(Le, Dimension(769, \"px\"))",
+  )
+  inspect(
+    mq.queries[1].conditions[0],
+    content="WidthRange(Gt, Dimension(1006, \"px\"))",
+  )
+}
+
+///|
+test "parse calc length in media range" {
+  let mq = parse_media_query_list("(width >= calc(40rem + 1px))")
+  inspect(mq.queries.length(), content="1")
+  inspect(
+    mq.queries[0].conditions[0],
+    content="WidthRange(Ge, Dimension(641, \"px\"))",
+  )
+}
+
+///|
 test "parse display-mode" {
   let mq = parse_media_query_list("(display-mode: fullscreen)")
   inspect(mq.queries.length(), content="1")

@@ -9,11 +9,14 @@ pub fn parse_media_query_list(input : String) -> MediaQueryList {
   let queries : Array[MediaQuery] = []
   let parts = split_media_queries(input)
   for part in parts {
-    let trimmed = part.trim().to_owned()
-    if !trimmed.is_empty() {
-      match parse_single_media_query(trimmed) {
-        Some(query) => queries.push(query)
-        None => ()
+    let or_parts = split_media_query_or(part)
+    for or_part in or_parts {
+      let trimmed = or_part.trim().to_owned()
+      if !trimmed.is_empty() {
+        match parse_single_media_query(trimmed) {
+          Some(query) => queries.push(query)
+          None => ()
+        }
       }
     }
   }
@@ -44,6 +47,39 @@ fn split_media_queries(input : String) -> Array[String] {
   let final_str = current.to_string()
   if !final_str.is_empty() {
     result.push(final_str)
+  }
+  result
+}
+
+///|
+fn join_media_tokens(tokens : Array[String]) -> String {
+  let out = StringBuilder::new()
+  for i = 0; i < tokens.length(); i = i + 1 {
+    if i > 0 {
+      out.write_char(' ')
+    }
+    out.write_string(tokens[i])
+  }
+  out.to_string()
+}
+
+///|
+fn split_media_query_or(input : String) -> Array[String] {
+  let result : Array[String] = []
+  let current : Array[String] = []
+  let tokens = tokenize_media_query(input)
+  for token in tokens {
+    if token.to_lower() == "or" {
+      if current.length() > 0 {
+        result.push(join_media_tokens(current))
+        current.clear()
+      }
+    } else {
+      current.push(token)
+    }
+  }
+  if current.length() > 0 {
+    result.push(join_media_tokens(current))
   }
   result
 }
@@ -319,6 +355,11 @@ fn parse_media_value(s : String) -> MediaValue? {
     return None
   }
 
+  match parse_calc_media_value(s) {
+    Some(value) => return Some(value)
+    None => ()
+  }
+
   // Check for ratio (e.g., "16/9")
   let slash_pos = find_char(s, '/')
   if slash_pos > 0 {
@@ -345,6 +386,174 @@ fn parse_media_value(s : String) -> MediaValue? {
 
   // Otherwise, it's an identifier
   Some(Ident(s))
+}
+
+///|
+fn parse_calc_media_value(s : String) -> MediaValue? {
+  let lower = s.to_lower()
+  if !lower.has_prefix("calc(") || !s.has_suffix(")") {
+    return None
+  }
+  let inner = s.unsafe_substring(start=5, end=s.length() - 1)
+  match parse_calc_expr_at(inner, 0) {
+    Some((value, pos)) => {
+      let pos = skip_calc_ws(inner, pos)
+      if pos == inner.length() {
+        Some(Dimension(value, "px"))
+      } else {
+        None
+      }
+    }
+    None => None
+  }
+}
+
+///|
+fn skip_calc_ws(s : String, pos : Int) -> Int {
+  let mut i = pos
+  while i < s.length() {
+    let c = s[i].to_int().unsafe_to_char()
+    if c == ' ' || c == '\t' || c == '\n' {
+      i = i + 1
+    } else {
+      break
+    }
+  }
+  i
+}
+
+///|
+fn parse_calc_expr_at(s : String, pos : Int) -> (Double, Int)? {
+  match parse_calc_term_at(s, pos) {
+    Some((first, next)) => {
+      let mut value = first
+      let mut i = skip_calc_ws(s, next)
+      while i < s.length() {
+        let op = s[i].to_int().unsafe_to_char()
+        if op != '+' && op != '-' {
+          break
+        }
+        match parse_calc_term_at(s, i + 1) {
+          Some((rhs, after_rhs)) => {
+            value = if op == '+' { value + rhs } else { value - rhs }
+            i = skip_calc_ws(s, after_rhs)
+          }
+          None => return None
+        }
+      }
+      Some((value, i))
+    }
+    None => None
+  }
+}
+
+///|
+fn parse_calc_term_at(s : String, pos : Int) -> (Double, Int)? {
+  match parse_calc_factor_at(s, pos) {
+    Some((first, next)) => {
+      let mut value = first
+      let mut i = skip_calc_ws(s, next)
+      while i < s.length() {
+        let op = s[i].to_int().unsafe_to_char()
+        if op != '*' && op != '/' {
+          break
+        }
+        match parse_calc_factor_at(s, i + 1) {
+          Some((rhs, after_rhs)) => {
+            if op == '*' {
+              value = value * rhs
+            } else if rhs != 0.0 {
+              value = value / rhs
+            } else {
+              return None
+            }
+            i = skip_calc_ws(s, after_rhs)
+          }
+          None => return None
+        }
+      }
+      Some((value, i))
+    }
+    None => None
+  }
+}
+
+///|
+fn parse_calc_factor_at(s : String, pos : Int) -> (Double, Int)? {
+  let pos = skip_calc_ws(s, pos)
+  if pos >= s.length() {
+    return None
+  }
+  let c = s[pos].to_int().unsafe_to_char()
+  if c == '+' {
+    return parse_calc_factor_at(s, pos + 1)
+  }
+  if c == '-' {
+    match parse_calc_factor_at(s, pos + 1) {
+      Some((value, next)) => return Some((-value, next))
+      None => return None
+    }
+  }
+  if c == '(' {
+    match parse_calc_expr_at(s, pos + 1) {
+      Some((value, next)) => {
+        let next = skip_calc_ws(s, next)
+        if next < s.length() && s[next].to_int().unsafe_to_char() == ')' {
+          return Some((value, next + 1))
+        }
+        return None
+      }
+      None => return None
+    }
+  }
+  parse_calc_numeric_value_at(s, pos)
+}
+
+///|
+fn parse_calc_numeric_value_at(s : String, pos : Int) -> (Double, Int)? {
+  let mut i = pos
+  let mut saw_digit = false
+  while i < s.length() {
+    let c = s[i].to_int().unsafe_to_char()
+    if c >= '0' && c <= '9' {
+      saw_digit = true
+      i = i + 1
+    } else if c == '.' {
+      i = i + 1
+    } else {
+      break
+    }
+  }
+  if !saw_digit {
+    return None
+  }
+  let num_str = s.unsafe_substring(start=pos, end=i)
+  let value = @string.parse_double(num_str) catch { _ => return None }
+  let unit_start = i
+  while i < s.length() {
+    let c = s[i].to_int().unsafe_to_char()
+    if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '%' {
+      i = i + 1
+    } else {
+      break
+    }
+  }
+  let unit = if i > unit_start {
+    s.unsafe_substring(start=unit_start, end=i).to_lower()
+  } else {
+    ""
+  }
+  let px_value = match unit {
+    "px" | "" => value
+    "em" | "rem" => value * 16.0
+    "pt" => value * 1.333333
+    "pc" => value * 16.0
+    "in" => value * 96.0
+    "cm" => value * 37.8
+    "mm" => value * 3.78
+    _ => value
+  }
+  Some((px_value, i))
 }
 
 ///|
