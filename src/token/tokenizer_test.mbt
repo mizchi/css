@@ -266,3 +266,27 @@ test "tokenize escaped backslash in identifier" {
   let first = tokens[0].to_string()
   assert_true(first.has_prefix("Ident("))
 }
+
+///|
+test "tokenize many delim characters" {
+  let chars = "!@$%^&*?"
+  let tokens = tokenize(chars)
+  // Each becomes a Delim (except @ which becomes AtKeyword if followed by ident)
+  inspect(tokens.length() > 1, content="true")
+}
+
+///|
+test "tokenize string with embedded escape" {
+  let tokens = tokenize("\"a\\\"b\"")
+  // String token should be returned
+  let first = tokens[0].to_string()
+  assert_true(first.has_prefix("String("))
+}
+
+///|
+test "tokenize whitespace-only input" {
+  let tokens = tokenize("   \t\n  ")
+  // Should produce one or two Whitespace tokens then EOF
+  let last = tokens[tokens.length() - 1].to_string()
+  inspect(last, content="EOF")
+}

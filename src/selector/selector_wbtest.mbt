@@ -185,3 +185,49 @@ test "Show for SelectorList" {
   let list = parse_selector_list_text("h1, .title, #main").unwrap()
   inspect(list, content="h1, .title, #main")
 }
+
+///|
+test "Element constructors and accessors" {
+  let plain = Element::new("div")
+  inspect(plain.tag_name, content="div")
+  debug_inspect(plain.id, content="None")
+  inspect(plain.classes.length(), content="0")
+  let with_id = Element::with_id("section", "main")
+  debug_inspect(with_id.id, content="Some(\"main\")")
+  let with_classes = Element::with_classes("a", ["btn", "primary"])
+  inspect(with_classes.classes.length(), content="2")
+}
+
+///|
+test "Element::add_class, set_id, set_attribute, add_custom_state" {
+  let e = Element::new("div")
+    .set_id("hero")
+    .add_class("card")
+    .add_class("primary")
+    .set_attribute("data-x", "1")
+    .add_custom_state("open")
+  debug_inspect(e.id, content="Some(\"hero\")")
+  assert_true(e.has_class("card"))
+  assert_true(e.has_class("primary"))
+  assert_false(e.has_class("missing"))
+  debug_inspect(e.get_attribute("data-x"), content="Some(\"1\")")
+  debug_inspect(e.get_attribute("missing"), content="None")
+  inspect(e.custom_states.length(), content="1")
+}
+
+///|
+test "Element::is_first_child / is_last_child" {
+  let first = Element::new("li").set_sibling_info(1, 5)
+  assert_true(first.is_first_child())
+  assert_false(first.is_last_child())
+  let last = Element::new("li").set_sibling_info(5, 5)
+  assert_false(last.is_first_child())
+  assert_true(last.is_last_child())
+}
+
+///|
+test "Element::set_parent" {
+  let parent = Element::new("section").add_class("main")
+  let child = Element::new("p").set_parent(parent)
+  debug_inspect(child.parent is Some(_), content="true")
+}

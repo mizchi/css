@@ -273,6 +273,77 @@ test "Show for ColorScheme" {
 }
 
 ///|
+test "media query - boolean width and height match anything" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let mq_w = parse_media_query_list("(width)")
+  inspect(mq_w.evaluate(env), content="true")
+  let mq_h = parse_media_query_list("(height)")
+  inspect(mq_h.evaluate(env), content="true")
+}
+
+///|
+test "media query - width equals exact" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let mq = parse_media_query_list("(width: 800px)")
+  inspect(mq.evaluate(env), content="true")
+  let mq_diff = parse_media_query_list("(width: 900px)")
+  inspect(mq_diff.evaluate(env), content="false")
+}
+
+///|
+test "media query - aspect ratio with 0 height returns false" {
+  let env_zero : MediaEnvironment = {
+    viewport_width: 800.0,
+    viewport_height: 0.0,
+    device_pixel_ratio: 1.0,
+    color_scheme: Light,
+  }
+  let mq = parse_media_query_list("(min-aspect-ratio: 1/1)")
+  inspect(mq.evaluate(env_zero), content="false")
+}
+
+///|
+test "media query - in/cm/mm units" {
+  let env = MediaEnvironment::new(192.0, 600.0)
+  // 192px = 2in
+  let two_in = parse_media_query_list("(min-width: 2in)")
+  inspect(two_in.evaluate(env), content="true")
+  let three_in = parse_media_query_list("(min-width: 3in)")
+  inspect(three_in.evaluate(env), content="false")
+  let cm = parse_media_query_list("(min-width: 5cm)")
+  // 5cm ≈ 189px <= 192
+  inspect(cm.evaluate(env), content="true")
+  let mm = parse_media_query_list("(min-width: 100mm)")
+  // 100mm ≈ 378px > 192
+  inspect(mm.evaluate(env), content="false")
+}
+
+///|
+test "media query - resolution dpcm unit" {
+  let env : MediaEnvironment = {
+    viewport_width: 800.0,
+    viewport_height: 600.0,
+    device_pixel_ratio: 1.0,
+    color_scheme: Light,
+  }
+  let mq = parse_media_query_list("(min-resolution: 37.8dpcm)")
+  // 37.8 dpcm / 37.8 = 1.0 dppx, so >= 1.0 matches
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "media query - x unit for resolution" {
+  let env : MediaEnvironment = {
+    viewport_width: 800.0,
+    viewport_height: 600.0,
+    device_pixel_ratio: 2.0,
+    color_scheme: Light,
+  }
+  let mq = parse_media_query_list("(min-resolution: 1.5x)")
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
 test "various length units in width queries" {
   let env = MediaEnvironment::new(320.0, 600.0)
   // 20em == 320px (at 16px base)

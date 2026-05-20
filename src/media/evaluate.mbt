@@ -241,21 +241,15 @@ fn compare_value(
 }
 
 ///|
-/// Compare value with swapped semantics for range syntax
-/// (width >= 500px) means actual >= query
+/// Compare value with explicit range-syntax operator (e.g., width >= 500px).
+/// Identical semantics to `compare_value`; kept as a thin alias for clarity at
+/// call sites that came from the parser's range syntax.
 fn compare_value_with_op(
   query_value : MediaValue,
   actual : Double,
   op : RangeOp,
 ) -> Bool {
-  let query_pixels = to_pixels(query_value)
-  match op {
-    RangeOp::Eq => (actual - query_pixels).abs() < 0.01
-    RangeOp::Lt => actual < query_pixels
-    RangeOp::Le => actual <= query_pixels
-    RangeOp::Gt => actual > query_pixels
-    RangeOp::Ge => actual >= query_pixels
-  }
+  compare_value(query_value, actual, op)
 }
 
 ///|
