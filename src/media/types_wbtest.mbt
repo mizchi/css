@@ -138,3 +138,116 @@ test "Show MediaQuery and MediaQueryList" {
   let s2 = list.to_string()
   assert_true(s2.contains("queries: ["))
 }
+
+///|
+test "parse_media_query_list - boolean features" {
+  let mq = parse_media_query_list("(color)")
+  inspect(mq.queries[0].conditions[0], content="Color")
+  let mq2 = parse_media_query_list("(hover)")
+  inspect(mq2.queries[0].conditions[0], content="Hover")
+  let mq3 = parse_media_query_list("(grid)")
+  inspect(mq3.queries[0].conditions[0], content="Grid")
+  let mq4 = parse_media_query_list("(monochrome)")
+  inspect(mq4.queries[0].conditions[0], content="Monochrome")
+  let mq5 = parse_media_query_list("(scripting)")
+  inspect(mq5.queries[0].conditions[0], content="Scripting")
+  let mq6 = parse_media_query_list("(pointer)")
+  inspect(mq6.queries[0].conditions[0], content="Pointer")
+  let mq7 = parse_media_query_list("(update)")
+  inspect(mq7.queries[0].conditions[0], content="Update")
+}
+
+///|
+test "parse_media_query_list - range syntax operators" {
+  let lt = parse_media_query_list("(width < 600px)")
+  assert_true(lt.queries[0].conditions[0].to_string().contains("Lt"))
+  let le = parse_media_query_list("(width <= 600px)")
+  assert_true(le.queries[0].conditions[0].to_string().contains("Le"))
+  let gt = parse_media_query_list("(width > 600px)")
+  assert_true(gt.queries[0].conditions[0].to_string().contains("Gt"))
+  let ge = parse_media_query_list("(width >= 600px)")
+  assert_true(ge.queries[0].conditions[0].to_string().contains("Ge"))
+  let eq = parse_media_query_list("(width = 600px)")
+  assert_true(eq.queries[0].conditions[0].to_string().contains("Eq"))
+}
+
+///|
+test "parse_media_query_list - height range" {
+  let mq = parse_media_query_list("(height > 480px)")
+  let s = mq.queries[0].conditions[0].to_string()
+  assert_true(s.contains("HeightRange"))
+}
+
+///|
+test "parse_media_query_list - resolution" {
+  let dpi = parse_media_query_list("(min-resolution: 96dpi)")
+  let s = dpi.queries[0].conditions[0].to_string()
+  assert_true(s.contains("MinResolution"))
+  let dppx = parse_media_query_list("(resolution: 2dppx)")
+  let s2 = dppx.queries[0].conditions[0].to_string()
+  assert_true(s2.contains("Resolution"))
+}
+
+///|
+test "parse_media_query_list - aspect-ratio" {
+  let mq = parse_media_query_list("(aspect-ratio: 16/9)")
+  let s = mq.queries[0].conditions[0].to_string()
+  assert_true(s.contains("AspectRatio"))
+}
+
+///|
+test "parse_media_query_list - orientation parses both" {
+  let portrait = parse_media_query_list("(orientation: portrait)")
+  inspect(
+    portrait.queries[0].conditions[0],
+    content="Orientation(\"portrait\")",
+  )
+  let landscape = parse_media_query_list("(orientation: landscape)")
+  inspect(
+    landscape.queries[0].conditions[0],
+    content="Orientation(\"landscape\")",
+  )
+}
+
+///|
+test "parse_media_query_list - prefers-reduced-motion" {
+  let mq = parse_media_query_list("(prefers-reduced-motion: reduce)")
+  inspect(
+    mq.queries[0].conditions[0],
+    content="PrefersReducedMotion(\"reduce\")",
+  )
+}
+
+///|
+test "parse_media_query_list - display-mode" {
+  let mq = parse_media_query_list("(display-mode: standalone)")
+  inspect(mq.queries[0].conditions[0], content="DisplayMode(\"standalone\")")
+}
+
+///|
+test "parse_media_query_list - 'all' media type" {
+  let mq = parse_media_query_list("all")
+  debug_inspect(mq.queries[0].media_type, content="Some(All)")
+}
+
+///|
+test "parse_media_query_list - empty input is empty list" {
+  let mq = parse_media_query_list("")
+  inspect(mq.is_empty(), content="true")
+}
+
+///|
+test "parse_media_query_list - 'and' joins conditions" {
+  let mq = parse_media_query_list(
+    "screen and (min-width: 600px) and (max-width: 1200px)",
+  )
+  inspect(mq.queries.length(), content="1")
+  inspect(mq.queries[0].conditions.length(), content="2")
+}
+
+///|
+test "parse_media_query_list - unknown custom feature" {
+  let mq = parse_media_query_list("(future-feature: 42)")
+  let s = mq.queries[0].conditions[0].to_string()
+  assert_true(s.contains("Custom"))
+}

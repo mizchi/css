@@ -390,6 +390,85 @@ test "pseudo-elements do not match real elements" {
 }
 
 ///|
+test "match :has - subsequent sibling combinator" {
+  let next = Element::new("p")
+  let middle = { ..Element::new("span"), next_sibling: Some(next) }
+  let elem = { ..Element::new("div"), next_sibling: Some(middle) }
+  inspect(matches_selector_text(elem, "div:has(~ p)"), content="true")
+  inspect(matches_selector_text(elem, "div:has(~ .missing)"), content="false")
+}
+
+///|
+test "match :has - descendant via implicit combinator" {
+  let leaf = Element::new("span").add_class("target")
+  let nested = { ..Element::new("p"), children: [leaf] }
+  let root = { ..Element::new("div"), children: [nested] }
+  inspect(matches_selector_text(root, "div:has(.target)"), content="true")
+  inspect(matches_selector_text(root, "div:has(.absent)"), content="false")
+}
+
+///|
+test "match :nth-last-child" {
+  let last = Element::new("li").set_sibling_info(5, 5)
+  inspect(matches_selector_text(last, ":nth-last-child(1)"), content="true")
+  let third_from_end = Element::new("li").set_sibling_info(3, 5)
+  inspect(
+    matches_selector_text(third_from_end, ":nth-last-child(3)"),
+    content="true",
+  )
+  let first = Element::new("li").set_sibling_info(1, 5)
+  inspect(matches_selector_text(first, ":nth-last-child(5)"), content="true")
+}
+
+///|
+test "match :nth-child with negative coefficient" {
+  // :nth-child(-n+3) matches 1st, 2nd, 3rd
+  let first = Element::new("li").set_sibling_info(1, 5)
+  let third = Element::new("li").set_sibling_info(3, 5)
+  let fourth = Element::new("li").set_sibling_info(4, 5)
+  inspect(matches_selector_text(first, ":nth-child(-n+3)"), content="true")
+  inspect(matches_selector_text(third, ":nth-child(-n+3)"), content="true")
+  inspect(matches_selector_text(fourth, ":nth-child(-n+3)"), content="false")
+}
+
+///|
+test "match user-action pseudo-classes are false for static matching" {
+  let elem = Element::new("button")
+  inspect(matches_selector_text(elem, "button:hover"), content="false")
+  inspect(matches_selector_text(elem, "button:active"), content="false")
+  inspect(matches_selector_text(elem, "button:focus"), content="false")
+  inspect(matches_selector_text(elem, "button:focus-visible"), content="false")
+  inspect(matches_selector_text(elem, "button:focus-within"), content="false")
+}
+
+///|
+test "match form pseudo-classes return false in static matching" {
+  let input = Element::new("input")
+  inspect(matches_selector_text(input, "input:enabled"), content="false")
+  inspect(matches_selector_text(input, "input:disabled"), content="false")
+  inspect(matches_selector_text(input, "input:checked"), content="false")
+  inspect(matches_selector_text(input, "input:required"), content="false")
+  inspect(matches_selector_text(input, "input:optional"), content="false")
+  inspect(matches_selector_text(input, "input:valid"), content="false")
+  inspect(matches_selector_text(input, "input:invalid"), content="false")
+  inspect(matches_selector_text(input, "input:read-only"), content="false")
+  inspect(matches_selector_text(input, "input:read-write"), content="false")
+  inspect(matches_selector_text(input, "input:indeterminate"), content="false")
+}
+
+///|
+test "link pseudo-class requires href" {
+  let no_href = Element::new("a")
+  inspect(matches_selector_text(no_href, "a:link"), content="false")
+  let with_href = Element::new("a").set_attribute("href", "#")
+  inspect(matches_selector_text(with_href, "a:link"), content="true")
+  inspect(matches_selector_text(with_href, "a:any-link"), content="true")
+  // non-anchor element with href doesn't match
+  let div_with_href = Element::new("div").set_attribute("href", "#")
+  inspect(matches_selector_text(div_with_href, ":link"), content="false")
+}
+
+///|
 test "match :has selector list with attribute substring" {
   let base = Element::new("div").add_class("code-example")
   let child = Element::new("section")

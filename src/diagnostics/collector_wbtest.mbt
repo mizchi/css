@@ -251,6 +251,123 @@ test "affects_layout flags layout-affecting and unknown" {
 }
 
 ///|
+test "support level - large sweep of visual-only properties" {
+  let visual_props = [
+    "background-image", "background-position", "background-size",
+    "background-repeat", "background-attachment", "background-origin",
+    "background-clip", "transition", "transition-property",
+    "transition-duration", "transition-timing-function", "transition-delay",
+    "animation", "animation-name", "animation-duration",
+    "animation-timing-function", "animation-delay",
+    "animation-iteration-count", "animation-direction",
+    "animation-fill-mode", "animation-play-state", "filter", "backdrop-filter",
+    "outline-width", "outline-style", "outline-color", "outline-offset",
+    "pointer-events", "user-select", "scroll-behavior", "scroll-snap-type",
+    "scroll-margin", "scroll-padding", "overflow-anchor", "will-change",
+    "mask", "mask-image", "mix-blend-mode", "isolation", "object-fit",
+    "object-position", "appearance", "resize", "caret-color",
+    "text-rendering", "font-feature-settings", "font-variant",
+    "font-variant-ligatures", "font-kerning", "font-optical-sizing",
+    "font-stretch", "font-synthesis", "font-display", "touch-action",
+    "overflow-clip-margin", "overscroll-behavior", "text-emphasis",
+    "text-orientation", "text-combine-upright", "backface-visibility",
+    "fill", "stroke", "stroke-width", "accent-color", "color-scheme",
+    "forced-color-adjust", "print-color-adjust", "line-clamp", "marker",
+    "marker-start", "marker-end", "text-transform", "text-indent",
+    "white-space", "word-break", "word-wrap", "overflow-wrap", "hyphens",
+    "list-style", "list-style-type", "list-style-position",
+    "list-style-image", "table-layout", "border-spacing", "caption-side",
+    "empty-cells", "quotes", "content", "counter-reset", "counter-increment",
+    "transform-origin", "transform-style", "perspective",
+    "perspective-origin", "text-decoration", "text-decoration-line",
+    "text-decoration-color", "text-decoration-style",
+    "text-decoration-thickness", "text-shadow", "box-shadow",
+  ]
+  for p in visual_props {
+    let level = get_support_level(p)
+    let s = level.to_string()
+    assert_true(s == "UnsupportedVisual")
+  }
+}
+
+///|
+test "support level - sweep of supported logical properties" {
+  let logical = [
+    "margin-inline", "margin-inline-start", "margin-inline-end",
+    "margin-block", "margin-block-start", "margin-block-end",
+    "padding-inline", "padding-inline-start", "padding-inline-end",
+    "padding-block", "padding-block-start", "padding-block-end",
+    "inset-inline", "inset-inline-start", "inset-inline-end",
+    "inset-block", "inset-block-start", "inset-block-end",
+    "border-inline", "border-inline-start", "border-inline-end",
+    "border-block", "border-block-start", "border-block-end",
+    "border-inline-width", "border-block-width", "inline-size",
+    "block-size", "min-inline-size", "min-block-size",
+    "max-inline-size", "max-block-size",
+  ]
+  for p in logical {
+    inspect(get_support_level(p), content="Supported")
+  }
+}
+
+///|
+test "support level - sweep of layout-supported flex/grid" {
+  let layout = [
+    "flex-direction", "flex-wrap", "flex-flow", "justify-content",
+    "align-items", "align-content", "flex", "flex-grow", "flex-shrink",
+    "flex-basis", "align-self", "order", "grid-template-rows",
+    "grid-template-columns", "grid-auto-rows", "grid-auto-columns",
+    "grid-auto-flow", "grid-row-start", "grid-row-end",
+    "grid-column-start", "grid-column-end", "grid-row", "grid-column",
+    "grid-area", "row-gap", "column-gap", "grid-gap",
+  ]
+  for p in layout {
+    inspect(get_support_level(p), content="Supported")
+  }
+}
+
+///|
+test "support level - sweep of more layout-affecting" {
+  let layout = [
+    "column-count", "column-width", "break-before", "break-after",
+    "break-inside", "page-break-before", "page-break-after",
+    "page-break-inside", "orphans", "widows", "shape-margin",
+    "shape-image-threshold",
+  ]
+  for p in layout {
+    inspect(get_support_level(p), content="UnsupportedLayout")
+  }
+}
+
+///|
+test "support level - partial place properties" {
+  inspect(
+    get_support_level("place-content"),
+    content="Partial(shorthand for align/justify)",
+  )
+  inspect(
+    get_support_level("place-items"),
+    content="Partial(shorthand for align/justify)",
+  )
+  inspect(
+    get_support_level("place-self"),
+    content="Partial(shorthand for align/justify)",
+  )
+  inspect(
+    get_support_level("grid-template-areas"),
+    content="Partial(basic support only)",
+  )
+  inspect(
+    get_support_level("grid-template"),
+    content="Partial(shorthand parsing limited)",
+  )
+  inspect(
+    get_support_level("grid"),
+    content="Partial(shorthand parsing limited)",
+  )
+}
+
+///|
 test "Show impls for SupportLevel and Severity" {
   inspect(SupportLevel::Supported, content="Supported")
   inspect(SupportLevel::Partial("limited"), content="Partial(limited)")

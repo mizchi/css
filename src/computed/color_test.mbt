@@ -184,3 +184,94 @@ test "CssColorValue Show outputs" {
   inspect(@computed.parse_color("currentColor").to_string(), content="currentColor")
   inspect(@computed.parse_color("inherit").to_string(), content="inherit")
 }
+
+///|
+test "parse_color - large named color set" {
+  // Covers a wide swath of named colors to exercise the named-color table.
+  let names = [
+    "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige",
+    "bisque", "blanchedalmond", "blueviolet", "brown", "burlywood",
+    "cadetblue", "chartreuse", "chocolate", "coral", "cornflowerblue",
+    "cornsilk", "crimson", "cyan", "darkblue", "darkcyan", "darkgoldenrod",
+    "darkgray", "darkgreen", "darkgrey", "darkkhaki", "darkmagenta",
+    "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon",
+    "darkseagreen", "darkslateblue", "darkslategray", "darkslategrey",
+    "darkturquoise", "darkviolet", "deeppink", "deepskyblue", "dimgray",
+    "dimgrey", "dodgerblue", "firebrick", "floralwhite", "forestgreen",
+    "fuchsia", "gainsboro", "ghostwhite", "gold", "goldenrod", "gray",
+    "greenyellow", "grey", "honeydew", "hotpink", "indianred", "indigo",
+    "ivory", "khaki", "lavender", "lavenderblush", "lawngreen",
+    "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
+    "lightgoldenrodyellow", "lightgray", "lightgreen", "lightgrey",
+    "lightpink", "lightsalmon", "lightseagreen", "lightskyblue",
+    "lightslategray", "lightslategrey", "lightsteelblue", "lightyellow",
+    "lime", "limegreen", "linen", "magenta", "maroon", "mediumaquamarine",
+    "mediumblue", "mediumorchid", "mediumpurple", "mediumseagreen",
+    "mediumslateblue", "mediumspringgreen", "mediumturquoise",
+    "mediumvioletred", "midnightblue", "mintcream", "mistyrose", "moccasin",
+    "navajowhite", "navy", "oldlace", "olive", "olivedrab", "orange",
+    "orangered", "orchid", "palegoldenrod", "palegreen", "paleturquoise",
+    "palevioletred", "papayawhip", "peachpuff", "peru", "pink", "plum",
+    "powderblue", "purple", "rebeccapurple", "rosybrown", "royalblue",
+    "saddlebrown", "salmon", "sandybrown", "seagreen", "seashell", "sienna",
+    "silver", "skyblue", "slateblue", "slategray", "slategrey", "snow",
+    "springgreen", "steelblue", "tan", "teal", "thistle", "tomato",
+    "turquoise", "violet", "wheat", "whitesmoke", "yellow", "yellowgreen",
+  ]
+  for n in names {
+    let v = @computed.parse_color(n)
+    inspect(v.is_resolved(), content="true")
+  }
+}
+
+///|
+test "parse_color - rgb percentage alpha" {
+  let c = resolved("rgba(255, 0, 0, 50%)")
+  inspect(c.r, content="255")
+  // 50% / 100 = 0.5
+  inspect(c.a, content="0.5")
+}
+
+///|
+test "parse_color - rgb 0-255 alpha out of range coerced" {
+  let c = resolved("rgba(255, 0, 0, 128)")
+  // alpha > 1.0 is divided by 255 (since "128" treated as 0-255 scale)
+  let expected = 128.0 / 255.0
+  assert_true((c.a - expected).abs() < 0.01)
+}
+
+///|
+test "parse_color - unknown name resolves to transparent" {
+  let c = resolved("definitely-not-a-color")
+  inspect(c.a, content="0")
+}
+
+///|
+test "parse_color - hex 5 digit is invalid" {
+  let c = resolved("#abcde")
+  // Falls through to transparent
+  inspect(c.a, content="0")
+}
+
+///|
+test "parse_color - rgb without closing paren is invalid" {
+  let c = resolved("rgb(10, 20, 30")
+  // Falls through
+  inspect(c.a, content="0")
+}
+
+///|
+test "parse_color - mixed-case hex" {
+  let c = resolved("#FfAa11")
+  inspect(c.r, content="255")
+  inspect(c.g, content="170")
+  inspect(c.b, content="17")
+}
+
+///|
+test "parse_color - radial-gradient and conic-gradient are transparent" {
+  inspect(resolved("radial-gradient(red, blue)").a, content="0")
+  inspect(resolved("conic-gradient(red, blue)").a, content="0")
+  inspect(resolved("repeating-linear-gradient(red, blue)").a, content="0")
+  inspect(resolved("repeating-radial-gradient(red, blue)").a, content="0")
+}
