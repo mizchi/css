@@ -101,6 +101,7 @@ pub fn SelectorIndex::new() -> Self
 pub struct Stylesheet {
   rules : Array[CSSRule]
   origin : Origin
+  mut cached_index : SelectorIndex?
 }
 pub fn Stylesheet::add_rule(Self, String, @selector.ComplexSelector, Array[Declaration]) -> Unit
 pub fn Stylesheet::add_rule_with_media(Self, String, @selector.ComplexSelector, Array[Declaration], @media.MediaQueryList) -> Unit

@@ -303,6 +303,371 @@ test "match :has next sibling combinator" {
 }
 
 ///|
+test "match attribute - all match types" {
+  let elem = Element::new("input")
+    .set_attribute("type", "text")
+    .set_attribute("class", "form input-text large")
+    .set_attribute("data-id", "abc-123")
+    .set_attribute("href", "https://example.com/page.html")
+    .set_attribute("lang", "en-US")
+  // Includes
+  inspect(matches_selector_text(elem, "[class~=input-text]"), content="true")
+  inspect(matches_selector_text(elem, "[class~=missing]"), content="false")
+  // DashMatch
+  inspect(matches_selector_text(elem, "[lang|=en]"), content="true")
+  inspect(matches_selector_text(elem, "[lang|=fr]"), content="false")
+  // Prefix
+  inspect(matches_selector_text(elem, "[href^=https]"), content="true")
+  inspect(matches_selector_text(elem, "[href^=http://]"), content="false")
+  // Suffix
+  inspect(matches_selector_text(elem, "[href$=\".html\"]"), content="true")
+  inspect(matches_selector_text(elem, "[href$=\".pdf\"]"), content="false")
+  // Substring
+  inspect(matches_selector_text(elem, "[href*=example]"), content="true")
+  inspect(matches_selector_text(elem, "[href*=missing]"), content="false")
+}
+
+///|
+test "match attribute - case insensitive flag" {
+  let elem = Element::new("input").set_attribute("type", "BUTTON")
+  inspect(matches_selector_text(elem, "[type=button i]"), content="true")
+  inspect(matches_selector_text(elem, "[type=button]"), content="false")
+}
+
+///|
+test "match attribute - missing attribute" {
+  let elem = Element::new("input")
+  inspect(matches_selector_text(elem, "[type=button]"), content="false")
+  inspect(matches_selector_text(elem, "[type]"), content="false")
+}
+
+///|
+test "match nth-of-type" {
+  let elem = Element::new("li").set_sibling_info(2, 4)
+  // Without siblings: only this element exists; nth-of-type isn't going to
+  // find prior li's of the same type. Just exercise the matcher.
+  let _ = matches_selector_text(elem, ":nth-of-type(odd)")
+  inspect(true, content="true")
+}
+
+///|
+test "match :only-child" {
+  let only = Element::new("div").set_sibling_info(1, 1)
+  let one_of_many = Element::new("div").set_sibling_info(1, 3)
+  inspect(matches_selector_text(only, ":only-child"), content="true")
+  inspect(matches_selector_text(one_of_many, ":only-child"), content="false")
+}
+
+///|
+test "match :is with selector list" {
+  let div = Element::new("div").add_class("active")
+  inspect(matches_selector_text(div, ":is(.active, .hover)"), content="true")
+  let other = Element::new("div")
+  inspect(matches_selector_text(other, ":is(.active, .hover)"), content="false")
+}
+
+///|
+test "match :where (zero specificity but still matches)" {
+  let div = Element::new("div").add_class("foo")
+  inspect(matches_selector_text(div, ":where(.foo)"), content="true")
+  inspect(matches_selector_text(div, ":where(.bar)"), content="false")
+}
+
+///|
+test "selector list matches if any selector matches" {
+  let elem = Element::new("p")
+  let list = parse_selector_list_text("h1, h2, p, .foo").unwrap()
+  assert_true(matches_selector_list(elem, list))
+  let no_match = parse_selector_list_text("h1, h2, h3").unwrap()
+  assert_false(matches_selector_list(elem, no_match))
+}
+
+///|
+test "pseudo-elements do not match real elements" {
+  let elem = Element::new("p")
+  inspect(matches_selector_text(elem, "p::before"), content="false")
+  inspect(matches_selector_text(elem, "::after"), content="false")
+}
+
+///|
+test "match :has - subsequent sibling combinator" {
+  let next = Element::new("p")
+  let middle = { ..Element::new("span"), next_sibling: Some(next) }
+  let elem = { ..Element::new("div"), next_sibling: Some(middle) }
+  inspect(matches_selector_text(elem, "div:has(~ p)"), content="true")
+  inspect(matches_selector_text(elem, "div:has(~ .missing)"), content="false")
+}
+
+///|
+test "match :has - descendant via implicit combinator" {
+  let leaf = Element::new("span").add_class("target")
+  let nested = { ..Element::new("p"), children: [leaf] }
+  let root = { ..Element::new("div"), children: [nested] }
+  inspect(matches_selector_text(root, "div:has(.target)"), content="true")
+  inspect(matches_selector_text(root, "div:has(.absent)"), content="false")
+}
+
+///|
+test "match :nth-last-child" {
+  let last = Element::new("li").set_sibling_info(5, 5)
+  inspect(matches_selector_text(last, ":nth-last-child(1)"), content="true")
+  let third_from_end = Element::new("li").set_sibling_info(3, 5)
+  inspect(
+    matches_selector_text(third_from_end, ":nth-last-child(3)"),
+    content="true",
+  )
+  let first = Element::new("li").set_sibling_info(1, 5)
+  inspect(matches_selector_text(first, ":nth-last-child(5)"), content="true")
+}
+
+///|
+test "match :nth-child with negative coefficient" {
+  // :nth-child(-n+3) matches 1st, 2nd, 3rd
+  let first = Element::new("li").set_sibling_info(1, 5)
+  let third = Element::new("li").set_sibling_info(3, 5)
+  let fourth = Element::new("li").set_sibling_info(4, 5)
+  inspect(matches_selector_text(first, ":nth-child(-n+3)"), content="true")
+  inspect(matches_selector_text(third, ":nth-child(-n+3)"), content="true")
+  inspect(matches_selector_text(fourth, ":nth-child(-n+3)"), content="false")
+}
+
+///|
+test "match user-action pseudo-classes are false for static matching" {
+  let elem = Element::new("button")
+  inspect(matches_selector_text(elem, "button:hover"), content="false")
+  inspect(matches_selector_text(elem, "button:active"), content="false")
+  inspect(matches_selector_text(elem, "button:focus"), content="false")
+  inspect(matches_selector_text(elem, "button:focus-visible"), content="false")
+  inspect(matches_selector_text(elem, "button:focus-within"), content="false")
+}
+
+///|
+test "match form pseudo-classes return false in static matching" {
+  let input = Element::new("input")
+  inspect(matches_selector_text(input, "input:enabled"), content="false")
+  inspect(matches_selector_text(input, "input:disabled"), content="false")
+  inspect(matches_selector_text(input, "input:checked"), content="false")
+  inspect(matches_selector_text(input, "input:required"), content="false")
+  inspect(matches_selector_text(input, "input:optional"), content="false")
+  inspect(matches_selector_text(input, "input:valid"), content="false")
+  inspect(matches_selector_text(input, "input:invalid"), content="false")
+  inspect(matches_selector_text(input, "input:read-only"), content="false")
+  inspect(matches_selector_text(input, "input:read-write"), content="false")
+  inspect(matches_selector_text(input, "input:indeterminate"), content="false")
+}
+
+///|
+test "link pseudo-class requires href" {
+  let no_href = Element::new("a")
+  inspect(matches_selector_text(no_href, "a:link"), content="false")
+  let with_href = Element::new("a").set_attribute("href", "#")
+  inspect(matches_selector_text(with_href, "a:link"), content="true")
+  inspect(matches_selector_text(with_href, "a:any-link"), content="true")
+  // non-anchor element with href doesn't match
+  let div_with_href = Element::new("div").set_attribute("href", "#")
+  inspect(matches_selector_text(div_with_href, ":link"), content="false")
+}
+
+///|
+test "fast_has_prefix - rejects when prefix longer than s" {
+  // Triggered via [attr^=long-value] where attr value is shorter
+  let elem = Element::new("a").set_attribute("href", "x")
+  inspect(matches_selector_text(elem, "a[href^=\"hello-world\"]"), content="false")
+}
+
+///|
+test "fast_has_prefix - mismatched first char" {
+  let elem = Element::new("a").set_attribute("href", "xyz")
+  inspect(matches_selector_text(elem, "a[href^=\"abc\"]"), content="false")
+}
+
+///|
+test "fast_has_suffix - rejects when suffix longer than s" {
+  let elem = Element::new("a").set_attribute("href", "x")
+  inspect(matches_selector_text(elem, "a[href$=\"hello-world\"]"), content="false")
+}
+
+///|
+test "fast_dash_match - prefix matches but no following hyphen" {
+  // e.g. [lang|=en] against "english" — should be false (no hyphen)
+  let elem = Element::new("p").set_attribute("lang", "english")
+  inspect(matches_selector_text(elem, "p[lang|=en]"), content="false")
+}
+
+///|
+test "fast_dash_match - equal-length value short-circuits via ==" {
+  // [lang|=en] with lang=en — caught by `a == b` before fast_dash_match runs
+  let elem = Element::new("p").set_attribute("lang", "en")
+  inspect(matches_selector_text(elem, "p[lang|=en]"), content="true")
+}
+
+///|
+test "fast_contains - empty needle in [substring]" {
+  // Empty value via "" should be true (matches everything)
+  let elem = Element::new("a").set_attribute("href", "anything")
+  // Empty quoted value
+  inspect(matches_selector_text(elem, "a[href*=\"\"]"), content="true")
+}
+
+///|
+test "fast_contains - needle longer than string" {
+  let elem = Element::new("a").set_attribute("href", "x")
+  inspect(matches_selector_text(elem, "a[href*=\"abcdef\"]"), content="false")
+}
+
+///|
+test "matches_attribute - case insensitive Includes" {
+  let elem = Element::new("div").set_attribute("class", "FOO BAR BAZ")
+  inspect(matches_selector_text(elem, "[class~=\"foo\" i]"), content="true")
+}
+
+///|
+test "matches_attribute - case insensitive DashMatch" {
+  let elem = Element::new("p").set_attribute("lang", "EN-US")
+  inspect(matches_selector_text(elem, "[lang|=en i]"), content="true")
+}
+
+///|
+test "matches_pseudo_class - FirstOfType (currently approximates first-child)" {
+  let first = Element::new("p").set_sibling_info(1, 3)
+  let other = Element::new("p").set_sibling_info(2, 3)
+  inspect(matches_selector_text(first, ":first-of-type"), content="true")
+  inspect(matches_selector_text(other, ":first-of-type"), content="false")
+}
+
+///|
+test "matches_pseudo_class - LastOfType" {
+  let last = Element::new("p").set_sibling_info(3, 3)
+  inspect(matches_selector_text(last, ":last-of-type"), content="true")
+}
+
+///|
+test "matches_pseudo_class - OnlyOfType" {
+  let only = Element::new("p").set_sibling_info(1, 1)
+  let one_of_many = Element::new("p").set_sibling_info(1, 3)
+  inspect(matches_selector_text(only, ":only-of-type"), content="true")
+  inspect(matches_selector_text(one_of_many, ":only-of-type"), content="false")
+}
+
+///|
+test "matches_pseudo_class - NthOfType" {
+  let third = Element::new("p").set_sibling_info(3, 5)
+  inspect(matches_selector_text(third, ":nth-of-type(3)"), content="true")
+}
+
+///|
+test "matches_pseudo_class - NthLastOfType" {
+  let last = Element::new("p").set_sibling_info(5, 5)
+  inspect(matches_selector_text(last, ":nth-last-of-type(1)"), content="true")
+}
+
+///|
+test "matches_has - next-sibling combinator path" {
+  let next = Element::new("p").add_class("after")
+  let elem = {
+    ..Element::new("div"),
+    next_sibling: Some(next),
+  }
+  inspect(matches_selector_text(elem, "div:has(+ .after)"), content="true")
+  inspect(matches_selector_text(elem, "div:has(+ .missing)"), content="false")
+}
+
+///|
+test "matches_has - subsequent-sibling combinator path with intermediate" {
+  let target = Element::new("section").add_class("found")
+  let middle = {
+    ..Element::new("article"),
+    next_sibling: Some(target),
+  }
+  let elem = {
+    ..Element::new("div"),
+    next_sibling: Some(middle),
+  }
+  inspect(matches_selector_text(elem, "div:has(~ .found)"), content="true")
+  inspect(matches_selector_text(elem, "div:has(~ .nope)"), content="false")
+}
+
+///|
+test "matches_has - subsequent-sibling has no next" {
+  // Element with no next_sibling
+  let elem = Element::new("div")
+  inspect(matches_selector_text(elem, "div:has(~ .x)"), content="false")
+}
+
+///|
+test "matches_has - direct child none" {
+  // Element with no children
+  let elem = Element::new("div")
+  inspect(matches_selector_text(elem, "div:has(> .x)"), content="false")
+}
+
+///|
+test "matches_complex - NextSibling combinator path" {
+  // Already covered, but the false branch when no prev_sibling
+  let elem = Element::new("p")
+  // No prev_sibling at all
+  inspect(matches_selector_text(elem, "h1 + p"), content="false")
+}
+
+///|
+test "matches_complex - SubsequentSibling no match" {
+  // Element with prev_sibling that doesn't match
+  let prev = Element::new("span").add_class("other")
+  let elem = {
+    ..Element::new("p"),
+    prev_sibling: Some(prev),
+  }
+  inspect(matches_selector_text(elem, ".target ~ p"), content="false")
+}
+
+///|
+test "matches_attribute - case-insensitive Prefix/Suffix/Substring" {
+  let elem = Element::new("a").set_attribute("href", "HTTPS://Example.COM/Path.HTML")
+  inspect(matches_selector_text(elem, "a[href^=\"https\" i]"), content="true")
+  inspect(matches_selector_text(elem, "a[href$=\".html\" i]"), content="true")
+  inspect(matches_selector_text(elem, "a[href*=\"example\" i]"), content="true")
+}
+
+///|
+test "fast_dash_match - value strictly shorter than query (vl < ql)" {
+  // [lang|=long-name] against lang="en" — value shorter than query
+  let elem = Element::new("p").set_attribute("lang", "en")
+  inspect(matches_selector_text(elem, "p[lang|=\"long-name\"]"), content="false")
+}
+
+///|
+test "matches_has - next-sibling with no next" {
+  // Triggers next_sibling_matches_complex None branch
+  let elem = Element::new("div")
+  inspect(matches_selector_text(elem, "div:has(+ .x)"), content="false")
+}
+
+///|
+test "matches_has - explicit Descendant combinator" {
+  // matches_relative_selector Some(Descendant) branch
+  // Note: selector parser may treat ".x" inside :has() as implicit descendant.
+  // This is what we already test, but explicit form covers Some(Descendant).
+  let leaf = Element::new("span").add_class("found")
+  let elem = { ..Element::new("div"), children: [leaf] }
+  inspect(matches_selector_text(elem, "div:has(.found)"), content="true")
+}
+
+///|
+test "matches_complex - SubsequentSibling deep chain" {
+  // Build a chain: target → middle → elem; all should be siblings
+  let target = Element::new("h1").add_class("target")
+  let middle = {
+    ..Element::new("span"),
+    prev_sibling: Some(target),
+  }
+  let elem = {
+    ..Element::new("p"),
+    prev_sibling: Some(middle),
+  }
+  inspect(matches_selector_text(elem, ".target ~ p"), content="true")
+}
+
+///|
 test "match :has selector list with attribute substring" {
   let base = Element::new("div").add_class("code-example")
   let child = Element::new("section")

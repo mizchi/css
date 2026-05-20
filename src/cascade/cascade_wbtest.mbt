@@ -505,6 +505,269 @@ test "pseudo-class :where() has zero specificity" {
 }
 
 ///|
+test "Show impls for Origin, Importance, PropertyValue, Declaration" {
+  inspect(Origin::UserAgent, content="UserAgent")
+  inspect(Origin::User, content="User")
+  inspect(Origin::Author, content="Author")
+  inspect(Importance::Normal, content="Normal")
+  inspect(Importance::Important, content="Important")
+  inspect(PropertyValue::Value("flex"), content="Value(flex)")
+  inspect(PropertyValue::Inherit, content="inherit")
+  inspect(PropertyValue::Initial, content="initial")
+  inspect(PropertyValue::Unset, content="unset")
+  inspect(PropertyValue::Revert, content="revert")
+  inspect(PropertyValue::RevertLayer, content="revert-layer")
+  let decl_normal = Declaration::new("color", "red")
+  inspect(decl_normal, content="color: Value(red)")
+  let decl_imp = Declaration::from_inline("color", "red", Important)
+  inspect(decl_imp, content="color: Value(red) !important")
+}
+
+///|
+test "Declaration::with_metadata" {
+  let spec : @selector.Specificity = { a: 1, b: 2, c: 3 }
+  let d = Declaration::with_metadata(
+    "padding", PropertyValue::Inherit, User, Important, spec, 42,
+  )
+  inspect(d.property, content="padding")
+  inspect(d.source_order, content="42")
+  inspect(d.origin, content="User")
+  inspect(d.importance, content="Important")
+}
+
+///|
+test "cascade precedence covers every origin/importance combo" {
+  inspect(cascade_precedence(UserAgent, Normal), content="1")
+  inspect(cascade_precedence(User, Normal), content="2")
+  inspect(cascade_precedence(Author, Normal), content="3")
+  inspect(cascade_precedence(Author, Important), content="4")
+  inspect(cascade_precedence(User, Important), content="5")
+  inspect(cascade_precedence(UserAgent, Important), content="6")
+}
+
+///|
+test "CascadedValues::each and properties" {
+  let result = cascade([
+    Declaration::new("width", "100px"),
+    Declaration::new("height", "50px"),
+  ])
+  let collected : Array[String] = []
+  result.each(fn(k, _v) { collected.push(k) })
+  inspect(collected.length(), content="2")
+  let props = result.properties()
+  inspect(props.length(), content="2")
+}
+
+///|
+test "CascadedValues::get_value returns None for non-Value (keyword)" {
+  let decl : Declaration = {
+    property: "color",
+    value: PropertyValue::Inherit,
+    origin: Author,
+    importance: Normal,
+    specificity: { a: 0, b: 0, c: 0 },
+    source_order: 0,
+  }
+  let result = cascade([decl])
+  assert_true(result.has("color"))
+  debug_inspect(result.get_value("color"), content="None")
+}
+
+///|
+test "SelectorIndex - empty" {
+  let idx = SelectorIndex::new()
+  let element = @selector.Element::new("div").add_class("foo").set_id("bar")
+  inspect(idx.get_candidates(element).length(), content="0")
+}
+
+///|
+test "SelectorIndex::from_stylesheet partitions by primary key" {
+  let sheet = Stylesheet::new(Author)
+  // ID selector
+  let id_sel = @selector.parse_selector_text("#main").unwrap()
+  sheet.add_rule("#main", id_sel, [Declaration::new("width", "100px")])
+  // Class selector
+  let cls_sel = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", cls_sel, [Declaration::new("padding", "8px")])
+  // Tag selector
+  let tag_sel = @selector.parse_selector_text("div").unwrap()
+  sheet.add_rule("div", tag_sel, [Declaration::new("display", "block")])
+  // Universal selector
+  let uni_sel = @selector.parse_selector_text("*").unwrap()
+  sheet.add_rule("*", uni_sel, [Declaration::new("box-sizing", "border-box")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  inspect(idx.by_id.length(), content="1")
+  inspect(idx.by_class.length(), content="1")
+  inspect(idx.by_tag.length(), content="1")
+  inspect(idx.universal.length(), content="1")
+}
+
+///|
+test "SelectorIndex::get_candidates returns ID + tag + universal" {
+  let sheet = Stylesheet::new(Author)
+  let id_sel = @selector.parse_selector_text("#main").unwrap()
+  sheet.add_rule("#main", id_sel, [Declaration::new("width", "100px")])
+  let tag_sel = @selector.parse_selector_text("div").unwrap()
+  sheet.add_rule("div", tag_sel, [Declaration::new("display", "block")])
+  let uni_sel = @selector.parse_selector_text("*").unwrap()
+  sheet.add_rule("*", uni_sel, [Declaration::new("box-sizing", "border-box")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  let element = @selector.Element::new("div").set_id("main")
+  // ID + tag + universal = 3 candidates
+  inspect(idx.get_candidates(element).length(), content="3")
+}
+
+///|
+test "SelectorIndex - non-matching element gets only universal" {
+  let sheet = Stylesheet::new(Author)
+  let cls_sel = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", cls_sel, [Declaration::new("padding", "8px")])
+  let uni_sel = @selector.parse_selector_text("*").unwrap()
+  sheet.add_rule("*", uni_sel, [Declaration::new("box-sizing", "border-box")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  let element = @selector.Element::new("p") // no class, no id
+  let candidates = idx.get_candidates(element)
+  inspect(candidates.length(), content="1")
+}
+
+///|
+test "IndexedStylesheet::match_element with no media env" {
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", sel, [Declaration::new("padding", "8px")])
+  let indexed = IndexedStylesheet::new(sheet)
+  let element = @selector.Element::with_classes("div", ["card"])
+  let matches = indexed.match_element(element)
+  inspect(matches.length(), content="1")
+}
+
+///|
+test "IndexedStylesheet::match_element_with_media gates by media query" {
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".card").unwrap()
+  let mq = @media.parse_media_query_list("(min-width: 800px)")
+  sheet.add_rule_with_media(
+    ".card",
+    sel,
+    [Declaration::new("padding", "16px")],
+    mq,
+  )
+  let indexed = IndexedStylesheet::new(sheet)
+  let element = @selector.Element::with_classes("div", ["card"])
+  let big = @media.MediaEnvironment::new(1024.0, 768.0)
+  let small = @media.MediaEnvironment::new(400.0, 768.0)
+  inspect(indexed.match_element_with_media(element, Some(big)).length(), content="1")
+  inspect(indexed.match_element_with_media(element, Some(small)).length(), content="0")
+}
+
+///|
+test "Stylesheet::match_element_with_media gates by media query" {
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".card").unwrap()
+  let mq = @media.parse_media_query_list("(min-width: 800px)")
+  sheet.add_rule_with_media(
+    ".card",
+    sel,
+    [Declaration::new("padding", "16px")],
+    mq,
+  )
+  let element = @selector.Element::with_classes("div", ["card"])
+  let big = @media.MediaEnvironment::new(1024.0, 768.0)
+  let small = @media.MediaEnvironment::new(400.0, 768.0)
+  inspect(sheet.match_element_with_media(element, Some(big)).length(), content="1")
+  inspect(sheet.match_element_with_media(element, Some(small)).length(), content="0")
+  // No env -> always matches
+  inspect(sheet.match_element_with_media(element, None).length(), content="1")
+}
+
+///|
+test "Stylesheet::match_element exposes the array" {
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", sel, [Declaration::new("padding", "8px")])
+  let element = @selector.Element::with_classes("div", ["card"])
+  let matches = sheet.match_element(element)
+  inspect(matches.length(), content="1")
+}
+
+///|
+test "cascade_element_with_media applies inline declarations" {
+  let element = @selector.Element::new("div")
+  let inline = [
+    Declaration::from_inline("color", "red", Normal),
+    Declaration::from_inline("display", "flex", Normal),
+  ]
+  let result = cascade_element_with_media(element, [], inline, None)
+  debug_inspect(result.get_value("color"), content="Some(\"red\")")
+  debug_inspect(result.get_value("display"), content="Some(\"flex\")")
+}
+
+///|
+test "cascade_element_indexed applies inline declarations" {
+  let element = @selector.Element::new("div")
+  let inline = [Declaration::from_inline("color", "blue", Normal)]
+  let result = cascade_element_indexed(element, [], inline, None)
+  debug_inspect(result.get_value("color"), content="Some(\"blue\")")
+}
+
+///|
+test "indexed cascade rejects non-matching candidate (full selector check)" {
+  // Rule's head class is in the index, but the descendant constraint
+  // fails — must hit the rejection branch inside push_rule_match.
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".parent > .child").unwrap()
+  sheet.add_rule(".parent > .child", sel, [
+    Declaration::new("color", "red"),
+  ])
+  // Element has class "child" (matches head) but no parent.
+  let element = @selector.Element::new("div").add_class("child")
+  let result = cascade_element(element, [sheet], [])
+  inspect(result.has("color"), content="false")
+}
+
+///|
+test "SelectorIndex - by_id deduplicates rules with same id" {
+  let sheet = Stylesheet::new(Author)
+  let s1 = @selector.parse_selector_text("#main").unwrap()
+  sheet.add_rule("#main", s1, [Declaration::new("color", "red")])
+  let s2 = @selector.parse_selector_text("#main").unwrap()
+  sheet.add_rule("#main", s2, [Declaration::new("color", "blue")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  match idx.by_id.get("main") {
+    Some(arr) => inspect(arr.length(), content="2")
+    None => fail("expected #main bucket")
+  }
+}
+
+///|
+test "SelectorIndex - by_class deduplicates rules with same class" {
+  let sheet = Stylesheet::new(Author)
+  let s1 = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", s1, [Declaration::new("color", "red")])
+  let s2 = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", s2, [Declaration::new("color", "blue")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  match idx.by_class.get("card") {
+    Some(arr) => inspect(arr.length(), content="2")
+    None => fail("expected .card bucket")
+  }
+}
+
+///|
+test "SelectorIndex - by_tag deduplicates rules with same tag" {
+  let sheet = Stylesheet::new(Author)
+  let s1 = @selector.parse_selector_text("div").unwrap()
+  sheet.add_rule("div", s1, [Declaration::new("color", "red")])
+  let s2 = @selector.parse_selector_text("div").unwrap()
+  sheet.add_rule("div", s2, [Declaration::new("color", "blue")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  match idx.by_tag.get("div") {
+    Some(arr) => inspect(arr.length(), content="2")
+    None => fail("expected div bucket")
+  }
+}
+
+///|
 test "indexed stylesheet matches compound class selector" {
   let stylesheet = Stylesheet::new(Author)
   let sel = @selector.parse_selector_text("div.foo.bar")

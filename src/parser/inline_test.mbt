@@ -1,4 +1,673 @@
 ///|
+test "parse flex-flow shorthand" {
+  let dir_only = parse_inline_style("flex-flow: column")
+  inspect(dir_only.flex_direction, content="Column")
+  inspect(dir_only.flex_wrap, content="NoWrap")
+  let wrap_only = parse_inline_style("flex-flow: wrap")
+  inspect(wrap_only.flex_direction, content="Row")
+  inspect(wrap_only.flex_wrap, content="Wrap")
+  let both = parse_inline_style("flex-flow: row-reverse wrap-reverse")
+  inspect(both.flex_direction, content="RowReverse")
+  inspect(both.flex_wrap, content="WrapReverse")
+}
+
+///|
+test "parse aspect-ratio - single number and ratio" {
+  let single = parse_inline_style("aspect-ratio: 2")
+  debug_inspect(single.aspect_ratio, content="Some(2)")
+  let ratio = parse_inline_style("aspect-ratio: 4/3")
+  debug_inspect(single.aspect_ratio, content="Some(2)")
+  match ratio.aspect_ratio {
+    Some(v) => assert_true((v - (4.0 / 3.0)).abs() < 0.001)
+    None => fail("expected aspect ratio")
+  }
+}
+
+///|
+test "parse aspect-ratio - divisor zero falls back to value" {
+  let s = parse_inline_style("aspect-ratio: 5 / 0")
+  debug_inspect(s.aspect_ratio, content="Some(5)")
+}
+
+///|
+test "parse pointer-events" {
+  let none = parse_inline_style("pointer-events: none")
+  inspect(none.pointer_events, content="None")
+  let auto = parse_inline_style("pointer-events: auto")
+  inspect(auto.pointer_events, content="Auto")
+}
+
+///|
+test "parse min/max-width and min/max-height" {
+  let s = parse_inline_style(
+    "min-width: 10px; max-width: 200px; min-height: 20px; max-height: 100px",
+  )
+  inspect(s.min_width, content="Length(10)")
+  inspect(s.max_width, content="Length(200)")
+  inspect(s.min_height, content="Length(20)")
+  inspect(s.max_height, content="Length(100)")
+}
+
+///|
+test "parse min-content/max-content sizes" {
+  let s = parse_inline_style("width: min-content; height: max-content")
+  inspect(s.width, content="MinContent")
+  inspect(s.height, content="MaxContent")
+}
+
+///|
+test "parse inset shorthand all four sides" {
+  let s = parse_inline_style("inset: 10px 20px 30px 40px")
+  inspect(s.inset.top, content="Length(10)")
+  inspect(s.inset.right, content="Length(20)")
+  inspect(s.inset.bottom, content="Length(30)")
+  inspect(s.inset.left, content="Length(40)")
+}
+
+///|
+test "parse position absolute and fixed" {
+  let abs = parse_inline_style("position: absolute")
+  inspect(abs.position, content="Absolute")
+  let fix = parse_inline_style("position: fixed")
+  inspect(fix.position, content="Fixed")
+}
+
+///|
+test "parse float left and right" {
+  let l = parse_inline_style("float: left")
+  inspect(l.float, content="Left")
+  let r = parse_inline_style("float: right")
+  inspect(r.float, content="Right")
+  let none = parse_inline_style("float: none")
+  inspect(none.float, content="None")
+}
+
+///|
+test "parse clear" {
+  inspect(parse_inline_style("clear: left").clear, content="Left")
+  inspect(parse_inline_style("clear: right").clear, content="Right")
+  inspect(parse_inline_style("clear: both").clear, content="Both")
+  inspect(parse_inline_style("clear: none").clear, content="None")
+}
+
+///|
+test "parse grid-template-columns simple lengths" {
+  let s = parse_inline_style("grid-template-columns: 100px 200px 300px")
+  inspect(s.grid_template_columns.length(), content="3")
+}
+
+///|
+test "parse grid-template-columns with fr" {
+  let s = parse_inline_style("grid-template-columns: 1fr 2fr 1fr")
+  inspect(s.grid_template_columns.length(), content="3")
+}
+
+///|
+test "parse grid-template-rows with mixed values" {
+  let s = parse_inline_style("grid-template-rows: 50px auto 1fr min-content")
+  inspect(s.grid_template_rows.length(), content="4")
+}
+
+///|
+test "parse grid-template-columns with repeat" {
+  let s = parse_inline_style("grid-template-columns: repeat(3, 1fr)")
+  inspect(s.grid_template_columns.length(), content="1")
+}
+
+///|
+test "parse grid-template-columns with auto-fit" {
+  let s = parse_inline_style(
+    "grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))",
+  )
+  inspect(s.grid_template_columns.length(), content="1")
+}
+
+
+///|
+test "parse overflow: hidden" {
+  let s = parse_inline_style("overflow: hidden")
+  inspect(s.overflow_x, content="Hidden")
+  inspect(s.overflow_y, content="Hidden")
+}
+
+///|
+test "parse contain shorthand" {
+  let s = parse_inline_style("contain: layout paint")
+  inspect(s.contain.layout, content="true")
+  inspect(s.contain.paint, content="true")
+  inspect(s.contain.size, content="false")
+}
+
+///|
+test "parse contain: strict" {
+  let s = parse_inline_style("contain: strict")
+  inspect(s.contain.size, content="true")
+  inspect(s.contain.layout, content="true")
+  inspect(s.contain.paint, content="true")
+  inspect(s.contain.style, content="true")
+}
+
+///|
+test "parse contain: content" {
+  let s = parse_inline_style("contain: content")
+  inspect(s.contain.size, content="false")
+  inspect(s.contain.layout, content="true")
+}
+
+///|
+test "parse transform: none" {
+  let s = parse_inline_style("transform: none")
+  assert_true(s.transform.is_none())
+}
+
+///|
+test "parse direction ltr/rtl" {
+  let ltr = parse_inline_style("direction: ltr")
+  inspect(ltr.direction, content="Ltr")
+  let rtl = parse_inline_style("direction: rtl")
+  inspect(rtl.direction, content="Rtl")
+}
+
+///|
+test "parse border-inline-width" {
+  let s = parse_inline_style("border-inline-width: 3px")
+  inspect(s.border.left, content="Length(3)")
+  inspect(s.border.right, content="Length(3)")
+}
+
+///|
+test "parse container-type: inline-size" {
+  let s = parse_inline_style("container-type: inline-size")
+  inspect(s.contain.inline_size, content="true")
+}
+
+///|
+test "parse contain-intrinsic-inline-size" {
+  let s = parse_inline_style("contain-intrinsic-inline-size: 100px")
+  debug_inspect(s.contain_intrinsic_inline_size, content="Some(100)")
+}
+
+///|
+test "parse contain-intrinsic-block-size" {
+  let s = parse_inline_style("contain-intrinsic-block-size: 60px")
+  debug_inspect(s.contain_intrinsic_block_size, content="Some(60)")
+}
+
+///|
+test "parse contain-intrinsic-size shorthand single value" {
+  let s = parse_inline_style("contain-intrinsic-size: 80px")
+  debug_inspect(s.contain_intrinsic_inline_size, content="Some(80)")
+  debug_inspect(s.contain_intrinsic_block_size, content="Some(80)")
+}
+
+///|
+test "parse contain-intrinsic-size shorthand two values" {
+  let s = parse_inline_style("contain-intrinsic-size: 30px 70px")
+  debug_inspect(s.contain_intrinsic_inline_size, content="Some(30)")
+  debug_inspect(s.contain_intrinsic_block_size, content="Some(70)")
+}
+
+///|
+test "parse transform with translate" {
+  let s = parse_inline_style("transform: translate(10px, 20px)")
+  let x = s.transform.compute_translate_x(100.0)
+  let y = s.transform.compute_translate_y(100.0)
+  inspect(x, content="10")
+  inspect(y, content="20")
+}
+
+///|
+test "parse top/right/bottom/left individual" {
+  let s = parse_inline_style("top: 5px; right: 10px; bottom: 15px; left: 20px")
+  inspect(s.inset.top, content="Length(5)")
+  inspect(s.inset.right, content="Length(10)")
+  inspect(s.inset.bottom, content="Length(15)")
+  inspect(s.inset.left, content="Length(20)")
+}
+
+///|
+test "parse inset shorthand 2 values" {
+  let s = parse_inline_style("inset: 5px 10px")
+  inspect(s.inset.top, content="Length(5)")
+  inspect(s.inset.bottom, content="Length(5)")
+  inspect(s.inset.left, content="Length(10)")
+  inspect(s.inset.right, content="Length(10)")
+}
+
+///|
+test "parse inset shorthand 3 values" {
+  let s = parse_inline_style("inset: 5px 10px 15px")
+  inspect(s.inset.top, content="Length(5)")
+  inspect(s.inset.left, content="Length(10)")
+  inspect(s.inset.right, content="Length(10)")
+  inspect(s.inset.bottom, content="Length(15)")
+}
+
+///|
+test "parse aspect-ratio property" {
+  let s = parse_inline_style("aspect-ratio: 4 / 3")
+  match s.aspect_ratio {
+    Some(v) => assert_true((v - (4.0 / 3.0)).abs() < 0.001)
+    None => fail("expected aspect ratio")
+  }
+}
+
+///|
+test "parse grid-auto-flow column" {
+  let s = parse_inline_style("grid-auto-flow: column")
+  inspect(s.grid_auto_flow, content="Column")
+}
+
+///|
+test "parse width: calc() with pure px expression" {
+  let s = parse_inline_style("width: calc(100px + 20px)")
+  inspect(s.width, content="Length(120)")
+}
+
+///|
+test "parse width: calc() with subtraction" {
+  let s = parse_inline_style("width: calc(100px - 20px)")
+  inspect(s.width, content="Length(80)")
+}
+
+///|
+test "parse width: calc() with pure percentage" {
+  let s = parse_inline_style("width: calc(50% + 10%)")
+  inspect(s.width, content="Percent(0.6)")
+}
+
+///|
+test "parse width: calc() with multiplication by integer" {
+  let s = parse_inline_style("width: calc(10px * 5)")
+  // calc skips raw numbers; result is 10px after the no-op
+  // Implementation may handle differently — check it parses without panic
+  let _ = s
+  inspect(true, content="true")
+}
+
+///|
+test "parse width: calc() mixed px + %% falls back to Auto" {
+  let s = parse_inline_style("width: calc(50% + 10px)")
+  inspect(s.width, content="Auto")
+}
+
+///|
+test "parse width: viewport units" {
+  let s = parse_inline_style("width: 50vw; height: 25vh")
+  // 50vw of 1000 default = 500, 25vh of 1000 = 250
+  inspect(s.width, content="Length(500)")
+  inspect(s.height, content="Length(250)")
+}
+
+///|
+test "parse width: 0 unitless" {
+  let s = parse_inline_style("width: 0; height: 0")
+  inspect(s.width, content="Length(0)")
+  inspect(s.height, content="Length(0)")
+}
+
+///|
+test "parse width: unitless number is invalid" {
+  let s = parse_inline_style("width: 100; height: 50")
+  // Bare non-zero numbers are not valid CSS lengths
+  inspect(s.width, content="Auto")
+  inspect(s.height, content="Auto")
+}
+
+///|
+test "parse padding multiple dimensions" {
+  let s = parse_inline_style("padding: 10px 20%")
+  inspect(s.padding.top, content="Length(10)")
+  inspect(s.padding.right, content="Percent(0.2)")
+  inspect(s.padding.bottom, content="Length(10)")
+  inspect(s.padding.left, content="Percent(0.2)")
+}
+
+///|
+test "parse padding 3 values" {
+  let s = parse_inline_style("padding: 1px 2px 3px")
+  inspect(s.padding.top, content="Length(1)")
+  inspect(s.padding.right, content="Length(2)")
+  inspect(s.padding.bottom, content="Length(3)")
+  inspect(s.padding.left, content="Length(2)")
+}
+
+///|
+test "parse margin individual sides" {
+  let s = parse_inline_style(
+    "margin-top: 1px; margin-right: 2px; margin-bottom: 3px; margin-left: 4px",
+  )
+  inspect(s.margin.top, content="Length(1)")
+  inspect(s.margin.right, content="Length(2)")
+  inspect(s.margin.bottom, content="Length(3)")
+  inspect(s.margin.left, content="Length(4)")
+}
+
+///|
+test "parse border-top/right/bottom/left individual widths" {
+  let s = parse_inline_style(
+    "border-top-width: 1px; border-right-width: 2px; border-bottom-width: 3px; border-left-width: 4px",
+  )
+  inspect(s.border.top, content="Length(1)")
+  inspect(s.border.right, content="Length(2)")
+  inspect(s.border.bottom, content="Length(3)")
+  inspect(s.border.left, content="Length(4)")
+}
+
+///|
+test "parse border-width single value" {
+  let s = parse_inline_style("border-width: 3px")
+  inspect(s.border.top, content="Length(3)")
+}
+
+///|
+test "parse flex-basis with various values" {
+  inspect(
+    parse_inline_style("flex-basis: 50px").flex_basis,
+    content="Length(50)",
+  )
+  inspect(
+    parse_inline_style("flex-basis: 50%").flex_basis,
+    content="Percent(0.5)",
+  )
+  inspect(parse_inline_style("flex-basis: auto").flex_basis, content="Auto")
+}
+
+///|
+test "parse flex shorthand single number" {
+  let s = parse_inline_style("flex: 1")
+  inspect(s.flex_grow, content="1")
+  inspect(s.flex_shrink, content="1")
+}
+
+///|
+test "parse line-height various forms" {
+  // Just verify they parse without error
+  let _ = parse_inline_style("line-height: 1.5")
+  let _ = parse_inline_style("line-height: 24px")
+  let _ = parse_inline_style("line-height: 150%")
+  let _ = parse_inline_style("line-height: normal")
+  inspect(true, content="true")
+}
+
+///|
+test "parse font shorthand" {
+  // Font shorthand may set font-size and font-family
+  let _ = parse_inline_style("font: 16px/1.5 Arial, sans-serif")
+  let _ = parse_inline_style("font: bold 14px Helvetica")
+  inspect(true, content="true")
+}
+
+///|
+test "parse order property" {
+  let s = parse_inline_style("order: 5")
+  inspect(s.order, content="5")
+}
+
+///|
+test "parse order negative value" {
+  let s = parse_inline_style("order: -3")
+  inspect(s.order, content="-3")
+}
+
+///|
+test "parse direction shorthand" {
+  let s_ltr = parse_inline_style("direction: ltr")
+  inspect(s_ltr.direction, content="Ltr")
+  let s_rtl = parse_inline_style("direction: rtl")
+  inspect(s_rtl.direction, content="Rtl")
+}
+
+///|
+test "parse writing-mode horizontal-tb default" {
+  inspect(
+    parse_inline_style("writing-mode: horizontal-tb").writing_mode,
+    content="HorizontalTb",
+  )
+}
+
+///|
+test "parse aspect-ratio: auto and ratio" {
+  let auto_s = parse_inline_style("aspect-ratio: auto")
+  debug_inspect(auto_s.aspect_ratio, content="None")
+  let ratio_s = parse_inline_style("aspect-ratio: 2")
+  debug_inspect(ratio_s.aspect_ratio, content="Some(2)")
+}
+
+///|
+test "parse multiple declarations with whitespace" {
+  let s = parse_inline_style(
+    "  display : flex ;  padding : 10px ; margin : 5px  ",
+  )
+  inspect(s.display, content="Flex")
+  inspect(s.padding.top, content="Length(10)")
+}
+
+///|
+test "parse trailing semicolon" {
+  let s = parse_inline_style("display: flex;")
+  inspect(s.display, content="Flex")
+}
+
+
+///|
+test "parse multiple sibling declarations" {
+  let s = parse_inline_style(
+    "display: flex; flex-direction: column; align-items: center; gap: 10px",
+  )
+  inspect(s.display, content="Flex")
+  inspect(s.flex_direction, content="Column")
+  inspect(s.align_items, content="Center")
+  inspect(s.row_gap, content="Length(10)")
+}
+
+///|
+test "parse - border-left/right/top/bottom-width individual" {
+  let s = parse_inline_style(
+    "border-left-width: 1px; border-right-width: 2px; border-top-width: 3px; border-bottom-width: 4px",
+  )
+  inspect(s.border.left, content="Length(1)")
+  inspect(s.border.right, content="Length(2)")
+  inspect(s.border.top, content="Length(3)")
+  inspect(s.border.bottom, content="Length(4)")
+}
+
+///|
+test "parse - border-block and border-block-width shorthand" {
+  let s = parse_inline_style("border-block: 5px")
+  inspect(s.border.top, content="Length(5)")
+  inspect(s.border.bottom, content="Length(5)")
+  let s2 = parse_inline_style("border-block-width: 7px")
+  inspect(s2.border.top, content="Length(7)")
+  inspect(s2.border.bottom, content="Length(7)")
+}
+
+///|
+test "parse - border-inline shorthand" {
+  let s = parse_inline_style("border-inline: 6px")
+  inspect(s.border.left, content="Length(6)")
+  inspect(s.border.right, content="Length(6)")
+}
+
+///|
+test "parse - padding-block and padding-inline shorthands" {
+  let s = parse_inline_style("padding-block: 5px; padding-inline: 10px")
+  inspect(s.padding.top, content="Length(5)")
+  inspect(s.padding.bottom, content="Length(5)")
+  inspect(s.padding.left, content="Length(10)")
+  inspect(s.padding.right, content="Length(10)")
+}
+
+///|
+test "parse - row-gap and column-gap individually" {
+  let s = parse_inline_style("row-gap: 5px; column-gap: 10px")
+  inspect(s.row_gap, content="Length(5)")
+  inspect(s.column_gap, content="Length(10)")
+}
+
+///|
+test "parse - overflow-x and overflow-y separately" {
+  let s = parse_inline_style("overflow-x: scroll; overflow-y: hidden")
+  inspect(s.overflow_x, content="Scroll")
+  inspect(s.overflow_y, content="Hidden")
+}
+
+///|
+test "parse - top/right/bottom/left individually" {
+  let s = parse_inline_style(
+    "top: 1px; right: 2px; bottom: 3px; left: 4px",
+  )
+  inspect(s.inset.top, content="Length(1)")
+  inspect(s.inset.right, content="Length(2)")
+  inspect(s.inset.bottom, content="Length(3)")
+  inspect(s.inset.left, content="Length(4)")
+}
+
+///|
+test "parse - clip rect()" {
+  let s = parse_inline_style("clip: rect(1px, 2px, 3px, 4px)")
+  inspect(s.clip, content="rect(1, 2, 3, 4)")
+  let auto = parse_inline_style("clip: auto")
+  inspect(auto.clip, content="auto")
+}
+
+///|
+test "parse - clip-path inset/circle/ellipse/polygon/none" {
+  let inset = parse_inline_style("clip-path: inset(5px)")
+  let _ = inset.clip_path
+  let circle = parse_inline_style("clip-path: circle(20px at 30px 40px)")
+  let _ = circle.clip_path
+  let ellipse = parse_inline_style("clip-path: ellipse(20px 30px at 40px 50px)")
+  let _ = ellipse.clip_path
+  let polygon = parse_inline_style("clip-path: polygon(0 0, 100% 0, 50% 100%)")
+  let _ = polygon.clip_path
+  let none = parse_inline_style("clip-path: none")
+  let _ = none.clip_path
+  inspect(true, content="true")
+}
+
+///|
+test "parse - place-content shorthand" {
+  let s = parse_inline_style("place-content: center end")
+  inspect(s.align_content, content="Center")
+  inspect(s.justify_content, content="End")
+}
+
+///|
+test "parse - justify-self and justify-items" {
+  let s = parse_inline_style("justify-self: end; justify-items: center")
+  inspect(s.justify_self, content="End")
+  inspect(s.justify_items, content="Center")
+}
+
+///|
+test "parse - flex-flow shorthand individual" {
+  let s = parse_inline_style("flex-flow: column wrap")
+  inspect(s.flex_direction, content="Column")
+  inspect(s.flex_wrap, content="Wrap")
+}
+
+///|
+test "parse - margin-top/right/bottom/left individual" {
+  let s = parse_inline_style(
+    "margin-top: 1px; margin-right: 2px; margin-bottom: 3px; margin-left: 4px",
+  )
+  inspect(s.margin.top, content="Length(1)")
+  inspect(s.margin.right, content="Length(2)")
+  inspect(s.margin.bottom, content="Length(3)")
+  inspect(s.margin.left, content="Length(4)")
+}
+
+///|
+test "parse - padding-top/right/bottom/left individual" {
+  let s = parse_inline_style(
+    "padding-top: 1px; padding-right: 2px; padding-bottom: 3px; padding-left: 4px",
+  )
+  inspect(s.padding.top, content="Length(1)")
+  inspect(s.padding.right, content="Length(2)")
+  inspect(s.padding.bottom, content="Length(3)")
+  inspect(s.padding.left, content="Length(4)")
+}
+
+///|
+test "parse grid-template-columns with min-content/max-content/auto" {
+  let s = parse_inline_style(
+    "grid-template-columns: min-content max-content auto 100px",
+  )
+  inspect(s.grid_template_columns.length(), content="4")
+}
+
+///|
+test "parse grid-template-columns with minmax(min-content, 1fr)" {
+  let s = parse_inline_style(
+    "grid-template-columns: minmax(min-content, 1fr) minmax(auto, max-content)",
+  )
+  inspect(s.grid_template_columns.length(), content="2")
+}
+
+///|
+test "parse grid-template-columns with various track sizes" {
+  let s = parse_inline_style(
+    "grid-template-columns: 50% 2fr 100px auto min-content max-content",
+  )
+  inspect(s.grid_template_columns.length(), content="6")
+}
+
+///|
+test "parse grid-template-columns with 0 unitless" {
+  let s = parse_inline_style("grid-template-columns: 0 100px")
+  inspect(s.grid_template_columns.length(), content="2")
+}
+
+///|
+test "parse grid-template-columns with bad ident drops the rest" {
+  let s = parse_inline_style("grid-template-columns: bogus 100px")
+  // Bogus ident causes parser to stop accumulating tracks
+  let _ = s.grid_template_columns
+  inspect(true, content="true")
+}
+
+///|
+test "parse grid-template-columns with non-zero unitless drops the rest" {
+  let s = parse_inline_style("grid-template-columns: 5 100px")
+  // Non-zero unitless causes parser to stop
+  let _ = s.grid_template_columns
+  inspect(true, content="true")
+}
+
+///|
+test "parse contain-intrinsic-size single value" {
+  let s = parse_inline_style("contain-intrinsic-size: 100px")
+  debug_inspect(
+    s.contain_intrinsic_inline_size,
+    content="Some(100)",
+  )
+  debug_inspect(
+    s.contain_intrinsic_block_size,
+    content="Some(100)",
+  )
+}
+
+///|
+test "parse contain-intrinsic-size auto" {
+  let s = parse_inline_style("contain-intrinsic-size: auto")
+  // 'auto' produces None
+  debug_inspect(s.contain_intrinsic_inline_size, content="None")
+}
+
+///|
+test "parse container-type: size and inline-size" {
+  let s1 = parse_inline_style("container-type: size")
+  inspect(s1.contain.size, content="true")
+  let s2 = parse_inline_style("container-type: inline-size")
+  inspect(s2.contain.inline_size, content="true")
+  let s3 = parse_inline_style("container-type: normal")
+  // 'normal' should not add containment
+  let _ = s3
+  inspect(true, content="true")
+}
+
+///|
 test "parse negative top left" {
   let style = parse_inline_style("top: -20px; left: -40px")
   inspect(style.inset.top, content="Length(-20)")

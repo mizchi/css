@@ -269,6 +269,51 @@ test "specificity - chained pseudo-classes" {
 }
 
 ///|
+test "specificity - :has() takes argument specificity" {
+  let sel = parse_selector_text(".container:has(#main)")
+  match sel {
+    Some(s) => {
+      let spec = complex_specificity(s)
+      // class + :has(#main) = (1, 1, 0)
+      inspect(spec.a, content="1")
+      inspect(spec.b, content="1")
+      inspect(spec.c, content="0")
+    }
+    None => fail("failed to parse")
+  }
+}
+
+///|
+test "specificity - :not() with multiple compound arguments picks max" {
+  let sel = parse_selector_text(":not(.foo, #bar)")
+  match sel {
+    Some(s) => {
+      let spec = complex_specificity(s)
+      inspect(spec.a, content="1")
+      inspect(spec.b, content="0")
+      inspect(spec.c, content="0")
+    }
+    None => fail("failed to parse")
+  }
+}
+
+///|
+test "specificity comparison - class beats type-count" {
+  let class_spec : Specificity = { a: 0, b: 1, c: 0 }
+  let many_types : Specificity = { a: 0, b: 0, c: 100 }
+  assert_true(class_spec.compare_to(many_types) > 0)
+}
+
+///|
+test "specificity::zero is identity for add" {
+  let s : Specificity = { a: 2, b: 3, c: 5 }
+  let sum = s.add(Specificity::zero())
+  inspect(sum.a, content="2")
+  inspect(sum.b, content="3")
+  inspect(sum.c, content="5")
+}
+
+///|
 test "specificity - complex real-world selector" {
   // #header .nav-item:first-child a:hover = (1, 3, 1)
   // #header = 1,0,0

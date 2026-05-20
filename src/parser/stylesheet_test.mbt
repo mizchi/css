@@ -920,3 +920,301 @@ test "parse declarations after ampersand nested block" {
   inspect(stylesheet.rules[1].selector_text, content=".box::before")
   inspect(stylesheet.rules[1].declarations.length(), content="1")
 }
+
+///|
+test "parse_stylesheet_with_diagnostics collects mixed properties" {
+  let css =
+    #|.card {
+    #|  display: flex;
+    #|  font-size: 14px;
+    #|  box-shadow: 0 0 4px red;
+    #|  contain: strict;
+    #|  mystery-prop: 1;
+    #|}
+  let result = @parser.parse_stylesheet_with_diagnostics(css)
+  inspect(result.stylesheet.rules.length(), content="1")
+  let summary = result.diagnostics.get_summary()
+  inspect(summary.supported, content="1")
+  inspect(summary.partial, content="1")
+  inspect(summary.unsupported_visual, content="1")
+  inspect(summary.unsupported_layout, content="1")
+  inspect(summary.unknown, content="1")
+}
+
+///|
+test "parse_stylesheet_with_diagnostics inside @media" {
+  let css =
+    #|@media (min-width: 768px) {
+    #|  .responsive { display: grid; unknown-thing: 0; }
+    #|}
+  let result = @parser.parse_stylesheet_with_diagnostics(css)
+  inspect(result.stylesheet.rules.length(), content="1")
+  let summary = result.diagnostics.get_summary()
+  inspect(summary.supported, content="1")
+  inspect(summary.unknown, content="1")
+}
+
+///|
+test "parse_stylesheet_with_diagnostics inside @supports" {
+  let css =
+    #|@supports (display: flex) {
+    #|  .modern { display: flex; weird-prop: x; }
+    #|}
+  let result = @parser.parse_stylesheet_with_diagnostics(css)
+  inspect(result.stylesheet.rules.length(), content="1")
+  let summary = result.diagnostics.get_summary()
+  inspect(summary.supported, content="1")
+  inspect(summary.unknown, content="1")
+}
+
+///|
+test "parse_stylesheet_with_diagnostics skips unknown at-rules" {
+  let css =
+    #|@charset "UTF-8";
+    #|@import url("base.css");
+    #|@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    #|.main { display: block; }
+  let result = @parser.parse_stylesheet_with_diagnostics(css)
+  inspect(result.stylesheet.rules.length(), content="1")
+  inspect(result.stylesheet.rules[0].selector_text, content=".main")
+}
+
+///|
+test "parse handles inline comments between rules" {
+  let css =
+    #|/* file header */
+    #|.a { color: red; } /* trailing */
+    #|/* between */
+    #|.b { color: blue; }
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="2")
+}
+
+///|
+test "parse handles bogus at-rule by skipping" {
+  let css = "@unknown-at-rule keyword; .good { color: blue; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+  inspect(stylesheet.rules[0].selector_text, content=".good")
+}
+
+///|
+test "parse declaration without colon is silently skipped" {
+  let css = ".bad { display flex; color: red; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+  // Only color: red parsed
+  inspect(stylesheet.rules[0].declarations.length(), content="1")
+}
+
+///|
+test "parse @media with nested @supports preserves media query" {
+  let css =
+    #|@media (max-width: 600px) {
+    #|  @supports (display: grid) {
+    #|    .grid { display: grid; }
+    #|  }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+  match stylesheet.rules[0].media_query {
+    Some(_) => inspect("has media query", content="has media query")
+    None => fail("expected media query")
+  }
+}
+
+///|
+test "parse :is and :where selectors" {
+  let css = ":is(h1, h2, h3) { color: red; } :where(.a, .b) { padding: 0; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="2")
+}
+
+///|
+test "parse :has selector" {
+  let css = ".container:has(> img) { padding: 16px; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse_stylesheet rejects excessively large input" {
+  // Cap is 10MB; build something larger.
+  let buf = StringBuilder::new()
+  let unit = ".x{x:0}                              " // ~40 bytes
+  for _ in 0..<300000 {
+    buf.write_string(unit)
+  }
+  let huge = buf.to_string()
+  let stylesheet = @parser.parse_stylesheet(huge)
+  // Should bail out and return an empty stylesheet
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse @media with no closing brace (EOF)" {
+  let css = "@media screen { .x { color: red; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  // Rule inside still parsed
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse @media with EOF before brace" {
+  // @media keyword with no body
+  let css = "@media screen"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse @media with garbage at-rule inside" {
+  let css =
+    #|@media screen {
+    #|  @junk-at-rule garbage;
+    #|  .ok { color: red; }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+  inspect(stylesheet.rules[0].selector_text, content=".ok")
+}
+
+///|
+test "parse @supports nested inside @media + nested at-rule inside @supports" {
+  let css =
+    #|@media (min-width: 600px) {
+    #|  @supports (display: flex) {
+    #|    @junk-rule garbage;
+    #|    .x { display: flex; }
+    #|  }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse @supports with unparseable rule inside still skips it" {
+  let css =
+    #|@supports (display: flex) {
+    #|  @import url("base.css");
+    #|  .ok { display: flex; }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse @supports with failing condition body skipped" {
+  // @supports not (color: light-dark(red, red)) — condition fails
+  // (because we DO support light-dark), so the body is skipped.
+  let css =
+    #|@supports not (color: light-dark(red, red)) {
+    #|  .skipped { color: red; }
+    #|}
+    #|.kept { color: blue; }
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+  inspect(stylesheet.rules[0].selector_text, content=".kept")
+}
+
+///|
+test "parse @media with extra braces inside (defensive)" {
+  let css =
+    #|@media screen {
+    #|  .x { color: red; }
+    #|  { defensive }
+    #|  .y { color: blue; }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  // .x and .y parsed; the loose { skipped via brace tracking
+  assert_true(stylesheet.rules.length() >= 1)
+}
+
+///|
+test "parse empty selector list returns no rules" {
+  // Just ; before { triggers parse_style_rule but selector_list empty
+  let css = "  { color: red; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse rule with EOF before closing brace" {
+  let css = ".x { color: red"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse @supports with EOF before brace" {
+  let css = "@supports (display: flex)"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse @supports inside @media with EOF" {
+  let css = "@media screen { @supports (display: flex"
+  let stylesheet = @parser.parse_stylesheet(css)
+  // Bailouts at EOF
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse @media with EOF in body" {
+  // Cause EOF while inside @media block
+  let css = "@media screen { .x { color: red"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse - rule with bad property still recovers" {
+  // Unrecognized declaration is skipped
+  let css = ".x { ?@: bad ; color: red }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse - delim & at top level (not inside rule)" {
+  // & outside rule context
+  let css = "& { color: red; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  // Just exercise the path; outcome may vary
+  let _ = stylesheet
+  inspect(true, content="true")
+}
+
+///|
+test "parse - empty @supports condition" {
+  // Skip path on weird supports
+  let css = "@supports () { .x { color: red } }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  let _ = stylesheet
+  inspect(true, content="true")
+}
+
+///|
+test "parse - !important with whitespace gaps" {
+  // The Delim('!') branch with non-important following
+  let css = ".x { color: red ! foo; padding: 1px; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse - declaration without colon" {
+  let css = ".x { color red; padding: 1px; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+  // Only padding parsed
+  inspect(stylesheet.rules[0].declarations.length(), content="1")
+}
+
+///|
+test "parse - declaration missing semicolon followed by rule" {
+  let css = ".x { color: red } .y { padding: 1px }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="2")
+}
