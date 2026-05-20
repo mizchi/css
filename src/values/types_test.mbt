@@ -53,6 +53,52 @@ test "min and max helpers" {
 }
 
 ///|
+test "Dimension::resolve - MinContent/MaxContent/FitContent return None" {
+  debug_inspect(Dimension::MinContent.resolve(100.0), content="None")
+  debug_inspect(Dimension::MaxContent.resolve(100.0), content="None")
+  debug_inspect(Dimension::FitContent(50.0).resolve(100.0), content="None")
+}
+
+///|
+test "Dimension::resolve_or_intrinsic - MinContent/MaxContent/FitContent use fallback" {
+  inspect(
+    Dimension::resolve_or_intrinsic(MaxContent, 100.0, 7.0),
+    content="7",
+  )
+}
+
+///|
+test "resolve_rect_intrinsic - MinContent/MaxContent/FitContent edge" {
+  let rect : Rect[Dimension] = {
+    left: MinContent,
+    right: MaxContent,
+    top: FitContent(20.0),
+    bottom: Length(5.0),
+  }
+  let resolved = resolve_rect_intrinsic(rect)
+  inspect(resolved.left, content="0")
+  inspect(resolved.right, content="0")
+  inspect(resolved.top, content="0")
+  inspect(resolved.bottom, content="5")
+}
+
+///|
+test "resolve_dimensions_with_aspect_ratio - negative aspect ratio" {
+  let (w, h) = resolve_dimensions_with_aspect_ratio(
+    Some(200.0),
+    Some(100.0),
+    Some(-1.0),
+    0.0,
+    1000.0,
+    0.0,
+    1000.0,
+  )
+  // ar <= 0.0 path: just returns the input
+  debug_inspect(w, content="Some(200)")
+  debug_inspect(h, content="Some(100)")
+}
+
+///|
 test "Size::map and Show" {
   let s = Size::new(10.0, 20.0)
   let doubled = s.map(fn(v) { v * 2.0 })

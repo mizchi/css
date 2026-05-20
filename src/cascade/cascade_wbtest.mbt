@@ -691,6 +691,83 @@ test "Stylesheet::match_element exposes the array" {
 }
 
 ///|
+test "cascade_element_with_media applies inline declarations" {
+  let element = @selector.Element::new("div")
+  let inline = [
+    Declaration::from_inline("color", "red", Normal),
+    Declaration::from_inline("display", "flex", Normal),
+  ]
+  let result = cascade_element_with_media(element, [], inline, None)
+  debug_inspect(result.get_value("color"), content="Some(\"red\")")
+  debug_inspect(result.get_value("display"), content="Some(\"flex\")")
+}
+
+///|
+test "cascade_element_indexed applies inline declarations" {
+  let element = @selector.Element::new("div")
+  let inline = [Declaration::from_inline("color", "blue", Normal)]
+  let result = cascade_element_indexed(element, [], inline, None)
+  debug_inspect(result.get_value("color"), content="Some(\"blue\")")
+}
+
+///|
+test "indexed cascade rejects non-matching candidate (full selector check)" {
+  // Rule's head class is in the index, but the descendant constraint
+  // fails — must hit the rejection branch inside push_rule_match.
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".parent > .child").unwrap()
+  sheet.add_rule(".parent > .child", sel, [
+    Declaration::new("color", "red"),
+  ])
+  // Element has class "child" (matches head) but no parent.
+  let element = @selector.Element::new("div").add_class("child")
+  let result = cascade_element(element, [sheet], [])
+  inspect(result.has("color"), content="false")
+}
+
+///|
+test "SelectorIndex - by_id deduplicates rules with same id" {
+  let sheet = Stylesheet::new(Author)
+  let s1 = @selector.parse_selector_text("#main").unwrap()
+  sheet.add_rule("#main", s1, [Declaration::new("color", "red")])
+  let s2 = @selector.parse_selector_text("#main").unwrap()
+  sheet.add_rule("#main", s2, [Declaration::new("color", "blue")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  match idx.by_id.get("main") {
+    Some(arr) => inspect(arr.length(), content="2")
+    None => fail("expected #main bucket")
+  }
+}
+
+///|
+test "SelectorIndex - by_class deduplicates rules with same class" {
+  let sheet = Stylesheet::new(Author)
+  let s1 = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", s1, [Declaration::new("color", "red")])
+  let s2 = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", s2, [Declaration::new("color", "blue")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  match idx.by_class.get("card") {
+    Some(arr) => inspect(arr.length(), content="2")
+    None => fail("expected .card bucket")
+  }
+}
+
+///|
+test "SelectorIndex - by_tag deduplicates rules with same tag" {
+  let sheet = Stylesheet::new(Author)
+  let s1 = @selector.parse_selector_text("div").unwrap()
+  sheet.add_rule("div", s1, [Declaration::new("color", "red")])
+  let s2 = @selector.parse_selector_text("div").unwrap()
+  sheet.add_rule("div", s2, [Declaration::new("color", "blue")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  match idx.by_tag.get("div") {
+    Some(arr) => inspect(arr.length(), content="2")
+    None => fail("expected div bucket")
+  }
+}
+
+///|
 test "indexed stylesheet matches compound class selector" {
   let stylesheet = Stylesheet::new(Author)
   let sel = @selector.parse_selector_text("div.foo.bar")

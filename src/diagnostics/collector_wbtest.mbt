@@ -368,6 +368,188 @@ test "support level - partial place properties" {
 }
 
 ///|
+test "format_report includes partial section" {
+  let collector = DiagnosticsCollector::new()
+  collector.add_property("font-size", "14px", ".a")
+  let report = collector.format_report(10)
+  assert_true(report.contains("Partial: 1"))
+}
+
+///|
+test "format_report includes visual section" {
+  let collector = DiagnosticsCollector::new()
+  collector.add_property("box-shadow", "0 0 4px red", ".a")
+  let report = collector.format_report(10)
+  assert_true(report.contains("Unsupported (visual): 1"))
+}
+
+///|
+test "format_report includes deprecated section" {
+  let collector = DiagnosticsCollector::new()
+  collector.add_property("clip", "rect(0,0,0,0)", ".a")
+  let report = collector.format_report(10)
+  assert_true(report.contains("Deprecated: 1"))
+}
+
+///|
+test "support level - all border-width sides individually" {
+  inspect(get_support_level("border-width"), content="Supported")
+  inspect(get_support_level("border-top-width"), content="Supported")
+  inspect(get_support_level("border-right-width"), content="Supported")
+  inspect(get_support_level("border-bottom-width"), content="Supported")
+  inspect(get_support_level("border-left-width"), content="Supported")
+}
+
+///|
+test "support level - all border-block/inline styles" {
+  let visuals = [
+    "border-inline-color", "border-inline-start-color",
+    "border-inline-end-color", "border-block-color",
+    "border-block-start-color", "border-block-end-color",
+    "border-inline-style", "border-inline-start-style",
+    "border-inline-end-style", "border-block-style",
+    "border-block-start-style", "border-block-end-style",
+  ]
+  for v in visuals {
+    inspect(get_support_level(v), content="UnsupportedVisual")
+  }
+}
+
+///|
+test "support level - all individual position values" {
+  inspect(get_support_level("top"), content="Supported")
+  inspect(get_support_level("right"), content="Supported")
+  inspect(get_support_level("bottom"), content="Supported")
+  inspect(get_support_level("left"), content="Supported")
+  inspect(get_support_level("inset"), content="Supported")
+  inspect(get_support_level("z-index"), content="Supported")
+}
+
+///|
+test "support level - all border-color sides individually" {
+  inspect(
+    get_support_level("border-color"),
+    content="Partial(solid colors only)",
+  )
+  inspect(
+    get_support_level("border-top-color"),
+    content="Partial(solid colors only)",
+  )
+  inspect(
+    get_support_level("border-right-color"),
+    content="Partial(solid colors only)",
+  )
+  inspect(
+    get_support_level("border-bottom-color"),
+    content="Partial(solid colors only)",
+  )
+  inspect(
+    get_support_level("border-left-color"),
+    content="Partial(solid colors only)",
+  )
+}
+
+///|
+test "support level - all border-style sides individually" {
+  inspect(
+    get_support_level("border-style"),
+    content="Partial(rendered as solid)",
+  )
+  inspect(
+    get_support_level("border-top-style"),
+    content="Partial(rendered as solid)",
+  )
+  inspect(
+    get_support_level("border-right-style"),
+    content="Partial(rendered as solid)",
+  )
+  inspect(
+    get_support_level("border-bottom-style"),
+    content="Partial(rendered as solid)",
+  )
+  inspect(
+    get_support_level("border-left-style"),
+    content="Partial(rendered as solid)",
+  )
+}
+
+///|
+test "support level - all border sides shorthand" {
+  inspect(
+    get_support_level("border"),
+    content="Partial(shorthand parsing limited)",
+  )
+  inspect(
+    get_support_level("border-top"),
+    content="Partial(shorthand parsing limited)",
+  )
+  inspect(
+    get_support_level("border-right"),
+    content="Partial(shorthand parsing limited)",
+  )
+  inspect(
+    get_support_level("border-bottom"),
+    content="Partial(shorthand parsing limited)",
+  )
+  inspect(
+    get_support_level("border-left"),
+    content="Partial(shorthand parsing limited)",
+  )
+}
+
+///|
+test "support level - font variants individually" {
+  inspect(
+    get_support_level("font-size"),
+    content="Partial(relative units may not work correctly)",
+  )
+  inspect(
+    get_support_level("font-weight"),
+    content="Partial(numeric values only)",
+  )
+  inspect(
+    get_support_level("font-family"),
+    content="Partial(limited font support)",
+  )
+  inspect(get_support_level("font-style"), content="Partial(basic support)")
+  inspect(get_support_level("font"), content="Partial(shorthand parsing limited)")
+  inspect(
+    get_support_level("background-color"),
+    content="Partial(solid colors only)",
+  )
+}
+
+///|
+test "support level - text-align and vertical-align" {
+  inspect(get_support_level("text-align"), content="Supported")
+  inspect(get_support_level("vertical-align"), content="Supported")
+  inspect(get_support_level("line-height"), content="Supported")
+}
+
+///|
+test "support level - visibility, opacity, clear" {
+  inspect(get_support_level("visibility"), content="Supported")
+  inspect(
+    get_support_level("opacity"),
+    content="Partial(rendered as visible/hidden)",
+  )
+  inspect(get_support_level("clear"), content="Supported")
+}
+
+///|
+test "support level - backdrop-filter vendor-prefixed" {
+  inspect(get_support_level("-webkit-backdrop-filter"), content="UnsupportedVisual")
+  inspect(get_support_level("mask-size"), content="UnsupportedVisual")
+  inspect(get_support_level("mask-repeat"), content="UnsupportedVisual")
+  inspect(get_support_level("mask-position"), content="UnsupportedVisual")
+}
+
+///|
+test "support level - vendor prefix -o- and CSS variables" {
+  inspect(get_support_level("-o-transition"), content="UnsupportedVisual")
+}
+
+///|
 test "Show impls for SupportLevel and Severity" {
   inspect(SupportLevel::Supported, content="Supported")
   inspect(SupportLevel::Partial("limited"), content="Partial(limited)")

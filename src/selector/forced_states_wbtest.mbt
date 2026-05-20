@@ -166,6 +166,54 @@ test "matches_pseudo_class_with_forced_states falls through for non-forced" {
 }
 
 ///|
+test "matches_complex_with_forced_states - type selector mismatch on head" {
+  let sel = must_parse("button:hover")
+  let element = Element::new("a") // wrong tag
+  let forced : ForcedPseudoStates = {
+    ..ForcedPseudoStates::none(),
+    hover: true,
+  }
+  assert_false(matches_complex_with_forced_states(element, sel, forced))
+}
+
+///|
+test "matches_complex_with_forced_states - child combinator no parent" {
+  let sel = must_parse(".container > .btn:hover")
+  let element = Element::new("button").add_class("btn") // no parent
+  let forced : ForcedPseudoStates = {
+    ..ForcedPseudoStates::none(),
+    hover: true,
+  }
+  assert_false(matches_complex_with_forced_states(element, sel, forced))
+}
+
+///|
+test "matches_complex_with_forced_states - next-sibling wrong sibling" {
+  let sel = must_parse(".prev + .btn:hover")
+  let prev = Element::new("div").add_class("other") // wrong class
+  let element = {
+    ..Element::new("button").add_class("btn"),
+    prev_sibling: Some(prev),
+  }
+  let forced : ForcedPseudoStates = {
+    ..ForcedPseudoStates::none(),
+    hover: true,
+  }
+  assert_false(matches_complex_with_forced_states(element, sel, forced))
+}
+
+///|
+test "matches_complex_with_forced_states - subsequent-sibling no match" {
+  let sel = must_parse(".missing ~ .btn:hover")
+  let element = Element::new("button").add_class("btn") // no prev sibling
+  let forced : ForcedPseudoStates = {
+    ..ForcedPseudoStates::none(),
+    hover: true,
+  }
+  assert_false(matches_complex_with_forced_states(element, sel, forced))
+}
+
+///|
 test "Show for ForcedPseudoStates" {
   let f = ForcedPseudoStates::none()
   let s = f.to_string()

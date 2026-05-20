@@ -231,3 +231,13 @@ test "Element::set_parent" {
   let child = Element::new("p").set_parent(parent)
   debug_inspect(child.parent is Some(_), content="true")
 }
+
+///|
+test "SimpleSelector Show for Attribute variant" {
+  let attr : AttributeSelector = {
+    name: "type",
+    match_type: AttributeMatch::Exact("button"),
+    case_insensitive: false,
+  }
+  inspect(SimpleSelector::Attribute(attr), content="[type Exact(button)]")
+}

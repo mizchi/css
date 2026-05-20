@@ -303,6 +303,112 @@ test "Show for Contain dumps all flags" {
 }
 
 ///|
+test "BorderStyle::priority - every variant" {
+  inspect(BorderStyle::priority(None), content="0")
+  inspect(BorderStyle::priority(Inset), content="1")
+  inspect(BorderStyle::priority(Groove), content="2")
+  inspect(BorderStyle::priority(Outset), content="3")
+  inspect(BorderStyle::priority(Ridge), content="4")
+  inspect(BorderStyle::priority(Dotted), content="5")
+  inspect(BorderStyle::priority(Dashed), content="6")
+  inspect(BorderStyle::priority(Solid), content="7")
+  inspect(BorderStyle::priority(Double), content="8")
+  inspect(BorderStyle::priority(Hidden), content="9")
+}
+
+///|
+test "BorderStyle Show - every variant" {
+  inspect(BorderStyle::None, content="None")
+  inspect(BorderStyle::Inset, content="Inset")
+  inspect(BorderStyle::Groove, content="Groove")
+  inspect(BorderStyle::Outset, content="Outset")
+  inspect(BorderStyle::Ridge, content="Ridge")
+  inspect(BorderStyle::Dotted, content="Dotted")
+  inspect(BorderStyle::Dashed, content="Dashed")
+  inspect(BorderStyle::Solid, content="Solid")
+  inspect(BorderStyle::Double, content="Double")
+  inspect(BorderStyle::Hidden, content="Hidden")
+}
+
+///|
+test "Transform::is_none - percent zero counts" {
+  let t : Transform = {
+    ..Transform::none(),
+    translate_x: TranslateValue::Percent(0.0),
+    translate_y: TranslateValue::Percent(0.0),
+  }
+  assert_true(t.is_none())
+}
+
+///|
+test "Transform::quarter_turns - negative angle" {
+  let t : Transform = { ..Transform::none(), rotate_degrees: -90.0 }
+  // -90 / 90 = -1 -> -1 % 4 + 4 = 3
+  inspect(t.quarter_turns(), content="3")
+}
+
+///|
+test "Transform::compute_translate_x with Percent" {
+  let t : Transform = {
+    ..Transform::none(),
+    translate_x: TranslateValue::Percent(0.5),
+  }
+  inspect(t.compute_translate_x(100.0), content="50")
+}
+
+///|
+test "Style::contained_intrinsic_*_fallback with negative value falls to 0" {
+  let s : Style = {
+    ..Style::default(),
+    contain_intrinsic_inline_size: Some(-10.0),
+    contain_intrinsic_block_size: Some(-20.0),
+  }
+  inspect(s.contained_intrinsic_width_fallback(), content="0")
+  inspect(s.contained_intrinsic_height_fallback(), content="0")
+}
+
+///|
+test "Style::contained_intrinsic_*_fallback in vertical mode with Some(0)" {
+  let s : Style = {
+    ..Style::default(),
+    writing_mode: VerticalRl,
+    contain_intrinsic_block_size: Some(0.0),
+    contain_intrinsic_inline_size: Some(0.0),
+  }
+  // 0.0 is not > 0, so falls back to 0
+  inspect(s.contained_intrinsic_width_fallback(), content="0")
+  inspect(s.contained_intrinsic_height_fallback(), content="0")
+}
+
+///|
+test "Style::has_multicol with Percent column-width" {
+  let s : Style = {
+    ..Style::default(),
+    column_width: @types.Percent(0.5),
+  }
+  assert_true(s.has_multicol())
+}
+
+///|
+test "Style::has_multicol with MinContent/MaxContent/FitContent column-width" {
+  let s_min : Style = {
+    ..Style::default(),
+    column_width: @types.MinContent,
+  }
+  assert_false(s_min.has_multicol())
+  let s_max : Style = {
+    ..Style::default(),
+    column_width: @types.MaxContent,
+  }
+  assert_false(s_max.has_multicol())
+  let s_fit : Style = {
+    ..Style::default(),
+    column_width: @types.FitContent(100.0),
+  }
+  assert_false(s_fit.has_multicol())
+}
+
+///|
 test "BoxShadow::new constructs public box shadow values" {
   let shadow = BoxShadow::new(
     false,

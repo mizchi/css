@@ -290,3 +290,215 @@ test "tokenize whitespace-only input" {
   let last = tokens[tokens.length() - 1].to_string()
   inspect(last, content="EOF")
 }
+
+///|
+test "tokenize number with uppercase hex escape in string" {
+  // \41 = 'A' (hex), terminated by trailing space which is consumed.
+  let tokens = tokenize("\"\\41 BC\"")
+  inspect(tokens[0].to_string(), content="String(ABC)")
+}
+
+///|
+test "tokenize hex escape with mixed-case hex" {
+  // Cover hex_digit_to_int's upper-case branch (A-F).
+  let tokens = tokenize("\"\\Ab\"")
+  // Hex \Ab parses; the result is some codepoint.
+  let first = tokens[0].to_string()
+  assert_true(first.has_prefix("String("))
+}
+
+///|
+test "tokenize CDO token: <!--" {
+  let tokens = tokenize("<!-- foo -->")
+  inspect(tokens[0].to_string(), content="CDO")
+}
+
+///|
+test "tokenize lone '<' as delim" {
+  let tokens = tokenize("<x")
+  inspect(tokens[0].to_string(), content="Delim(<)")
+}
+
+///|
+test "tokenize lone '/' as delim" {
+  let tokens = tokenize("a / b")
+  let mut has_slash = false
+  for t in tokens {
+    if t.to_string() == "Delim(/)" {
+      has_slash = true
+    }
+  }
+  assert_true(has_slash)
+}
+
+///|
+test "tokenize lone '#' as delim" {
+  let tokens = tokenize("# ")
+  inspect(tokens[0].to_string(), content="Delim(#)")
+}
+
+///|
+test "tokenize lone '@' as delim" {
+  let tokens = tokenize("@ ")
+  inspect(tokens[0].to_string(), content="Delim(@)")
+}
+
+///|
+test "tokenize backslash followed by newline yields delim" {
+  let tokens = tokenize("\\\n")
+  inspect(tokens[0].to_string(), content="Delim(\\)")
+}
+
+///|
+test "tokenize lone '+' as delim" {
+  let tokens = tokenize("+ a")
+  inspect(tokens[0].to_string(), content="Delim(+)")
+}
+
+///|
+test "tokenize lone '.' as delim" {
+  let tokens = tokenize(". a")
+  inspect(tokens[0].to_string(), content="Delim(.)")
+}
+
+///|
+test "tokenize identifier starting with double-dash" {
+  // --my-var should be ident, not delim or number
+  let tokens = tokenize("--my-var")
+  inspect(tokens[0].to_string(), content="Ident(--my-var)")
+}
+
+///|
+test "tokenize number with exponent" {
+  let tokens = tokenize("1.5e2")
+  inspect(tokens[0].to_string(), content="Number(150, num)")
+}
+
+///|
+test "tokenize number with negative exponent" {
+  let tokens = tokenize("1e-2")
+  inspect(tokens[0].to_string(), content="Number(0.01, num)")
+}
+
+///|
+test "tokenize number with positive exponent sign" {
+  let tokens = tokenize("3e+1")
+  inspect(tokens[0].to_string(), content="Number(30, num)")
+}
+
+///|
+test "tokenize percentage with float" {
+  let tokens = tokenize("12.5%")
+  inspect(tokens[0].to_string(), content="Percentage(12.5)")
+}
+
+///|
+test "tokenize bad string (newline before quote)" {
+  let tokens = tokenize("\"abc\ndef\"")
+  inspect(tokens[0].to_string(), content="BadString")
+}
+
+///|
+test "tokenize string with escaped non-special char" {
+  let tokens = tokenize("\"a\\bc\"")
+  // \b consumes 'b' literally — string contains "abc"
+  let first = tokens[0].to_string()
+  assert_true(first.has_prefix("String("))
+}
+
+///|
+test "tokenize unterminated string at EOF" {
+  let tokens = tokenize("\"abc")
+  // Reaches EOF — returns the partial string
+  inspect(tokens[0].to_string(), content="String(abc)")
+}
+
+///|
+test "tokenize string with line continuation" {
+  // \<newline> inside a string is consumed silently
+  let tokens = tokenize("\"a\\\nb\"")
+  let first = tokens[0].to_string()
+  assert_true(first.has_prefix("String("))
+}
+
+///|
+test "tokenize hash with no name" {
+  let tokens = tokenize("#")
+  inspect(tokens[0].to_string(), content="Delim(#)")
+}
+
+///|
+test "tokenize signed decimal number (+.5)" {
+  let tokens = tokenize("+.5")
+  inspect(tokens[0].to_string(), content="Number(0.5, num)")
+}
+
+///|
+test "tokenize signed decimal number (-.5)" {
+  let tokens = tokenize("-.5em")
+  inspect(tokens[0].to_string(), content="Dimension(-0.5, em)")
+}
+
+///|
+test "tokenize backslash-start identifier" {
+  // Backslash followed by something would start ident through escape path.
+  let tokens = tokenize("\\68 ello")
+  let first = tokens[0].to_string()
+  // Should be an Ident token
+  assert_true(first.has_prefix("Ident("))
+}
+
+///|
+test "tokenize at-keyword with double-dash" {
+  // @--my is would_start_ident via the -- branch
+  let tokens = tokenize("@--my")
+  inspect(tokens[0].to_string(), content="AtKeyword(--my)")
+}
+
+///|
+test "tokenize backslash-prefixed at-keyword" {
+  let tokens = tokenize("@\\41")
+  let first = tokens[0].to_string()
+  assert_true(first.has_prefix("AtKeyword("))
+}
+
+///|
+test "tokenize lone dot at end" {
+  let tokens = tokenize(".")
+  inspect(tokens[0].to_string(), content="Delim(.)")
+}
+
+///|
+test "tokenize sign at end (lone plus)" {
+  let tokens = tokenize("+")
+  inspect(tokens[0].to_string(), content="Delim(+)")
+}
+
+///|
+test "tokenize sign at end (lone minus)" {
+  let tokens = tokenize("-")
+  inspect(tokens[0].to_string(), content="Delim(-)")
+}
+
+///|
+test "tokenize backslash at EOF" {
+  let tokens = tokenize("\\")
+  // Backslash with nothing after — falls into name path, returns empty ident
+  let first = tokens[0].to_string()
+  // Could be Ident or Delim depending on impl
+  assert_true(first.has_prefix("Ident(") || first == "Delim(\\)")
+}
+
+///|
+test "tokenize at-rule '@' followed by space" {
+  let tokens = tokenize("@ media")
+  inspect(tokens[0].to_string(), content="Delim(@)")
+}
+
+///|
+test "tokenize hash followed by name char yields Hash" {
+  // Hash followed by content that is_name_char but not would_start_ident.
+  let tokens = tokenize("#1abc")
+  let first = tokens[0].to_string()
+  assert_true(first.has_prefix("Hash("))
+}

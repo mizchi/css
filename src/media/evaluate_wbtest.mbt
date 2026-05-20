@@ -344,6 +344,85 @@ test "media query - x unit for resolution" {
 }
 
 ///|
+test "media query - exact height match" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let mq = parse_media_query_list("(height: 600px)")
+  inspect(mq.evaluate(env), content="true")
+  let mq2 = parse_media_query_list("(height: 700px)")
+  inspect(mq2.evaluate(env), content="false")
+}
+
+///|
+test "media query - boolean aspect-ratio and resolution match anything" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  // bare (aspect-ratio) — no value — should always match (boolean form)
+  let mq_ar = parse_media_query_list("(aspect-ratio)")
+  inspect(mq_ar.evaluate(env), content="true")
+  let mq_res = parse_media_query_list("(resolution)")
+  inspect(mq_res.evaluate(env), content="true")
+}
+
+///|
+test "media query - orientation falls back for unknown value" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let mq = parse_media_query_list("(orientation: sideways)")
+  // Unknown orientation matches anything per the impl
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "media query - resolution exact match" {
+  let env : MediaEnvironment = {
+    viewport_width: 800.0,
+    viewport_height: 600.0,
+    device_pixel_ratio: 2.0,
+    color_scheme: Light,
+  }
+  let mq = parse_media_query_list("(resolution: 2dppx)")
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "media query - prefers-color-scheme unknown value" {
+  let env = MediaEnvironment::with_color_scheme(800.0, 600.0, Dark)
+  let mq = parse_media_query_list("(prefers-color-scheme: auto)")
+  // Unknown scheme matches anything
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "media query - to_pixels for vw/vh, pt, pc" {
+  let env = MediaEnvironment::new(100.0, 100.0)
+  // pt: 1pt = 1.333px, so 75pt = 100px
+  let mq = parse_media_query_list("(min-width: 75pt)")
+  inspect(mq.evaluate(env), content="true")
+  // pc: 1pc = 16px, 6.25pc = 100px
+  let mq2 = parse_media_query_list("(min-width: 6pc)")
+  inspect(mq2.evaluate(env), content="true")
+  // vw/vh: not properly converted but tested
+  let mq3 = parse_media_query_list("(min-width: 50vw)")
+  inspect(mq3.evaluate(env), content="true")
+  let mq4 = parse_media_query_list("(min-width: 50vh)")
+  inspect(mq4.evaluate(env), content="true")
+}
+
+///|
+test "media query - to_pixels for unknown unit" {
+  let env = MediaEnvironment::new(50.0, 100.0)
+  // Unknown unit "xyz" falls through to default — treated as raw number
+  let mq = parse_media_query_list("(min-width: 30xyz)")
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "media query - aspect-ratio with Number value" {
+  let env = MediaEnvironment::new(1600.0, 900.0)
+  // 1600/900 ≈ 1.78
+  let mq = parse_media_query_list("(min-aspect-ratio: 1.5)")
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
 test "various length units in width queries" {
   let env = MediaEnvironment::new(320.0, 600.0)
   // 20em == 320px (at 16px base)
