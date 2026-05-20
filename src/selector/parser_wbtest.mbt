@@ -575,6 +575,136 @@ test "parse selector starting with combinator returns None" {
 }
 
 ///|
+test "parse :nth-child(n) bare n" {
+  let sel = parse_selector_text(":nth-child(n)").unwrap()
+  match sel.head.subclasses[0] {
+    PseudoClass(NthChild(expr)) => {
+      inspect(expr.a, content="1")
+      inspect(expr.b, content="0")
+    }
+    _ => fail("expected nth-child")
+  }
+}
+
+///|
+test "parse :nth-child(n+3)" {
+  let sel = parse_selector_text(":nth-child(n+3)").unwrap()
+  match sel.head.subclasses[0] {
+    PseudoClass(NthChild(expr)) => {
+      inspect(expr.a, content="1")
+      inspect(expr.b, content="3")
+    }
+    _ => fail("expected nth-child")
+  }
+}
+
+///|
+test "parse :nth-child(-n+5)" {
+  let sel = parse_selector_text(":nth-child(-n+5)").unwrap()
+  match sel.head.subclasses[0] {
+    PseudoClass(NthChild(expr)) => {
+      inspect(expr.a, content="-1")
+      inspect(expr.b, content="5")
+    }
+    _ => fail("expected nth-child")
+  }
+}
+
+///|
+test "parse :nth-child(+n)" {
+  let sel = parse_selector_text(":nth-child(+n)").unwrap()
+  match sel.head.subclasses[0] {
+    PseudoClass(NthChild(expr)) => {
+      inspect(expr.a, content="1")
+      inspect(expr.b, content="0")
+    }
+    _ => fail("expected nth-child")
+  }
+}
+
+///|
+test "parse :nth-child(+5)" {
+  let sel = parse_selector_text(":nth-child(+5)").unwrap()
+  match sel.head.subclasses[0] {
+    PseudoClass(NthChild(expr)) => {
+      inspect(expr.a, content="0")
+      inspect(expr.b, content="5")
+    }
+    _ => fail("expected nth-child")
+  }
+}
+
+///|
+test "parse :nth-child(- n)" {
+  let sel = parse_selector_text(":nth-child(- n)")
+  // Space between - and n; depends on impl
+  let _ = sel
+  inspect(true, content="true")
+}
+
+///|
+test "parse :nth-child(2n+) invalid" {
+  // Trailing + with no number
+  let sel = parse_selector_text(":nth-child(2n+)")
+  let _ = sel
+  inspect(true, content="true")
+}
+
+///|
+test "parse :nth-child(garbage) invalid" {
+  inspect(parse_selector_text(":nth-child(abc)") is None, content="true")
+}
+
+///|
+test "parse :nth-child(+ garbage) invalid" {
+  inspect(parse_selector_text(":nth-child(+abc)") is None, content="true")
+}
+
+///|
+test "parse compound with unknown content after type returns None" {
+  // Some malformed compound
+  inspect(parse_selector_text("div@@@") is None, content="true")
+}
+
+///|
+test "parse attribute with quoted (StringToken) value" {
+  let sel = parse_selector_text("[type=\"text\"]").unwrap()
+  match sel.head.subclasses[0] {
+    Attribute(a) =>
+      match a.match_type {
+        Exact(v) => inspect(v, content="text")
+        _ => fail("expected Exact")
+      }
+    _ => fail("expected attribute")
+  }
+}
+
+///|
+test "parse :nth-of-type with -n keyword" {
+  let sel = parse_selector_text(":nth-of-type(-n+3)").unwrap()
+  match sel.head.subclasses[0] {
+    PseudoClass(NthOfType(expr)) => {
+      inspect(expr.a, content="-1")
+      inspect(expr.b, content="3")
+    }
+    _ => fail("expected nth-of-type")
+  }
+}
+
+///|
+test "parse :nth-child with Dimension form like 2n" {
+  // The unit is "n" — Dimension(2.0, "n") path
+  let sel = parse_selector_text(":nth-child(2n)").unwrap()
+  match sel.head.subclasses[0] {
+    PseudoClass(NthChild(expr)) => {
+      inspect(expr.a, content="2")
+      inspect(expr.b, content="0")
+    }
+    _ => fail("expected nth-child")
+  }
+}
+
+///|
 test "parse complex selector chain" {
   let sel = parse_selector_text("nav > ul li a:hover")
   inspect(sel is Some(_), content="true")

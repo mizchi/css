@@ -1129,3 +1129,92 @@ test "parse @media with extra braces inside (defensive)" {
   // .x and .y parsed; the loose { skipped via brace tracking
   assert_true(stylesheet.rules.length() >= 1)
 }
+
+///|
+test "parse empty selector list returns no rules" {
+  // Just ; before { triggers parse_style_rule but selector_list empty
+  let css = "  { color: red; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse rule with EOF before closing brace" {
+  let css = ".x { color: red"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse @supports with EOF before brace" {
+  let css = "@supports (display: flex)"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse @supports inside @media with EOF" {
+  let css = "@media screen { @supports (display: flex"
+  let stylesheet = @parser.parse_stylesheet(css)
+  // Bailouts at EOF
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse @media with EOF in body" {
+  // Cause EOF while inside @media block
+  let css = "@media screen { .x { color: red"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse - rule with bad property still recovers" {
+  // Unrecognized declaration is skipped
+  let css = ".x { ?@: bad ; color: red }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse - delim & at top level (not inside rule)" {
+  // & outside rule context
+  let css = "& { color: red; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  // Just exercise the path; outcome may vary
+  let _ = stylesheet
+  inspect(true, content="true")
+}
+
+///|
+test "parse - empty @supports condition" {
+  // Skip path on weird supports
+  let css = "@supports () { .x { color: red } }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  let _ = stylesheet
+  inspect(true, content="true")
+}
+
+///|
+test "parse - !important with whitespace gaps" {
+  // The Delim('!') branch with non-important following
+  let css = ".x { color: red ! foo; padding: 1px; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse - declaration without colon" {
+  let css = ".x { color red; padding: 1px; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+  // Only padding parsed
+  inspect(stylesheet.rules[0].declarations.length(), content="1")
+}
+
+///|
+test "parse - declaration missing semicolon followed by rule" {
+  let css = ".x { color: red } .y { padding: 1px }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="2")
+}

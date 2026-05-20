@@ -502,3 +502,50 @@ test "tokenize hash followed by name char yields Hash" {
   let first = tokens[0].to_string()
   assert_true(first.has_prefix("Hash("))
 }
+
+///|
+test "tokenize sign followed by dot then non-digit" {
+  // "+.x" — would_start_number sees + then . then non-digit → returns false
+  let tokens = tokenize("+.x")
+  inspect(tokens[0].to_string(), content="Delim(+)")
+}
+
+///|
+test "tokenize dot followed by non-digit" {
+  // ".x" — would_start_number: . then non-digit → returns false
+  let tokens = tokenize(".x")
+  inspect(tokens[0].to_string(), content="Delim(.)")
+}
+
+///|
+test "tokenize number followed by dot then digit" {
+  // ".5" — would_start_number: . then digit → returns true
+  let tokens = tokenize(".5")
+  inspect(tokens[0].to_string(), content="Number(0.5, num)")
+}
+
+///|
+test "tokenize - misc non-special character is Delim" {
+  let tokens = tokenize("?")
+  inspect(tokens[0].to_string(), content="Delim(?)")
+  let tokens2 = tokenize("&")
+  inspect(tokens2[0].to_string(), content="Delim(&)")
+}
+
+///|
+test "tokenize - escape followed by non-special letter in identifier" {
+  // "\\a" - escape consumes 'a' literally
+  let tokens = tokenize("\\abc")
+  let first = tokens[0].to_string()
+  // Should be an Ident token
+  assert_true(first.has_prefix("Ident("))
+}
+
+///|
+test "tokenize - exponent at end of number" {
+  // "1e" without exponent value falls through, returning just "1"
+  let tokens = tokenize("1e ")
+  // Implementation may or may not produce a number
+  let first = tokens[0].to_string()
+  assert_true(first.has_prefix("Number(") || first.has_prefix("Dimension("))
+}

@@ -390,6 +390,44 @@ test "Style::has_multicol with Percent column-width" {
 }
 
 ///|
+test "Style::contained_intrinsic_*_fallback Some(0) in horizontal mode" {
+  // Hit lines 467 and 483 — Some(v) where v <= 0
+  let s_h : Style = {
+    ..Style::default(),
+    contain_intrinsic_inline_size: Some(0.0),
+    contain_intrinsic_block_size: Some(0.0),
+  }
+  inspect(s_h.contained_intrinsic_width_fallback(), content="0")
+  inspect(s_h.contained_intrinsic_height_fallback(), content="0")
+}
+
+///|
+test "Transform::is_none not-zero translate falls through" {
+  let t : Transform = {
+    ..Transform::none(),
+    translate_x: TranslateValue::Length(5.0),
+  }
+  assert_false(t.is_none())
+}
+
+///|
+test "All style Show impls" {
+  inspect(TableLayout::Auto, content="Auto")
+  inspect(ScrollSnapAxis::None, content="None")
+  inspect(ScrollSnapStrictness::None, content="None")
+  inspect(BreakBefore::Auto, content="Auto")
+  inspect(BreakBefore::Avoid, content="Avoid")
+  inspect(BreakInside::Auto, content="Auto")
+  inspect(ColumnSpan::None, content="None")
+  inspect(VerticalAlign::Baseline, content="Baseline")
+  inspect(VerticalAlign::Top, content="Top")
+  inspect(VerticalAlign::Middle, content="Middle")
+  inspect(VerticalAlign::Bottom, content="Bottom")
+  inspect(VerticalAlign::TextBottom, content="TextBottom")
+  inspect(VerticalAlign::Super, content="Super")
+}
+
+///|
 test "Style::has_multicol with MinContent/MaxContent/FitContent column-width" {
   let s_min : Style = {
     ..Style::default(),
