@@ -1,0 +1,27 @@
+{
+  "source": "css/selectors/parsing/parse-descendant.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "h1 em",
+      "expected": [
+        "h1 em"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "div * p",
+      "expected": [
+        "div * p"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "div p *[href]",
+      "expected": [
+        "div p *[href]",
+        "div p [href]"
+      ]
+    }
+  ]
+}

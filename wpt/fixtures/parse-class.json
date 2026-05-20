@@ -1,0 +1,35 @@
+{
+  "source": "css/selectors/parsing/parse-class.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "*.pastoral",
+      "expected": [
+        "*.pastoral",
+        ".pastoral"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".pastoral",
+      "expected": [
+        "*.pastoral",
+        ".pastoral"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "h1.pastoral",
+      "expected": [
+        "h1.pastoral"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "p.pastoral.marine",
+      "expected": [
+        "p.pastoral.marine"
+      ]
+    }
+  ]
+}

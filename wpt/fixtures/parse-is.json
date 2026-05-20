@@ -1,0 +1,47 @@
+{
+  "source": "css/selectors/parsing/parse-is.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": ":is(ul,ol,.list) > [hidden]",
+      "expected": [
+        ":is(ul, ol, .list) > [hidden]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":is(:hover,:focus)",
+      "expected": [
+        ":is(:hover, :focus)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "a:is(:not(:hover))",
+      "expected": [
+        "a:is(:not(:hover))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":is(#a)",
+      "expected": [
+        ":is(#a)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a.b ~ :is(.c.d ~ .e.f)",
+      "expected": [
+        ".a.b ~ :is(.c.d ~ .e.f)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a.b ~ .c.d:is(span.e + .f, .g.h > .i.j .k)",
+      "expected": [
+        ".a.b ~ .c.d:is(span.e + .f, .g.h > .i.j .k)"
+      ]
+    }
+  ]
+}

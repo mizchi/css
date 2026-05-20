@@ -1,0 +1,188 @@
+{
+  "source": "css/selectors/parsing/parse-not.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "button:not([disabled])",
+      "expected": [
+        "button:not([disabled])"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "*:not(foo)",
+      "expected": [
+        "*:not(foo)",
+        ":not(foo)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(:link):not(:visited)",
+      "expected": [
+        ":not(:link):not(:visited)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "*|*:not(*)",
+      "expected": [
+        ":not(*)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(:hover)",
+      "expected": [
+        ":not(:hover)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(*|*)",
+      "expected": [
+        ":not(*)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "foo:not(bar)",
+      "expected": [
+        "foo:not(bar)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(:not(foo))",
+      "expected": [
+        ":not(:not(foo))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(.a .b)",
+      "expected": [
+        ":not(.a .b)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(.a + .b)",
+      "expected": [
+        ":not(.a + .b)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(.a .b ~ c)",
+      "expected": [
+        ":not(.a .b ~ c)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(span.a, div.b)",
+      "expected": [
+        ":not(span.a, div.b)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(.a .b ~ c, .d .e)",
+      "expected": [
+        ":not(.a .b ~ c, .d .e)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(:host)",
+      "expected": [
+        ":not(:host)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(:host(.a))",
+      "expected": [
+        ":not(:host(.a))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":host(:not(.a))",
+      "expected": [
+        ":host(:not(.a))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not(:host(:not(.a)))",
+      "expected": [
+        ":not(:host(:not(.a)))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not([disabled][selected])",
+      "expected": [
+        ":not([disabled][selected])"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":not([disabled],[selected])",
+      "expected": [
+        ":not([disabled], [selected])"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":not()",
+      "expected": [
+        ":not()"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":not(:not())",
+      "expected": [
+        ":not(:not())"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":not(::before)",
+      "expected": [
+        ":not(::before)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":not(:unknownpseudo)",
+      "expected": [
+        ":not(:unknownpseudo)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":not(.a, :unknownpseudo)",
+      "expected": [
+        ":not(.a, :unknownpseudo)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":not(:unknownpseudo, .a)",
+      "expected": [
+        ":not(:unknownpseudo, .a)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":host(:not(.a .b))",
+      "expected": [
+        ":host(:not(.a .b))"
+      ]
+    }
+  ]
+}

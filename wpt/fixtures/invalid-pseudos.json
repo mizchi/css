@@ -1,0 +1,89 @@
+{
+  "source": "css/selectors/parsing/invalid-pseudos.html",
+  "tests": [
+    {
+      "kind": "invalid",
+      "input": ":-internal-animating-full-screen-transition",
+      "expected": [
+        ":-internal-animating-full-screen-transition"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":-internal-fullscreen-document",
+      "expected": [
+        ":-internal-fullscreen-document"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":-internal-html-document",
+      "expected": [
+        ":-internal-html-document"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":-internal-media-document",
+      "expected": [
+        ":-internal-media-document"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":-khtml-drag",
+      "expected": [
+        ":-khtml-drag"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":-webkit-animating-full-screen-transition",
+      "expected": [
+        ":-webkit-animating-full-screen-transition"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":-webkit-full-page-media",
+      "expected": [
+        ":-webkit-full-page-media"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":-webkit-full-screen-ancestor",
+      "expected": [
+        ":-webkit-full-screen-ancestor"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":-webkit-full-screen-controls-hidden",
+      "expected": [
+        ":-webkit-full-screen-controls-hidden"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":-webkit-full-screen-document",
+      "expected": [
+        ":-webkit-full-screen-document"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::-apple-attachment-controls-container",
+      "expected": [
+        "::-apple-attachment-controls-container"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::-internal-loading-auto-fill-button",
+      "expected": [
+        "::-internal-loading-auto-fill-button"
+      ]
+    }
+  ]
+}

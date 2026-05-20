@@ -1,0 +1,26 @@
+{
+  "source": "css/selectors/parsing/parse-sibling.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "math + p",
+      "expected": [
+        "math + p"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "h1.opener + h2",
+      "expected": [
+        "h1.opener + h2"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "h1 ~ pre",
+      "expected": [
+        "h1 ~ pre"
+      ]
+    }
+  ]
+}

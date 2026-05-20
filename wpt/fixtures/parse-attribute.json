@@ -1,0 +1,117 @@
+{
+  "source": "css/selectors/parsing/parse-attribute.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "[att]",
+      "expected": [
+        "[att]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "[att=val]",
+      "expected": [
+        "[att=\"val\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "[att~=val]",
+      "expected": [
+        "[att~=\"val\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "[att|=val]",
+      "expected": [
+        "[att|=\"val\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "h1[title]",
+      "expected": [
+        "h1[title]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "span[class='example']",
+      "expected": [
+        "span[class=\"example\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "a[hreflang=fr]",
+      "expected": [
+        "a[hreflang=\"fr\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "a[hreflang|='en']",
+      "expected": [
+        "a[hreflang|=\"en\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "[att^=val]",
+      "expected": [
+        "[att^=\"val\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "[att$=val]",
+      "expected": [
+        "[att$=\"val\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "[att*=val]",
+      "expected": [
+        "[att*=\"val\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "object[type^=\"image/\"]",
+      "expected": [
+        "object[type^=\"image/\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "a[href$=\".html\"]",
+      "expected": [
+        "a[href$=\".html\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "p[title*=\"hello\"]",
+      "expected": [
+        "p[title*=\"hello\"]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "[*|att]",
+      "expected": [
+        "[*|att]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "[|att]",
+      "expected": [
+        "[att]"
+      ]
+    }
+  ]
+}
