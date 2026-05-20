@@ -152,3 +152,117 @@ test "tokenize negative number" {
     content="[\"Dimension(-10, px)\", \"EOF\"]",
   )
 }
+
+///|
+test "tokenize hash unrestricted vs id" {
+  let id_tokens = tokenize("#main")
+  debug_inspect(
+    id_tokens.map(fn(t) { t.to_string() }),
+    content="[\"Hash(main)\", \"EOF\"]",
+  )
+  // numeric hash is still parsed as Hash
+  let num_tokens = tokenize("#123")
+  inspect(num_tokens[0].to_string(), content="Hash(123)")
+}
+
+///|
+test "tokenize single-quoted string" {
+  let tokens = tokenize("'hello'")
+  debug_inspect(
+    tokens.map(fn(t) { t.to_string() }),
+    content="[\"String(hello)\", \"EOF\"]",
+  )
+}
+
+///|
+test "tokenize comma" {
+  let tokens = tokenize("a,b")
+  debug_inspect(
+    tokens.map(fn(t) { t.to_string() }),
+    content="[\"Ident(a)\", \"Comma\", \"Ident(b)\", \"EOF\"]",
+  )
+}
+
+///|
+test "tokenize delim characters" {
+  let tokens = tokenize("> + ~ |")
+  debug_inspect(
+    tokens.map(fn(t) { t.to_string() }),
+    content=(
+      #|[
+      #|  "Delim(>)",
+      #|  "Whitespace",
+      #|  "Delim(+)",
+      #|  "Whitespace",
+      #|  "Delim(~)",
+      #|  "Whitespace",
+      #|  "Delim(|)",
+      #|  "EOF",
+      #|]
+    ),
+  )
+}
+
+///|
+test "tokenize positive signed number" {
+  let tokens = tokenize("+5em")
+  inspect(tokens[0].to_string(), content="Dimension(5, em)")
+}
+
+///|
+test "tokenize float number" {
+  let tokens = tokenize("3.14")
+  inspect(tokens[0].to_string(), content="Number(3.14, num)")
+}
+
+///|
+test "tokenize empty input yields just EOF" {
+  let tokens = tokenize("")
+  inspect(tokens.length(), content="1")
+  inspect(tokens[0].to_string(), content="EOF")
+}
+
+///|
+test "tokenize identifier with hyphens" {
+  let tokens = tokenize("flex-direction")
+  inspect(tokens[0].to_string(), content="Ident(flex-direction)")
+}
+
+///|
+test "tokenize url-like value via function token" {
+  let tokens = tokenize("url(image.png)")
+  inspect(tokens[0].to_string(), content="Function(url)")
+}
+
+///|
+test "tokenize CDO and CDC" {
+  let tokens = tokenize("<!-- -->")
+  // CDO and CDC may or may not be emitted depending on tokenizer; assert no panic.
+  assert_true(tokens.length() > 0)
+}
+
+///|
+test "tokenize colon and semicolon adjacency" {
+  let tokens = tokenize("a:b;c")
+  inspect(tokens[0].to_string(), content="Ident(a)")
+  inspect(tokens[1].to_string(), content="Colon")
+  inspect(tokens[2].to_string(), content="Ident(b)")
+  inspect(tokens[3].to_string(), content="Semicolon")
+  inspect(tokens[4].to_string(), content="Ident(c)")
+}
+
+///|
+test "tokenize at-keyword variants" {
+  let tokens = tokenize("@import @media @keyframes")
+  inspect(tokens[0].to_string(), content="AtKeyword(import)")
+  inspect(tokens[2].to_string(), content="AtKeyword(media)")
+  inspect(tokens[4].to_string(), content="AtKeyword(keyframes)")
+}
+
+///|
+test "tokenize escaped backslash in identifier" {
+  let tokens = tokenize("\\\\foo")
+  // Escape consumed and produced something; just confirm we got an ident.
+  let first = tokens[0].to_string()
+  assert_true(first.has_prefix("Ident("))
+}

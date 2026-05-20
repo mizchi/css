@@ -178,40 +178,10 @@ pub fn IndexedStylesheet::match_element_with_media(
   media_env : @media.MediaEnvironment?,
 ) -> Array[RuleMatch] {
   let matches : Array[RuleMatch] = []
-  // Get candidate rule indices from index
   let candidates = self.index.get_candidates(element)
-  // Only check candidate rules (not all rules)
   for rule_idx in candidates {
     let rule = self.stylesheet.rules[rule_idx]
-    // Check media query if present
-    let media_matches = match (rule.media_query, media_env) {
-      (Some(mq), Some(env)) => mq.evaluate(env)
-      (Some(_), None) => true
-      (None, _) => true
-    }
-    if !media_matches {
-      continue
-    }
-    // Full selector match
-    if @selector.matches_complex(element, rule.selector) {
-      let specificity = @selector.complex_specificity(rule.selector)
-      let decls : Array[Declaration] = []
-      for decl in rule.declarations {
-        decls.push({
-          property: decl.property,
-          value: decl.value,
-          origin: self.stylesheet.origin,
-          importance: decl.importance,
-          specificity,
-          source_order: rule.source_order * 10000 + decl.source_order,
-        })
-      }
-      matches.push({
-        specificity,
-        declarations: decls,
-        source_order: rule.source_order,
-      })
-    }
+    push_rule_match(matches, rule, element, self.stylesheet.origin, media_env)
   }
   matches
 }
@@ -224,39 +194,22 @@ fn cascade_indexed_stylesheet_matches_into(
   media_env : @media.MediaEnvironment?,
   source_order_offset : Int,
 ) -> Int {
-  let mut max_source_order_in_sheet = source_order_offset - 1
+  let mut max_so = source_order_offset - 1
   let candidates = stylesheet.index.get_candidates(element)
   for rule_idx in candidates {
     let rule = stylesheet.stylesheet.rules[rule_idx]
-    let media_matches = match (rule.media_query, media_env) {
-      (Some(mq), Some(env)) => mq.evaluate(env)
-      (Some(_), None) => true
-      (None, _) => true
-    }
-    if !media_matches {
-      continue
-    }
-    if @selector.matches_complex(element, rule.selector) {
-      let specificity = @selector.complex_specificity(rule.selector)
-      for decl in rule.declarations {
-        let adjusted_source_order = source_order_offset +
-          rule.source_order * 10000 +
-          decl.source_order
-        if adjusted_source_order > max_source_order_in_sheet {
-          max_source_order_in_sheet = adjusted_source_order
-        }
-        accumulate_cascaded_declaration(result, {
-          property: decl.property,
-          value: decl.value,
-          origin: stylesheet.stylesheet.origin,
-          importance: decl.importance,
-          specificity,
-          source_order: adjusted_source_order,
-        })
-      }
-    }
+    max_so = cascade_rule_into(
+      result,
+      rule,
+      element,
+      stylesheet.stylesheet.origin,
+      media_env,
+      source_order_offset,
+      max_so,
+      @selector.matches_complex,
+    )
   }
-  max_source_order_in_sheet
+  max_so
 }
 
 ///|

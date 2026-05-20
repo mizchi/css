@@ -574,6 +574,123 @@ test "CascadedValues::get_value returns None for non-Value (keyword)" {
 }
 
 ///|
+test "SelectorIndex - empty" {
+  let idx = SelectorIndex::new()
+  let element = @selector.Element::new("div").add_class("foo").set_id("bar")
+  inspect(idx.get_candidates(element).length(), content="0")
+}
+
+///|
+test "SelectorIndex::from_stylesheet partitions by primary key" {
+  let sheet = Stylesheet::new(Author)
+  // ID selector
+  let id_sel = @selector.parse_selector_text("#main").unwrap()
+  sheet.add_rule("#main", id_sel, [Declaration::new("width", "100px")])
+  // Class selector
+  let cls_sel = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", cls_sel, [Declaration::new("padding", "8px")])
+  // Tag selector
+  let tag_sel = @selector.parse_selector_text("div").unwrap()
+  sheet.add_rule("div", tag_sel, [Declaration::new("display", "block")])
+  // Universal selector
+  let uni_sel = @selector.parse_selector_text("*").unwrap()
+  sheet.add_rule("*", uni_sel, [Declaration::new("box-sizing", "border-box")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  inspect(idx.by_id.length(), content="1")
+  inspect(idx.by_class.length(), content="1")
+  inspect(idx.by_tag.length(), content="1")
+  inspect(idx.universal.length(), content="1")
+}
+
+///|
+test "SelectorIndex::get_candidates returns ID + tag + universal" {
+  let sheet = Stylesheet::new(Author)
+  let id_sel = @selector.parse_selector_text("#main").unwrap()
+  sheet.add_rule("#main", id_sel, [Declaration::new("width", "100px")])
+  let tag_sel = @selector.parse_selector_text("div").unwrap()
+  sheet.add_rule("div", tag_sel, [Declaration::new("display", "block")])
+  let uni_sel = @selector.parse_selector_text("*").unwrap()
+  sheet.add_rule("*", uni_sel, [Declaration::new("box-sizing", "border-box")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  let element = @selector.Element::new("div").set_id("main")
+  // ID + tag + universal = 3 candidates
+  inspect(idx.get_candidates(element).length(), content="3")
+}
+
+///|
+test "SelectorIndex - non-matching element gets only universal" {
+  let sheet = Stylesheet::new(Author)
+  let cls_sel = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", cls_sel, [Declaration::new("padding", "8px")])
+  let uni_sel = @selector.parse_selector_text("*").unwrap()
+  sheet.add_rule("*", uni_sel, [Declaration::new("box-sizing", "border-box")])
+  let idx = SelectorIndex::from_stylesheet(sheet)
+  let element = @selector.Element::new("p") // no class, no id
+  let candidates = idx.get_candidates(element)
+  inspect(candidates.length(), content="1")
+}
+
+///|
+test "IndexedStylesheet::match_element with no media env" {
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", sel, [Declaration::new("padding", "8px")])
+  let indexed = IndexedStylesheet::new(sheet)
+  let element = @selector.Element::with_classes("div", ["card"])
+  let matches = indexed.match_element(element)
+  inspect(matches.length(), content="1")
+}
+
+///|
+test "IndexedStylesheet::match_element_with_media gates by media query" {
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".card").unwrap()
+  let mq = @media.parse_media_query_list("(min-width: 800px)")
+  sheet.add_rule_with_media(
+    ".card",
+    sel,
+    [Declaration::new("padding", "16px")],
+    mq,
+  )
+  let indexed = IndexedStylesheet::new(sheet)
+  let element = @selector.Element::with_classes("div", ["card"])
+  let big = @media.MediaEnvironment::new(1024.0, 768.0)
+  let small = @media.MediaEnvironment::new(400.0, 768.0)
+  inspect(indexed.match_element_with_media(element, Some(big)).length(), content="1")
+  inspect(indexed.match_element_with_media(element, Some(small)).length(), content="0")
+}
+
+///|
+test "Stylesheet::match_element_with_media gates by media query" {
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".card").unwrap()
+  let mq = @media.parse_media_query_list("(min-width: 800px)")
+  sheet.add_rule_with_media(
+    ".card",
+    sel,
+    [Declaration::new("padding", "16px")],
+    mq,
+  )
+  let element = @selector.Element::with_classes("div", ["card"])
+  let big = @media.MediaEnvironment::new(1024.0, 768.0)
+  let small = @media.MediaEnvironment::new(400.0, 768.0)
+  inspect(sheet.match_element_with_media(element, Some(big)).length(), content="1")
+  inspect(sheet.match_element_with_media(element, Some(small)).length(), content="0")
+  // No env -> always matches
+  inspect(sheet.match_element_with_media(element, None).length(), content="1")
+}
+
+///|
+test "Stylesheet::match_element exposes the array" {
+  let sheet = Stylesheet::new(Author)
+  let sel = @selector.parse_selector_text(".card").unwrap()
+  sheet.add_rule(".card", sel, [Declaration::new("padding", "8px")])
+  let element = @selector.Element::with_classes("div", ["card"])
+  let matches = sheet.match_element(element)
+  inspect(matches.length(), content="1")
+}
+
+///|
 test "indexed stylesheet matches compound class selector" {
   let stylesheet = Stylesheet::new(Author)
   let sel = @selector.parse_selector_text("div.foo.bar")

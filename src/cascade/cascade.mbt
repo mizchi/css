@@ -201,40 +201,100 @@ pub fn Stylesheet::match_element_with_media(
 ) -> Array[RuleMatch] {
   let matches : Array[RuleMatch] = []
   for rule in self.rules {
-    // Check media query if present and environment provided
-    let media_matches = match (rule.media_query, media_env) {
-      (Some(mq), Some(env)) => mq.evaluate(env)
-      (Some(_), None) => true // No env = match all media queries
-      (None, _) => true // No media query = always matches
-    }
-    if !media_matches {
-      continue
-    }
-    if @selector.matches_complex(element, rule.selector) {
-      let specificity = @selector.complex_specificity(rule.selector)
-      // Update declarations with stylesheet origin
-      // Combine rule source_order with declaration source_order to preserve
-      // declaration order within rules (important for vendor prefix fallbacks like
-      // "display: -webkit-flex; display: flex;")
-      let decls : Array[Declaration] = []
-      for decl in rule.declarations {
-        decls.push({
-          property: decl.property,
-          value: decl.value,
-          origin: self.origin,
-          importance: decl.importance,
-          specificity,
-          source_order: rule.source_order * 10000 + decl.source_order,
-        })
-      }
-      matches.push({
-        specificity,
-        declarations: decls,
-        source_order: rule.source_order,
-      })
-    }
+    push_rule_match(matches, rule, element, self.origin, media_env)
   }
   matches
+}
+
+///|
+/// If `rule` matches `element` under `media_env`, append its `RuleMatch`
+/// (with origin annotation) to `matches`. Shared by Stylesheet and
+/// IndexedStylesheet.
+fn push_rule_match(
+  matches : Array[RuleMatch],
+  rule : CSSRule,
+  element : @selector.Element,
+  origin : Origin,
+  media_env : @media.MediaEnvironment?,
+) -> Unit {
+  let media_matches = match (rule.media_query, media_env) {
+    (Some(mq), Some(env)) => mq.evaluate(env)
+    (Some(_), None) => true
+    (None, _) => true
+  }
+  if !media_matches {
+    return
+  }
+  if !@selector.matches_complex(element, rule.selector) {
+    return
+  }
+  let specificity = @selector.complex_specificity(rule.selector)
+  // Combine rule source_order with declaration source_order to preserve
+  // declaration order within rules (important for vendor prefix fallbacks like
+  // "display: -webkit-flex; display: flex;")
+  let decls : Array[Declaration] = []
+  for decl in rule.declarations {
+    decls.push({
+      property: decl.property,
+      value: decl.value,
+      origin,
+      importance: decl.importance,
+      specificity,
+      source_order: rule.source_order * 10000 + decl.source_order,
+    })
+  }
+  matches.push({
+    specificity,
+    declarations: decls,
+    source_order: rule.source_order,
+  })
+}
+
+///|
+/// Apply one CSS rule against an element: if media gate passes and selector
+/// matches, accumulate every declaration into `result`. Returns the largest
+/// source order assigned by this rule, or `prev_max` if no declarations were
+/// applied.
+fn cascade_rule_into(
+  result : CascadedValues,
+  rule : CSSRule,
+  element : @selector.Element,
+  origin : Origin,
+  media_env : @media.MediaEnvironment?,
+  source_order_offset : Int,
+  prev_max : Int,
+  matches : (@selector.Element, @selector.ComplexSelector) -> Bool,
+) -> Int {
+  let media_matches = match (rule.media_query, media_env) {
+    (Some(mq), Some(env)) => mq.evaluate(env)
+    (Some(_), None) => true
+    (None, _) => true
+  }
+  if !media_matches {
+    return prev_max
+  }
+  if !matches(element, rule.selector) {
+    return prev_max
+  }
+  let specificity = @selector.complex_specificity(rule.selector)
+  let mut max_so = prev_max
+  for decl in rule.declarations {
+    let adjusted_source_order = source_order_offset +
+      rule.source_order * 10000 +
+      decl.source_order
+    if adjusted_source_order > max_so {
+      max_so = adjusted_source_order
+    }
+    accumulate_cascaded_declaration(result, {
+      property: decl.property,
+      value: decl.value,
+      origin,
+      importance: decl.importance,
+      specificity,
+      source_order: adjusted_source_order,
+    })
+  }
+  max_so
 }
 
 ///|
@@ -249,37 +309,20 @@ fn cascade_stylesheet_into(
   source_order_offset : Int,
   matches : (@selector.Element, @selector.ComplexSelector) -> Bool,
 ) -> Int {
-  let mut max_source_order_in_sheet = source_order_offset - 1
+  let mut max_so = source_order_offset - 1
   for rule in stylesheet.rules {
-    let media_matches = match (rule.media_query, media_env) {
-      (Some(mq), Some(env)) => mq.evaluate(env)
-      (Some(_), None) => true
-      (None, _) => true
-    }
-    if !media_matches {
-      continue
-    }
-    if matches(element, rule.selector) {
-      let specificity = @selector.complex_specificity(rule.selector)
-      for decl in rule.declarations {
-        let adjusted_source_order = source_order_offset +
-          rule.source_order * 10000 +
-          decl.source_order
-        if adjusted_source_order > max_source_order_in_sheet {
-          max_source_order_in_sheet = adjusted_source_order
-        }
-        accumulate_cascaded_declaration(result, {
-          property: decl.property,
-          value: decl.value,
-          origin: stylesheet.origin,
-          importance: decl.importance,
-          specificity,
-          source_order: adjusted_source_order,
-        })
-      }
-    }
+    max_so = cascade_rule_into(
+      result,
+      rule,
+      element,
+      stylesheet.origin,
+      media_env,
+      source_order_offset,
+      max_so,
+      matches,
+    )
   }
-  max_source_order_in_sheet
+  max_so
 }
 
 ///|
