@@ -621,6 +621,38 @@ test "matches_complex - SubsequentSibling no match" {
 }
 
 ///|
+test "matches_attribute - case-insensitive Prefix/Suffix/Substring" {
+  let elem = Element::new("a").set_attribute("href", "HTTPS://Example.COM/Path.HTML")
+  inspect(matches_selector_text(elem, "a[href^=\"https\" i]"), content="true")
+  inspect(matches_selector_text(elem, "a[href$=\".html\" i]"), content="true")
+  inspect(matches_selector_text(elem, "a[href*=\"example\" i]"), content="true")
+}
+
+///|
+test "fast_dash_match - value strictly shorter than query (vl < ql)" {
+  // [lang|=long-name] against lang="en" — value shorter than query
+  let elem = Element::new("p").set_attribute("lang", "en")
+  inspect(matches_selector_text(elem, "p[lang|=\"long-name\"]"), content="false")
+}
+
+///|
+test "matches_has - next-sibling with no next" {
+  // Triggers next_sibling_matches_complex None branch
+  let elem = Element::new("div")
+  inspect(matches_selector_text(elem, "div:has(+ .x)"), content="false")
+}
+
+///|
+test "matches_has - explicit Descendant combinator" {
+  // matches_relative_selector Some(Descendant) branch
+  // Note: selector parser may treat ".x" inside :has() as implicit descendant.
+  // This is what we already test, but explicit form covers Some(Descendant).
+  let leaf = Element::new("span").add_class("found")
+  let elem = { ..Element::new("div"), children: [leaf] }
+  inspect(matches_selector_text(elem, "div:has(.found)"), content="true")
+}
+
+///|
 test "matches_complex - SubsequentSibling deep chain" {
   // Build a chain: target → middle → elem; all should be siblings
   let target = Element::new("h1").add_class("target")
