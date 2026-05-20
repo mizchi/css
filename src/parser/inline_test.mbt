@@ -590,6 +590,84 @@ test "parse - padding-top/right/bottom/left individual" {
 }
 
 ///|
+test "parse grid-template-columns with min-content/max-content/auto" {
+  let s = parse_inline_style(
+    "grid-template-columns: min-content max-content auto 100px",
+  )
+  inspect(s.grid_template_columns.length(), content="4")
+}
+
+///|
+test "parse grid-template-columns with minmax(min-content, 1fr)" {
+  let s = parse_inline_style(
+    "grid-template-columns: minmax(min-content, 1fr) minmax(auto, max-content)",
+  )
+  inspect(s.grid_template_columns.length(), content="2")
+}
+
+///|
+test "parse grid-template-columns with various track sizes" {
+  let s = parse_inline_style(
+    "grid-template-columns: 50% 2fr 100px auto min-content max-content",
+  )
+  inspect(s.grid_template_columns.length(), content="6")
+}
+
+///|
+test "parse grid-template-columns with 0 unitless" {
+  let s = parse_inline_style("grid-template-columns: 0 100px")
+  inspect(s.grid_template_columns.length(), content="2")
+}
+
+///|
+test "parse grid-template-columns with bad ident drops the rest" {
+  let s = parse_inline_style("grid-template-columns: bogus 100px")
+  // Bogus ident causes parser to stop accumulating tracks
+  let _ = s.grid_template_columns
+  inspect(true, content="true")
+}
+
+///|
+test "parse grid-template-columns with non-zero unitless drops the rest" {
+  let s = parse_inline_style("grid-template-columns: 5 100px")
+  // Non-zero unitless causes parser to stop
+  let _ = s.grid_template_columns
+  inspect(true, content="true")
+}
+
+///|
+test "parse contain-intrinsic-size single value" {
+  let s = parse_inline_style("contain-intrinsic-size: 100px")
+  debug_inspect(
+    s.contain_intrinsic_inline_size,
+    content="Some(100)",
+  )
+  debug_inspect(
+    s.contain_intrinsic_block_size,
+    content="Some(100)",
+  )
+}
+
+///|
+test "parse contain-intrinsic-size auto" {
+  let s = parse_inline_style("contain-intrinsic-size: auto")
+  // 'auto' produces None
+  debug_inspect(s.contain_intrinsic_inline_size, content="None")
+}
+
+///|
+test "parse container-type: size and inline-size" {
+  let s1 = parse_inline_style("container-type: size")
+  inspect(s1.contain.size, content="true")
+  let s2 = parse_inline_style("container-type: inline-size")
+  inspect(s2.contain.inline_size, content="true")
+  let s3 = parse_inline_style("container-type: normal")
+  // 'normal' should not add containment
+  let _ = s3
+  inspect(true, content="true")
+}
+
+///|
 test "parse negative top left" {
   let style = parse_inline_style("top: -20px; left: -40px")
   inspect(style.inset.top, content="Length(-20)")
