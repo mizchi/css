@@ -238,12 +238,16 @@ pub fn Stylesheet::match_element_with_media(
 }
 
 ///|
-fn cascade_stylesheet_matches_into(
+/// Iterate stylesheet rules, accumulating declarations from rules whose
+/// selector passes `matches`. Returns the maximum source order assigned so
+/// the caller can advance the cross-stylesheet offset.
+fn cascade_stylesheet_into(
   result : CascadedValues,
   stylesheet : Stylesheet,
   element : @selector.Element,
   media_env : @media.MediaEnvironment?,
   source_order_offset : Int,
+  matches : (@selector.Element, @selector.ComplexSelector) -> Bool,
 ) -> Int {
   let mut max_source_order_in_sheet = source_order_offset - 1
   for rule in stylesheet.rules {
@@ -255,7 +259,7 @@ fn cascade_stylesheet_matches_into(
     if !media_matches {
       continue
     }
-    if @selector.matches_complex(element, rule.selector) {
+    if matches(element, rule.selector) {
       let specificity = @selector.complex_specificity(rule.selector)
       for decl in rule.declarations {
         let adjusted_source_order = source_order_offset +
@@ -276,6 +280,24 @@ fn cascade_stylesheet_matches_into(
     }
   }
   max_source_order_in_sheet
+}
+
+///|
+fn cascade_stylesheet_matches_into(
+  result : CascadedValues,
+  stylesheet : Stylesheet,
+  element : @selector.Element,
+  media_env : @media.MediaEnvironment?,
+  source_order_offset : Int,
+) -> Int {
+  cascade_stylesheet_into(
+    result,
+    stylesheet,
+    element,
+    media_env,
+    source_order_offset,
+    @selector.matches_complex,
+  )
 }
 
 ///|

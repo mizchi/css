@@ -505,6 +505,75 @@ test "pseudo-class :where() has zero specificity" {
 }
 
 ///|
+test "Show impls for Origin, Importance, PropertyValue, Declaration" {
+  inspect(Origin::UserAgent, content="UserAgent")
+  inspect(Origin::User, content="User")
+  inspect(Origin::Author, content="Author")
+  inspect(Importance::Normal, content="Normal")
+  inspect(Importance::Important, content="Important")
+  inspect(PropertyValue::Value("flex"), content="Value(flex)")
+  inspect(PropertyValue::Inherit, content="inherit")
+  inspect(PropertyValue::Initial, content="initial")
+  inspect(PropertyValue::Unset, content="unset")
+  inspect(PropertyValue::Revert, content="revert")
+  inspect(PropertyValue::RevertLayer, content="revert-layer")
+  let decl_normal = Declaration::new("color", "red")
+  inspect(decl_normal, content="color: Value(red)")
+  let decl_imp = Declaration::from_inline("color", "red", Important)
+  inspect(decl_imp, content="color: Value(red) !important")
+}
+
+///|
+test "Declaration::with_metadata" {
+  let spec : @selector.Specificity = { a: 1, b: 2, c: 3 }
+  let d = Declaration::with_metadata(
+    "padding", PropertyValue::Inherit, User, Important, spec, 42,
+  )
+  inspect(d.property, content="padding")
+  inspect(d.source_order, content="42")
+  inspect(d.origin, content="User")
+  inspect(d.importance, content="Important")
+}
+
+///|
+test "cascade precedence covers every origin/importance combo" {
+  inspect(cascade_precedence(UserAgent, Normal), content="1")
+  inspect(cascade_precedence(User, Normal), content="2")
+  inspect(cascade_precedence(Author, Normal), content="3")
+  inspect(cascade_precedence(Author, Important), content="4")
+  inspect(cascade_precedence(User, Important), content="5")
+  inspect(cascade_precedence(UserAgent, Important), content="6")
+}
+
+///|
+test "CascadedValues::each and properties" {
+  let result = cascade([
+    Declaration::new("width", "100px"),
+    Declaration::new("height", "50px"),
+  ])
+  let collected : Array[String] = []
+  result.each(fn(k, _v) { collected.push(k) })
+  inspect(collected.length(), content="2")
+  let props = result.properties()
+  inspect(props.length(), content="2")
+}
+
+///|
+test "CascadedValues::get_value returns None for non-Value (keyword)" {
+  let decl : Declaration = {
+    property: "color",
+    value: PropertyValue::Inherit,
+    origin: Author,
+    importance: Normal,
+    specificity: { a: 0, b: 0, c: 0 },
+    source_order: 0,
+  }
+  let result = cascade([decl])
+  assert_true(result.has("color"))
+  debug_inspect(result.get_value("color"), content="None")
+}
+
+///|
 test "indexed stylesheet matches compound class selector" {
   let stylesheet = Stylesheet::new(Author)
   let sel = @selector.parse_selector_text("div.foo.bar")

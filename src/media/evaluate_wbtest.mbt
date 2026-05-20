@@ -134,3 +134,154 @@ test "media_query_calc_range_evaluation" {
   inspect(mq.evaluate(MediaEnvironment::new(640.0, 600.0)), content="false")
   inspect(mq.evaluate(MediaEnvironment::new(641.0, 600.0)), content="true")
 }
+
+///|
+test "MediaQuery negated and only" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let mq : MediaQuery = {
+    negated: true,
+    only: false,
+    media_type: None,
+    conditions: [MediaFeature::MinWidth(MediaValue::Dimension(1000.0, "px"))],
+  }
+  // negated: min-width 1000 fails on 800 -> negation is true
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "MediaQuery print and speech are rejected" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let mq_print : MediaQuery = {
+    negated: false,
+    only: false,
+    media_type: Some(MediaType::Print),
+    conditions: [],
+  }
+  inspect(mq_print.evaluate(env), content="false")
+  let mq_speech : MediaQuery = {
+    negated: false,
+    only: false,
+    media_type: Some(MediaType::Speech),
+    conditions: [],
+  }
+  inspect(mq_speech.evaluate(env), content="false")
+}
+
+///|
+test "MediaQuery All matches" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let mq : MediaQuery = {
+    negated: false,
+    only: false,
+    media_type: Some(MediaType::All),
+    conditions: [],
+  }
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "Empty MediaQueryList matches everything" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let empty = MediaQueryList::new()
+  inspect(empty.evaluate(env), content="true")
+}
+
+///|
+test "MediaQuery::default constructs all/no-conditions" {
+  let mq = MediaQuery::default()
+  inspect(mq.negated, content="false")
+}
+
+///|
+test "orientation portrait vs landscape" {
+  let portrait = MediaEnvironment::new(400.0, 800.0)
+  let landscape = MediaEnvironment::new(800.0, 400.0)
+  let mq_p = parse_media_query_list("(orientation: portrait)")
+  let mq_l = parse_media_query_list("(orientation: landscape)")
+  inspect(mq_p.evaluate(portrait), content="true")
+  inspect(mq_p.evaluate(landscape), content="false")
+  inspect(mq_l.evaluate(portrait), content="false")
+  inspect(mq_l.evaluate(landscape), content="true")
+}
+
+///|
+test "aspect ratio - exact, min, max" {
+  let env_wide = MediaEnvironment::new(1600.0, 900.0)
+  let env_square = MediaEnvironment::new(500.0, 500.0)
+  let mq_min : MediaQuery = {
+    negated: false,
+    only: false,
+    media_type: None,
+    conditions: [MediaFeature::MinAspectRatio(MediaValue::Ratio(16, 9))],
+  }
+  inspect(mq_min.evaluate(env_wide), content="true")
+  inspect(mq_min.evaluate(env_square), content="false")
+  let mq_max : MediaQuery = {
+    negated: false,
+    only: false,
+    media_type: None,
+    conditions: [MediaFeature::MaxAspectRatio(MediaValue::Ratio(1, 1))],
+  }
+  inspect(mq_max.evaluate(env_wide), content="false")
+  inspect(mq_max.evaluate(env_square), content="true")
+}
+
+///|
+test "boolean media features" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let make_query = fn(f) {
+    let q : MediaQuery = {
+      negated: false,
+      only: false,
+      media_type: None,
+      conditions: [f],
+    }
+    q.evaluate(env)
+  }
+  inspect(make_query(MediaFeature::Color), content="true")
+  inspect(make_query(MediaFeature::ColorGamut), content="true")
+  inspect(make_query(MediaFeature::ColorIndex), content="false")
+  inspect(make_query(MediaFeature::Grid), content="false")
+  inspect(make_query(MediaFeature::Hover), content="true")
+  inspect(make_query(MediaFeature::Monochrome), content="false")
+  inspect(make_query(MediaFeature::Pointer), content="true")
+  inspect(make_query(MediaFeature::Scripting), content="true")
+  inspect(make_query(MediaFeature::Update), content="true")
+  inspect(make_query(MediaFeature::Custom("unknown", None)), content="true")
+}
+
+///|
+test "resolution media feature with various units" {
+  let env_hd : MediaEnvironment = {
+    viewport_width: 800.0,
+    viewport_height: 600.0,
+    device_pixel_ratio: 2.0,
+    color_scheme: Light,
+  }
+  let mq_min = parse_media_query_list("(min-resolution: 1.5dppx)")
+  inspect(mq_min.evaluate(env_hd), content="true")
+  let mq_max = parse_media_query_list("(max-resolution: 1.5dppx)")
+  inspect(mq_max.evaluate(env_hd), content="false")
+  let mq_dpi = parse_media_query_list("(min-resolution: 192dpi)")
+  inspect(mq_dpi.evaluate(env_hd), content="true")
+}
+
+///|
+test "Show for ColorScheme" {
+  inspect(ColorScheme::Light, content="Light")
+  inspect(ColorScheme::Dark, content="Dark")
+}
+
+///|
+test "various length units in width queries" {
+  let env = MediaEnvironment::new(320.0, 600.0)
+  // 20em == 320px (at 16px base)
+  let mq_em = parse_media_query_list("(min-width: 20em)")
+  inspect(mq_em.evaluate(env), content="true")
+  let mq_pt = parse_media_query_list("(max-width: 300pt)")
+  // 300pt ~ 400px > 320 viewport
+  inspect(mq_pt.evaluate(env), content="true")
+  let mq_pc = parse_media_query_list("(min-width: 30pc)")
+  // 30pc = 480px
+  inspect(mq_pc.evaluate(env), content="false")
+}

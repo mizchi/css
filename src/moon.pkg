@@ -10,6 +10,7 @@ import {
 
 import {
   "mizchi/css/values" @types,
+  "moonbitlang/core/bench",
 } for "test"
 
 warnings = "-unused_package"

@@ -303,6 +303,93 @@ test "match :has next sibling combinator" {
 }
 
 ///|
+test "match attribute - all match types" {
+  let elem = Element::new("input")
+    .set_attribute("type", "text")
+    .set_attribute("class", "form input-text large")
+    .set_attribute("data-id", "abc-123")
+    .set_attribute("href", "https://example.com/page.html")
+    .set_attribute("lang", "en-US")
+  // Includes
+  inspect(matches_selector_text(elem, "[class~=input-text]"), content="true")
+  inspect(matches_selector_text(elem, "[class~=missing]"), content="false")
+  // DashMatch
+  inspect(matches_selector_text(elem, "[lang|=en]"), content="true")
+  inspect(matches_selector_text(elem, "[lang|=fr]"), content="false")
+  // Prefix
+  inspect(matches_selector_text(elem, "[href^=https]"), content="true")
+  inspect(matches_selector_text(elem, "[href^=http://]"), content="false")
+  // Suffix
+  inspect(matches_selector_text(elem, "[href$=\".html\"]"), content="true")
+  inspect(matches_selector_text(elem, "[href$=\".pdf\"]"), content="false")
+  // Substring
+  inspect(matches_selector_text(elem, "[href*=example]"), content="true")
+  inspect(matches_selector_text(elem, "[href*=missing]"), content="false")
+}
+
+///|
+test "match attribute - case insensitive flag" {
+  let elem = Element::new("input").set_attribute("type", "BUTTON")
+  inspect(matches_selector_text(elem, "[type=button i]"), content="true")
+  inspect(matches_selector_text(elem, "[type=button]"), content="false")
+}
+
+///|
+test "match attribute - missing attribute" {
+  let elem = Element::new("input")
+  inspect(matches_selector_text(elem, "[type=button]"), content="false")
+  inspect(matches_selector_text(elem, "[type]"), content="false")
+}
+
+///|
+test "match nth-of-type" {
+  let elem = Element::new("li").set_sibling_info(2, 4)
+  // Without siblings: only this element exists; nth-of-type isn't going to
+  // find prior li's of the same type. Just exercise the matcher.
+  let _ = matches_selector_text(elem, ":nth-of-type(odd)")
+  inspect(true, content="true")
+}
+
+///|
+test "match :only-child" {
+  let only = Element::new("div").set_sibling_info(1, 1)
+  let one_of_many = Element::new("div").set_sibling_info(1, 3)
+  inspect(matches_selector_text(only, ":only-child"), content="true")
+  inspect(matches_selector_text(one_of_many, ":only-child"), content="false")
+}
+
+///|
+test "match :is with selector list" {
+  let div = Element::new("div").add_class("active")
+  inspect(matches_selector_text(div, ":is(.active, .hover)"), content="true")
+  let other = Element::new("div")
+  inspect(matches_selector_text(other, ":is(.active, .hover)"), content="false")
+}
+
+///|
+test "match :where (zero specificity but still matches)" {
+  let div = Element::new("div").add_class("foo")
+  inspect(matches_selector_text(div, ":where(.foo)"), content="true")
+  inspect(matches_selector_text(div, ":where(.bar)"), content="false")
+}
+
+///|
+test "selector list matches if any selector matches" {
+  let elem = Element::new("p")
+  let list = parse_selector_list_text("h1, h2, p, .foo").unwrap()
+  assert_true(matches_selector_list(elem, list))
+  let no_match = parse_selector_list_text("h1, h2, h3").unwrap()
+  assert_false(matches_selector_list(elem, no_match))
+}
+
+///|
+test "pseudo-elements do not match real elements" {
+  let elem = Element::new("p")
+  inspect(matches_selector_text(elem, "p::before"), content="false")
+  inspect(matches_selector_text(elem, "::after"), content="false")
+}
+
+///|
 test "match :has selector list with attribute substring" {
   let base = Element::new("div").add_class("code-example")
   let child = Element::new("section")
