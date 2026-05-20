@@ -2147,3 +2147,215 @@ test "apply_property_direct mutates existing style" {
   inspect(updated.padding.top, content="Length(16)")
   inspect(updated.padding.left, content="Length(16)")
 }
+
+///|
+test "compute_inline table-layout, border-collapse, caption-side" {
+  let ctx = @computed.ComputeContext::new()
+  let style = @computed.compute_inline(
+    "table-layout: fixed; border-collapse: collapse; caption-side: bottom",
+    ctx,
+  )
+  inspect(style.table_layout, content="Fixed")
+  inspect(style.border_collapse, content="Collapse")
+  inspect(style.caption_side, content="Bottom")
+}
+
+///|
+test "compute_inline border-spacing single value" {
+  let ctx = @computed.ComputeContext::new()
+  let s = @computed.compute_inline("border-spacing: 4px", ctx)
+  inspect(s.border_spacing, content="4")
+  inspect(s.border_spacing_vertical, content="4")
+}
+
+///|
+test "compute_inline border-spacing two values" {
+  let ctx = @computed.ComputeContext::new()
+  let s = @computed.compute_inline("border-spacing: 4px 8px", ctx)
+  inspect(s.border_spacing, content="4")
+  inspect(s.border_spacing_vertical, content="8")
+}
+
+///|
+test "compute_inline column-fill" {
+  let ctx = @computed.ComputeContext::new()
+  let balance = @computed.compute_inline("column-fill: balance", ctx)
+  inspect(balance.column_fill, content="Balance")
+  let auto = @computed.compute_inline("column-fill: auto", ctx)
+  inspect(auto.column_fill, content="Auto")
+}
+
+///|
+test "compute_inline margin-trim variants" {
+  let ctx = @computed.ComputeContext::new()
+  inspect(
+    @computed.compute_inline("margin-trim: block", ctx).margin_trim,
+    content="Block",
+  )
+  inspect(
+    @computed.compute_inline("margin-trim: inline", ctx).margin_trim,
+    content="Inline",
+  )
+  inspect(
+    @computed.compute_inline("margin-trim: block-start", ctx).margin_trim,
+    content="BlockStart",
+  )
+  inspect(
+    @computed.compute_inline("margin-trim: none", ctx).margin_trim,
+    content="None",
+  )
+}
+
+///|
+test "compute_inline clip-path inset" {
+  let ctx = @computed.ComputeContext::new()
+  let style = @computed.compute_inline("clip-path: inset(5px 10px)", ctx)
+  let is_inset = match style.clip_path {
+    Inset(_, _, _, _) => true
+    _ => false
+  }
+  assert_true(is_inset)
+}
+
+///|
+test "compute_inline clip-path circle" {
+  let ctx = @computed.ComputeContext::new()
+  let style = @computed.compute_inline(
+    "clip-path: circle(50px at 25px 50px)",
+    ctx,
+  )
+  let is_circle = match style.clip_path {
+    Circle(_, _, _) => true
+    _ => false
+  }
+  assert_true(is_circle)
+}
+
+///|
+test "compute_inline filter sets has_filter flag" {
+  let ctx = @computed.ComputeContext::new()
+  let style = @computed.compute_inline("filter: blur(5px)", ctx)
+  inspect(style.has_filter, content="true")
+}
+
+///|
+test "compute_inline vertical-align variants" {
+  let ctx = @computed.ComputeContext::new()
+  inspect(
+    @computed.compute_inline("vertical-align: top", ctx).vertical_align,
+    content="Top",
+  )
+  inspect(
+    @computed.compute_inline("vertical-align: middle", ctx).vertical_align,
+    content="Middle",
+  )
+  inspect(
+    @computed.compute_inline("vertical-align: bottom", ctx).vertical_align,
+    content="Bottom",
+  )
+  inspect(
+    @computed.compute_inline("vertical-align: text-top", ctx).vertical_align,
+    content="TextTop",
+  )
+  inspect(
+    @computed.compute_inline("vertical-align: sub", ctx).vertical_align,
+    content="Sub",
+  )
+}
+
+///|
+test "compute_inline rowspan and colspan from HTML attributes" {
+  let ctx = @computed.ComputeContext::new()
+  // These are normally HTML attribute -> style; expose via parse
+  let style = @computed.compute_inline("rowspan: 3; colspan: 2", ctx)
+  // The compute layer may or may not handle these; ensure no panic.
+  let _ = style
+  inspect(true, content="true")
+}
+
+///|
+test "compute_inline -webkit-line-clamp does not break compute" {
+  let ctx = @computed.ComputeContext::new()
+  let style = @computed.compute_inline("-webkit-line-clamp: 3", ctx)
+  inspect(style.display, content="Block")
+}
+
+///|
+test "compute_inline align-content stretch and start" {
+  let ctx = @computed.ComputeContext::new()
+  inspect(
+    @computed.compute_inline("align-content: stretch", ctx).align_content,
+    content="Stretch",
+  )
+  inspect(
+    @computed.compute_inline("align-content: start", ctx).align_content,
+    content="Start",
+  )
+}
+
+///|
+test "compute_inline justify-content space variants" {
+  let ctx = @computed.ComputeContext::new()
+  inspect(
+    @computed.compute_inline("justify-content: space-between", ctx).justify_content,
+    content="SpaceBetween",
+  )
+  inspect(
+    @computed.compute_inline("justify-content: space-around", ctx).justify_content,
+    content="SpaceAround",
+  )
+  inspect(
+    @computed.compute_inline("justify-content: space-evenly", ctx).justify_content,
+    content="SpaceEvenly",
+  )
+}
+
+///|
+test "compute_inline custom property declaration" {
+  let ctx = @computed.ComputeContext::new()
+  let (_, vars) = @computed.compute_with_vars(
+    @cascade.cascade([
+      @cascade.Declaration::new("--my-color", "#123456"),
+    ]),
+    ctx,
+  )
+  debug_inspect(vars.get("--my-color"), content="Some(\"#123456\")")
+}
+
+///|
+test "compute - inherited color from parent context" {
+  let parent : @style.Style = {
+    ..@style.Style::default(),
+    color: @types.Color::rgb(100, 100, 100),
+  }
+  let ctx = @computed.ComputeContext::with_parent(parent)
+  // color is inherited; without an explicit declaration, child should pick up parent color
+  let style = @computed.compute(@cascade.cascade([]), ctx)
+  inspect(style.color.r, content="100")
+}
+
+///|
+test "compute - explicit inherit keyword forces inheritance" {
+  let parent : @style.Style = {
+    ..@style.Style::default(),
+    color: @types.Color::rgb(50, 60, 70),
+  }
+  let ctx = @computed.ComputeContext::with_parent(parent)
+  let decl : @cascade.Declaration = {
+    property: "color",
+    value: @cascade.Inherit,
+    origin: @cascade.Author,
+    importance: @cascade.Normal,
+    specificity: { a: 0, b: 0, c: 0 },
+    source_order: 0,
+  }
+  let style = @computed.compute(@cascade.cascade([decl]), ctx)
+  inspect(style.color.r, content="50")
+}
+
+///|
+test "compute_inline parses font shorthand minimal" {
+  let ctx = @computed.ComputeContext::new()
+  let style = @computed.compute_inline("font: 14px Arial", ctx)
+  inspect(style.font_size, content="14")
+}
