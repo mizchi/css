@@ -23,7 +23,7 @@ test "wpt parse-state.html: valid :state(--0)" {
 
 ///|
 test "wpt parse-state.html: valid :host(:state(--foo))" {
-  wpt_assert_valid("wpt parse-state.html: valid :host(:state(--foo))", ":host(:state(--foo))", [":host(:state(--foo))"], true)
+  wpt_assert_valid("wpt parse-state.html: valid :host(:state(--foo))", ":host(:state(--foo))", [":host(:state(--foo))"], false)
 }
 
 ///|
@@ -38,22 +38,22 @@ test "wpt parse-state.html: valid my-input[type=\"foo\"]:state(--0)::before" {
 
 ///|
 test "wpt parse-state.html: valid my-input[type=\"foo\"]:state(--0)::part(inner)" {
-  wpt_assert_valid("wpt parse-state.html: valid my-input[type=\"foo\"]:state(--0)::part(inner)", "my-input[type=\"foo\"]:state(--0)::part(inner)", ["my-input[type=\"foo\"]:state(--0)::part(inner)"], true)
+  wpt_assert_valid("wpt parse-state.html: valid my-input[type=\"foo\"]:state(--0)::part(inner)", "my-input[type=\"foo\"]:state(--0)::part(inner)", ["my-input[type=\"foo\"]:state(--0)::part(inner)"], false)
 }
 
 ///|
 test "wpt parse-state.html: valid my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)" {
-  wpt_assert_valid("wpt parse-state.html: valid my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)", "my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)", ["my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)"], true)
+  wpt_assert_valid("wpt parse-state.html: valid my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)", "my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)", ["my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)"], false)
 }
 
 ///|
 test "wpt parse-state.html: valid ::part(inner):state(bar)::before" {
-  wpt_assert_valid("wpt parse-state.html: valid ::part(inner):state(bar)::before", "::part(inner):state(bar)::before", ["::part(inner):state(bar)::before"], true)
+  wpt_assert_valid("wpt parse-state.html: valid ::part(inner):state(bar)::before", "::part(inner):state(bar)::before", ["::part(inner):state(bar)::before"], false)
 }
 
 ///|
 test "wpt parse-state.html: valid ::part(inner):state(bar)::after" {
-  wpt_assert_valid("wpt parse-state.html: valid ::part(inner):state(bar)::after", "::part(inner):state(bar)::after", ["::part(inner):state(bar)::after"], true)
+  wpt_assert_valid("wpt parse-state.html: valid ::part(inner):state(bar)::after", "::part(inner):state(bar)::after", ["::part(inner):state(bar)::after"], false)
 }
 
 ///|
@@ -98,7 +98,7 @@ test "wpt parse-state.html: invalid :state(:host)" {
 
 ///|
 test "wpt parse-state.html: invalid my-input::after:state(foo)" {
-  wpt_assert_invalid("wpt parse-state.html: invalid my-input::after:state(foo)", "my-input::after:state(foo)", true)
+  wpt_assert_invalid("wpt parse-state.html: invalid my-input::after:state(foo)", "my-input::after:state(foo)", false)
 }
 
 ///|
@@ -113,7 +113,7 @@ test "wpt parse-state.html: invalid ::part(inner):state(bar)::after:state(foo)" 
 
 ///|
 test "wpt parse-state.html: invalid my-input::first-letter:state(foo)" {
-  wpt_assert_invalid("wpt parse-state.html: invalid my-input::first-letter:state(foo)", "my-input::first-letter:state(foo)", true)
+  wpt_assert_invalid("wpt parse-state.html: invalid my-input::first-letter:state(foo)", "my-input::first-letter:state(foo)", false)
 }
 
 ///|

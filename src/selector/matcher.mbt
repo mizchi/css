@@ -233,7 +233,7 @@ fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
     Empty => element.children.is_empty()
     Not(selectors) => {
       for sel in selectors {
-        if matches_compound(element, sel) {
+        if matches_complex(element, sel) {
           return false
         }
       }
@@ -273,6 +273,40 @@ fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
     Link | AnyLink =>
       element.tag_name == "a" && element.get_attribute("href") is Some(_)
     Visited => false
+    // Shadow DOM scoping pseudo-classes — without a shadow tree
+    // representation we can't actually match these, so return false.
+    Host | HostFunc(_) | HostContextFunc(_) => false
+    // :dir(ltr|rtl) — depends on inherited direction. Static matching
+    // without a direction property defaults to no match.
+    Dir(_) => false
+    // :lang(...) — matches by element language attribute. Without
+    // explicit language metadata on our Element type we treat as miss.
+    Lang(_) => false
+    // :heading / :heading(N) — match HTML heading elements.
+    Heading(levels) =>
+      match element.tag_name {
+        "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => {
+          if levels.is_empty() {
+            return true
+          }
+          let n = match element.tag_name {
+            "h1" => 1
+            "h2" => 2
+            "h3" => 3
+            "h4" => 4
+            "h5" => 5
+            "h6" => 6
+            _ => 0
+          }
+          for level in levels {
+            if level == n {
+              return true
+            }
+          }
+          false
+        }
+        _ => false
+      }
     // Form pseudo-classes - would need form element state
     Enabled
     | Disabled

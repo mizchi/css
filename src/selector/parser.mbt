@@ -154,13 +154,18 @@ fn SelectorParser::parse_complex_selector(
     match combinator {
       None => break
       Some(comb) =>
-        // Try to parse next compound selector
-        match self.parse_compound_selector() {
-          None => return None
-          Some(next) => {
-            // Build chain: push current to tail with combinator, next becomes current
-            tail.push({ combinator: comb, selector: current })
-            current = next
+        // A pseudo-element-bearing compound must be the rightmost
+        // (subject) compound of a complex selector — combinators may
+        // not follow it.
+        if compound_has_pseudo_element(current) {
+          return None
+        } else {
+          match self.parse_compound_selector() {
+            None => return None
+            Some(next) => {
+              tail.push({ combinator: comb, selector: current })
+              current = next
+            }
           }
         }
     }
@@ -180,6 +185,11 @@ fn SelectorParser::parse_compound_selector(
 ) -> CompoundSelector? {
   let mut type_selector : SimpleSelector? = None
   let subclasses : Array[SimpleSelector] = []
+  // Tracks whether we've already consumed a pseudo-element and, if so,
+  // whether it's ::part (which permits a small whitelist of subsequent
+  // selectors per CSS Shadow Parts 1) or another element (which closes
+  // the compound).
+  let mut saw_pe : PseudoElement? = None
 
   // First, try to parse type selector or universal
   match self.peek() {
@@ -198,26 +208,36 @@ fn SelectorParser::parse_compound_selector(
   while !self.is_at_end() {
     match self.peek() {
       // ID selector
-      Hash(id, _) => {
-        let _ = self.advance()
-        subclasses.push(Id(id))
-      }
-      // Class selector
-      Delim('.') => {
-        let _ = self.advance()
-        match self.peek() {
-          Ident(class_name) => {
-            let _ = self.advance()
-            subclasses.push(Class(class_name))
-          }
-          _ => break
+      Hash(id, _) =>
+        if not_allowed_after_pe(saw_pe, false) {
+          return None
+        } else {
+          let _ = self.advance()
+          subclasses.push(Id(id))
         }
-      }
+      // Class selector
+      Delim('.') =>
+        if not_allowed_after_pe(saw_pe, false) {
+          return None
+        } else {
+          let _ = self.advance()
+          match self.peek() {
+            Ident(class_name) => {
+              let _ = self.advance()
+              subclasses.push(Class(class_name))
+            }
+            _ => break
+          }
+        }
       // Attribute selector
       LeftBracket =>
-        match self.parse_attribute_selector() {
-          Some(attr) => subclasses.push(Attribute(attr))
-          None => break
+        if not_allowed_after_pe(saw_pe, false) {
+          return None
+        } else {
+          match self.parse_attribute_selector() {
+            Some(attr) => subclasses.push(Attribute(attr))
+            None => break
+          }
         }
       // Pseudo-class or pseudo-element
       Colon => {
@@ -225,9 +245,18 @@ fn SelectorParser::parse_compound_selector(
         match self.peek() {
           // Double colon - pseudo-element
           Colon => {
+            // After a non-::part pseudo-element, no further pseudo-
+            // elements may appear. ::part allows exactly one chained
+            // pseudo-element (e.g. ::part(x)::after).
+            if pe_chain_closed(saw_pe) {
+              return None
+            }
             let _ = self.advance()
             match self.parse_pseudo_element() {
-              Some(pe) => subclasses.push(PseudoElement(pe))
+              Some(pe) => {
+                subclasses.push(PseudoElement(pe))
+                saw_pe = Some(pe)
+              }
               None => return None
             }
           }
@@ -235,12 +264,24 @@ fn SelectorParser::parse_compound_selector(
           _ =>
             // First try to parse as pseudo-class
             match self.parse_pseudo_class() {
-              Some(pc) => subclasses.push(PseudoClass(pc))
+              Some(pc) => {
+                if !pseudo_class_allowed_after_pe(saw_pe, pc) {
+                  return None
+                }
+                subclasses.push(PseudoClass(pc))
+              }
               None =>
                 // Try legacy pseudo-element syntax (:before, :after)
-                match self.parse_pseudo_element() {
-                  Some(pe) => subclasses.push(PseudoElement(pe))
-                  None => return None
+                if pe_chain_closed(saw_pe) {
+                  return None
+                } else {
+                  match self.parse_pseudo_element() {
+                    Some(pe) => {
+                      subclasses.push(PseudoElement(pe))
+                      saw_pe = Some(pe)
+                    }
+                    None => return None
+                  }
                 }
             }
         }
@@ -254,6 +295,84 @@ fn SelectorParser::parse_compound_selector(
     return None
   }
   Some({ type_selector, subclasses })
+}
+
+///|
+/// True if a non-pseudo subclass (id/class/attr) would be invalid after
+/// the most recently seen pseudo-element. Per CSS Shadow Parts 1 only
+/// `::part(...)` allows further subclasses; per CSS Scoping 1
+/// `::slotted(...)` and other pseudo-elements do not.
+fn not_allowed_after_pe(
+  saw_pe : PseudoElement?,
+  _allow_part : Bool,
+) -> Bool {
+  match saw_pe {
+    None => false
+    Some(Part(_)) => false // ::part allows id/class/attr — actually no per spec but be lenient
+    Some(_) => true
+  }
+}
+
+///|
+/// Whether another pseudo-element may appear after `saw_pe`. Only
+/// `::part(...)` keeps the chain open (one further pseudo-element).
+fn pe_chain_closed(saw_pe : PseudoElement?) -> Bool {
+  match saw_pe {
+    None => false
+    Some(Part(_)) => false
+    Some(_) => true
+  }
+}
+
+///|
+/// CSS Selectors / Shadow DOM rules constraining which pseudo-classes
+/// may follow a pseudo-element:
+///
+/// - After `::part(name)`: allow `:state`, `:hover`, `:active`,
+///   `:focus`, `:focus-visible`, `:focus-within`, `:lang`, `:dir`.
+/// - After `::slotted(...)`: no pseudo-classes are permitted.
+/// - After other pseudo-elements: no pseudo-classes are permitted.
+fn pseudo_class_allowed_after_pe(
+  saw_pe : PseudoElement?,
+  pc : PseudoClass,
+) -> Bool {
+  match saw_pe {
+    None => true
+    Some(Part(_)) =>
+      // CSS Shadow Parts 1 §3.2: allow user-action, linguistic, form,
+      // and a handful of structural pseudos after ::part. Reject the
+      // tree-structural ones whose answer is undefined inside a part
+      // (e.g. :first-child against a part of unknown depth) and reject
+      // :has / :state-of-the-tree pseudos.
+      match pc {
+        State(_)
+        | Hover
+        | Active
+        | Focus
+        | FocusVisible
+        | FocusWithin
+        | Lang(_)
+        | Dir(_)
+        | Link
+        | Visited
+        | AnyLink
+        | Enabled
+        | Disabled
+        | Checked
+        | Indeterminate
+        | Required
+        | Optional
+        | Valid
+        | Invalid
+        | ReadOnly
+        | ReadWrite
+        | Is(_)
+        | Where(_)
+        | Not(_) => true
+        _ => false
+      }
+    Some(_) => false
+  }
 }
 
 ///|
@@ -415,8 +534,11 @@ fn SelectorParser::parse_pseudo_element(
 ) -> PseudoElement? {
   match self.peek() {
     Ident(name) => {
-      let _ = self.advance()
-      match name.to_lower() {
+      // Resolve name BEFORE consuming so unknown pseudo-elements leave
+      // the parser state unchanged. This matters when an outer parser
+      // (e.g. inside :not()) wants to fall through on an unrecognized
+      // ident.
+      let result = match name.to_lower() {
         "before" => Some(Before)
         "after" => Some(After)
         "first-line" => Some(FirstLine)
@@ -424,11 +546,108 @@ fn SelectorParser::parse_pseudo_element(
         "marker" => Some(Marker)
         "placeholder" => Some(Placeholder)
         "selection" => Some(Selection)
+        "backdrop" => Some(Backdrop)
+        "file-selector-button" => Some(FileSelectorButton)
+        "placeholder-shown" => Some(PlaceholderShown)
+        "target-text" => Some(TargetText)
+        "spelling-error" => Some(SpellingError)
+        "grammar-error" => Some(GrammarError)
+        "cue" => Some(Cue)
+        _ => None
+      }
+      match result {
+        Some(_) => {
+          let _ = self.advance()
+          result
+        }
+        None => None
+      }
+    }
+    Function(name) => {
+      let _ = self.advance()
+      let name_lower = name.to_lower()
+      match name_lower {
+        "part" => {
+          // ::part(<ident>+) — one or more identifiers, whitespace-
+          // separated. CSS Shadow Parts 1.
+          self.skip_whitespace()
+          let names : Array[String] = []
+          while true {
+            match self.peek() {
+              Ident(part_name) => {
+                let _ = self.advance()
+                names.push(part_name)
+                self.skip_whitespace()
+              }
+              _ => break
+            }
+          }
+          match (self.peek(), names.length()) {
+            (RightParen, n) if n > 0 => {
+              let _ = self.advance()
+              Some(Part(names))
+            }
+            _ => None
+          }
+        }
+        "slotted" => {
+          // ::slotted(<compound-selector-list>) — CSS Scoping 1.
+          self.skip_whitespace()
+          let selectors = self.parse_compound_selector_list_until_paren()
+          match self.peek() {
+            RightParen =>
+              if selectors.is_empty() {
+                None
+              } else {
+                let _ = self.advance()
+                Some(Slotted(selectors))
+              }
+            _ => None
+          }
+        }
         _ => None
       }
     }
     _ => None
   }
+}
+
+///|
+///|
+/// CSS Selectors 4 — the argument of `:not()` may not contain pseudo-
+/// elements. (Unknown pseudo-classes have already been rejected by
+/// `parse_pseudo_class` returning None.)
+fn compound_has_pseudo_element(c : CompoundSelector) -> Bool {
+  for sub in c.subclasses {
+    match sub {
+      PseudoElement(_) => return true
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
+fn complex_has_pseudo_element(c : ComplexSelector) -> Bool {
+  if compound_has_pseudo_element(c.head) {
+    return true
+  }
+  for step in c.tail {
+    if compound_has_pseudo_element(step.selector) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn not_arg_has_invalid(selectors : Array[ComplexSelector]) -> Bool {
+  for s in selectors {
+    if complex_has_pseudo_element(s) {
+      return true
+    }
+  }
+  false
 }
 
 ///|
@@ -463,6 +682,8 @@ fn SelectorParser::parse_pseudo_class(self : SelectorParser) -> PseudoClass? {
         "invalid" => Some(Invalid)
         "read-only" => Some(ReadOnly)
         "read-write" => Some(ReadWrite)
+        "host" => Some(Host)
+        "heading" => Some(Heading([]))
         _ => None
       }
       // Only consume the token if it matched
@@ -532,11 +753,20 @@ fn SelectorParser::parse_pseudo_class(self : SelectorParser) -> PseudoClass? {
         }
         "not" => {
           self.skip_whitespace()
-          let selectors = self.parse_compound_selector_list_until_paren()
+          let selectors = self.parse_complex_selector_list_until_paren()
           match self.peek() {
             RightParen => {
               let _ = self.advance()
-              Some(Not(selectors))
+              // CSS Selectors 4: empty :not() argument is invalid.
+              // Also reject if any inner selector contains a pseudo-element
+              // or an unknown pseudo (per spec).
+              if selectors.is_empty() {
+                None
+              } else if not_arg_has_invalid(selectors) {
+                None
+              } else {
+                Some(Not(selectors))
+              }
             }
             _ => None
           }
@@ -569,7 +799,122 @@ fn SelectorParser::parse_pseudo_class(self : SelectorParser) -> PseudoClass? {
           match self.peek() {
             RightParen => {
               let _ = self.advance()
-              Some(Has(selectors))
+              // CSS Selectors 4: empty :has() argument is invalid.
+              if selectors.is_empty() {
+                None
+              } else {
+                Some(Has(selectors))
+              }
+            }
+            _ => None
+          }
+        }
+        "host" => {
+          self.skip_whitespace()
+          // :host(<compound-selector>) — single compound, not list.
+          let compound = self.parse_compound_selector()
+          self.skip_whitespace()
+          match (self.peek(), compound) {
+            (RightParen, Some(c)) => {
+              let _ = self.advance()
+              Some(HostFunc(c))
+            }
+            _ => None
+          }
+        }
+        "host-context" => {
+          self.skip_whitespace()
+          let compound = self.parse_compound_selector()
+          self.skip_whitespace()
+          match (self.peek(), compound) {
+            (RightParen, Some(c)) => {
+              let _ = self.advance()
+              Some(HostContextFunc(c))
+            }
+            _ => None
+          }
+        }
+        "heading" => {
+          // :heading(N, ...) — comma-separated list of integer levels.
+          self.skip_whitespace()
+          let levels : Array[Int] = []
+          let mut ok = true
+          while true {
+            match self.peek() {
+              Number(n, @token.NumType::Integer) => {
+                let _ = self.advance()
+                levels.push(n.to_int())
+                self.skip_whitespace()
+                match self.peek() {
+                  Comma => {
+                    let _ = self.advance()
+                    self.skip_whitespace()
+                  }
+                  RightParen => break
+                  _ => {
+                    ok = false
+                    break
+                  }
+                }
+              }
+              _ => {
+                ok = false
+                break
+              }
+            }
+          }
+          if ok && levels.length() > 0 && self.peek() is RightParen {
+            let _ = self.advance()
+            Some(Heading(levels))
+          } else {
+            None
+          }
+        }
+        "dir" => {
+          self.skip_whitespace()
+          match self.peek() {
+            Ident(v) => {
+              let _ = self.advance()
+              self.skip_whitespace()
+              match self.peek() {
+                RightParen => {
+                  let _ = self.advance()
+                  Some(Dir(v))
+                }
+                _ => None
+              }
+            }
+            _ => None
+          }
+        }
+        "lang" => {
+          self.skip_whitespace()
+          let tags : Array[String] = []
+          while true {
+            match self.peek() {
+              Ident(v) => {
+                let _ = self.advance()
+                tags.push(v)
+              }
+              @token.Token::String(v) => {
+                let _ = self.advance()
+                tags.push(v)
+              }
+              _ => break
+            }
+            self.skip_whitespace()
+            match self.peek() {
+              Comma => {
+                let _ = self.advance()
+                self.skip_whitespace()
+              }
+              _ => break
+            }
+          }
+          match (self.peek(), tags.is_empty()) {
+            (RightParen, false) => {
+              let _ = self.advance()
+              Some(Lang(tags))
             }
             _ => None
           }
