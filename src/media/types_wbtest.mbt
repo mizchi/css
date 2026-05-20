@@ -251,3 +251,105 @@ test "parse_media_query_list - unknown custom feature" {
   let s = mq.queries[0].conditions[0].to_string()
   assert_true(s.contains("Custom"))
 }
+
+///|
+test "parse_media_query_list - empty input list" {
+  let mq = parse_media_query_list("  ")
+  inspect(mq.is_empty(), content="true")
+}
+
+///|
+test "parse_media_query_list - calc() arithmetic" {
+  // calc(40rem + 1px) is 641px
+  let mq = parse_media_query_list("(width >= calc(40rem + 1px))")
+  let env_match = MediaEnvironment::new(641.0, 100.0)
+  let env_miss = MediaEnvironment::new(640.0, 100.0)
+  inspect(mq.evaluate(env_match), content="true")
+  inspect(mq.evaluate(env_miss), content="false")
+}
+
+///|
+test "parse_media_query_list - calc with multiplication" {
+  let mq = parse_media_query_list("(min-width: calc(20rem * 2))")
+  let env = MediaEnvironment::new(641.0, 100.0)
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "parse_media_query_list - calc with division" {
+  let mq = parse_media_query_list("(min-width: calc(640px / 2))")
+  // 320px
+  let env = MediaEnvironment::new(320.0, 100.0)
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "parse_media_query_list - calc with subtraction" {
+  let mq = parse_media_query_list("(min-width: calc(100px - 20px))")
+  // 80px
+  let env = MediaEnvironment::new(80.0, 100.0)
+  inspect(mq.evaluate(env), content="true")
+}
+
+///|
+test "parse_media_query_list - 'or' between groups" {
+  // Already covered, but additional fallthrough
+  let mq = parse_media_query_list(
+    "(min-width: 800px) or (orientation: portrait)",
+  )
+  let big = MediaEnvironment::new(900.0, 100.0)
+  let small_portrait = MediaEnvironment::new(400.0, 800.0)
+  let small_landscape = MediaEnvironment::new(400.0, 100.0)
+  inspect(mq.evaluate(big), content="true")
+  inspect(mq.evaluate(small_portrait), content="true")
+  inspect(mq.evaluate(small_landscape), content="false")
+}
+
+///|
+test "parse_media_query_list - feature with non-Ident value goes to Custom" {
+  // E.g. orientation expecting Ident but given Number falls into Custom branch
+  let mq = parse_media_query_list("(orientation: 90)")
+  let s = mq.queries[0].conditions[0].to_string()
+  assert_true(s.contains("Custom") || s.contains("Orientation"))
+}
+
+///|
+test "parse_media_query_list - 'not' prefix at start" {
+  let mq = parse_media_query_list("not (max-width: 600px)")
+  inspect(mq.queries[0].negated, content="true")
+}
+
+///|
+test "parse_media_query_list - boolean monochrome and color-index" {
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let mq1 = parse_media_query_list("(monochrome)")
+  inspect(mq1.evaluate(env), content="false")
+  let mq2 = parse_media_query_list("(color-index)")
+  inspect(mq2.evaluate(env), content="false")
+  let mq3 = parse_media_query_list("(scripting)")
+  inspect(mq3.evaluate(env), content="true")
+  let mq4 = parse_media_query_list("(update)")
+  inspect(mq4.evaluate(env), content="true")
+}
+
+///|
+test "MediaValue - non-pixel values yield zero pixels" {
+  // Ratio inside a min-width context: to_pixels returns 0
+  let env = MediaEnvironment::new(800.0, 600.0)
+  let mq : MediaQuery = {
+    negated: false,
+    only: false,
+    media_type: None,
+    conditions: [MediaFeature::MinWidth(MediaValue::Ratio(16, 9))],
+  }
+  // 800 >= 0 (ratio coerced to 0px) → true
+  inspect(mq.evaluate(env), content="true")
+  // Ident value: same
+  let mq2 : MediaQuery = {
+    negated: false,
+    only: false,
+    media_type: None,
+    conditions: [MediaFeature::MinWidth(MediaValue::Ident("foo"))],
+  }
+  inspect(mq2.evaluate(env), content="true")
+}

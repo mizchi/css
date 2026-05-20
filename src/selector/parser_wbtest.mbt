@@ -442,6 +442,139 @@ test "parse_selector_text - empty string returns None" {
 }
 
 ///|
+test "parse attribute - case-sensitive 's' flag" {
+  let sel = parse_selector_text("[type=text s]").unwrap()
+  match sel.head.subclasses[0] {
+    Attribute(a) => {
+      inspect(a.case_insensitive, content="false")
+    }
+    _ => fail("expected attribute")
+  }
+}
+
+///|
+test "parse attribute - quoted value" {
+  let sel = parse_selector_text("[type=\"text\"]")
+  inspect(sel is Some(_), content="true")
+}
+
+///|
+test "parse attribute - no operator just name" {
+  let sel = parse_selector_text("[disabled]").unwrap()
+  match sel.head.subclasses[0] {
+    Attribute(a) =>
+      match a.match_type {
+        Exists => ()
+        _ => fail("expected Exists")
+      }
+    _ => fail("expected attribute")
+  }
+}
+
+///|
+test "parse attribute - broken operator returns None" {
+  // ~ without = should fail
+  inspect(parse_selector_text("[name~]") is None, content="true")
+  inspect(parse_selector_text("[name^]") is None, content="true")
+  inspect(parse_selector_text("[name$]") is None, content="true")
+  inspect(parse_selector_text("[name*]") is None, content="true")
+  inspect(parse_selector_text("[name|]") is None, content="true")
+}
+
+///|
+test "parse attribute - missing value returns None" {
+  inspect(parse_selector_text("[name=]") is None, content="true")
+  inspect(parse_selector_text("[name~=]") is None, content="true")
+  inspect(parse_selector_text("[name^=]") is None, content="true")
+}
+
+///|
+test "parse attribute - missing closing bracket returns None" {
+  inspect(parse_selector_text("[name=value") is None, content="true")
+  inspect(parse_selector_text("[name") is None, content="true")
+}
+
+///|
+test "parse attribute - missing name returns None" {
+  inspect(parse_selector_text("[=value]") is None, content="true")
+}
+
+///|
+test "parse attribute - empty brackets returns None" {
+  inspect(parse_selector_text("[]") is None, content="true")
+}
+
+///|
+test "parse :nth-child with malformed expression returns None" {
+  inspect(parse_selector_text(":nth-child(") is None, content="true")
+  inspect(parse_selector_text(":nth-child()") is None, content="true")
+}
+
+///|
+test "parse pseudo-class :state() with malformed input" {
+  inspect(parse_selector_text(":state(") is None, content="true")
+  // valid state token
+  inspect(parse_selector_text(":state(open)") is Some(_), content="true")
+}
+
+///|
+test "parse :is/:where/:has with missing close paren returns None" {
+  inspect(parse_selector_text(":is(.foo") is None, content="true")
+  inspect(parse_selector_text(":where(.foo") is None, content="true")
+  inspect(parse_selector_text(":has(.foo") is None, content="true")
+  inspect(parse_selector_text(":not(.foo") is None, content="true")
+}
+
+///|
+test "parse :nth-*() with missing close paren returns None" {
+  inspect(parse_selector_text(":nth-child(2n+1") is None, content="true")
+  inspect(parse_selector_text(":nth-last-child(2n+1") is None, content="true")
+  inspect(parse_selector_text(":nth-of-type(2n+1") is None, content="true")
+  inspect(parse_selector_text(":nth-last-of-type(2n+1") is None, content="true")
+}
+
+///|
+test "parse :nth-child(-n)" {
+  let sel = parse_selector_text(":nth-child(-n)").unwrap()
+  match sel.head.subclasses[0] {
+    PseudoClass(NthChild(expr)) => {
+      inspect(expr.a, content="-1")
+      inspect(expr.b, content="0")
+    }
+    _ => fail("expected nth-child")
+  }
+}
+
+///|
+test "parse :nth-child(2n) explicit no offset" {
+  let sel = parse_selector_text(":nth-child(2n)").unwrap()
+  match sel.head.subclasses[0] {
+    PseudoClass(NthChild(expr)) => {
+      inspect(expr.a, content="2")
+      inspect(expr.b, content="0")
+    }
+    _ => fail("expected nth-child")
+  }
+}
+
+///|
+test "parse pseudo-class with unknown function returns None" {
+  inspect(parse_selector_text(":unknownfn(x)") is None, content="true")
+}
+
+///|
+test "parse_selector_list rejects when followed by extra trash" {
+  inspect(parse_selector_list_text("div  garbage[[") is None, content="true")
+}
+
+///|
+test "parse selector starting with combinator returns None" {
+  // A bare combinator at start is invalid
+  inspect(parse_selector_text(">") is None, content="true")
+  inspect(parse_selector_text("+") is None, content="true")
+}
+
+///|
 test "parse complex selector chain" {
   let sel = parse_selector_text("nav > ul li a:hover")
   inspect(sel is Some(_), content="true")

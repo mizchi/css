@@ -244,6 +244,96 @@ test "parse_clip_path - none" {
 }
 
 ///|
+test "initial_value sweep - every entry" {
+  // Hit each specific match arm in initial_value
+  inspect(@computed.initial_value("float"), content="none")
+  inspect(@computed.initial_value("clear"), content="none")
+  inspect(@computed.initial_value("overflow-x"), content="visible")
+  inspect(@computed.initial_value("overflow-y"), content="visible")
+  inspect(@computed.initial_value("pointer-events"), content="auto")
+  inspect(@computed.initial_value("scroll-snap-type"), content="none")
+  inspect(@computed.initial_value("scroll-snap-align"), content="none")
+  inspect(@computed.initial_value("height"), content="auto")
+  inspect(@computed.initial_value("min-width"), content="auto")
+  inspect(@computed.initial_value("min-height"), content="auto")
+  inspect(@computed.initial_value("max-height"), content="none")
+  inspect(@computed.initial_value("margin-top"), content="0")
+  inspect(@computed.initial_value("margin-right"), content="0")
+  inspect(@computed.initial_value("margin-bottom"), content="0")
+  inspect(@computed.initial_value("margin-left"), content="0")
+  inspect(@computed.initial_value("margin-trim"), content="none")
+  inspect(@computed.initial_value("padding-top"), content="0")
+  inspect(@computed.initial_value("padding-right"), content="0")
+  inspect(@computed.initial_value("padding-bottom"), content="0")
+  inspect(@computed.initial_value("padding-left"), content="0")
+  inspect(@computed.initial_value("border-width"), content="0")
+  inspect(@computed.initial_value("border-top-width"), content="0")
+  inspect(@computed.initial_value("border-right-width"), content="0")
+  inspect(@computed.initial_value("border-bottom-width"), content="0")
+  inspect(@computed.initial_value("border-left-width"), content="0")
+  inspect(@computed.initial_value("flex-wrap"), content="nowrap")
+  inspect(@computed.initial_value("align-content"), content="stretch")
+  inspect(@computed.initial_value("align-self"), content="auto")
+  inspect(@computed.initial_value("flex-shrink"), content="1")
+  inspect(@computed.initial_value("flex-basis"), content="auto")
+  inspect(@computed.initial_value("row-gap"), content="0")
+  inspect(@computed.initial_value("column-gap"), content="0")
+  inspect(@computed.initial_value("grid-gap"), content="0")
+  inspect(@computed.initial_value("grid-row-gap"), content="0")
+  inspect(@computed.initial_value("grid-column-gap"), content="0")
+  inspect(@computed.initial_value("columns"), content="auto")
+  inspect(@computed.initial_value("column-count"), content="auto")
+  inspect(@computed.initial_value("column-width"), content="auto")
+  inspect(@computed.initial_value("column-fill"), content="balance")
+  inspect(@computed.initial_value("break-before"), content="auto")
+  inspect(@computed.initial_value("break-after"), content="auto")
+  inspect(@computed.initial_value("break-inside"), content="auto")
+  inspect(@computed.initial_value("page-break-inside"), content="auto")
+  inspect(@computed.initial_value("column-span"), content="none")
+  inspect(@computed.initial_value("top"), content="auto")
+  inspect(@computed.initial_value("right"), content="auto")
+  inspect(@computed.initial_value("bottom"), content="auto")
+  inspect(@computed.initial_value("left"), content="auto")
+  inspect(@computed.initial_value("inset"), content="auto")
+  inspect(@computed.initial_value("grid-template-rows"), content="none")
+  inspect(@computed.initial_value("grid-template-columns"), content="none")
+  inspect(@computed.initial_value("grid-auto-rows"), content="auto")
+  inspect(@computed.initial_value("grid-auto-columns"), content="auto")
+  inspect(@computed.initial_value("grid-auto-flow"), content="row")
+  inspect(@computed.initial_value("grid-row-start"), content="auto")
+  inspect(@computed.initial_value("grid-row-end"), content="auto")
+  inspect(@computed.initial_value("grid-column-start"), content="auto")
+  inspect(@computed.initial_value("grid-column-end"), content="auto")
+  inspect(@computed.initial_value("direction"), content="ltr")
+  inspect(@computed.initial_value("writing-mode"), content="horizontal-tb")
+  inspect(@computed.initial_value("text-overflow"), content="clip")
+  inspect(@computed.initial_value("text-decoration"), content="none")
+  inspect(@computed.initial_value("text-decoration-line"), content="none")
+  inspect(@computed.initial_value("box-shadow"), content="none")
+  inspect(@computed.initial_value("contain-intrinsic-size"), content="none")
+  inspect(
+    @computed.initial_value("contain-intrinsic-inline-size"),
+    content="none",
+  )
+  inspect(
+    @computed.initial_value("contain-intrinsic-block-size"),
+    content="none",
+  )
+  inspect(@computed.initial_value("border-spacing"), content="0")
+  inspect(@computed.initial_value("table-layout"), content="auto")
+}
+
+///|
+test "is_inherited - returns false for unknown property" {
+  assert_false(@computed.is_inherited("totally-random-property"))
+}
+
+///|
+test "is_inherited - contain returns false explicitly" {
+  assert_false(@computed.is_inherited("contain"))
+}
+
+///|
 test "parse_overflow" {
   inspect(@computed.parse_overflow("visible"), content="Visible")
   inspect(@computed.parse_overflow("hidden"), content="Hidden")

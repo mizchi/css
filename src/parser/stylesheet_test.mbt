@@ -1036,3 +1036,96 @@ test "parse :has selector" {
   let stylesheet = @parser.parse_stylesheet(css)
   inspect(stylesheet.rules.length(), content="1")
 }
+
+///|
+test "parse_stylesheet rejects excessively large input" {
+  // Cap is 10MB; build something larger.
+  let buf = StringBuilder::new()
+  let unit = ".x{x:0}                              " // ~40 bytes
+  for _ in 0..<300000 {
+    buf.write_string(unit)
+  }
+  let huge = buf.to_string()
+  let stylesheet = @parser.parse_stylesheet(huge)
+  // Should bail out and return an empty stylesheet
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse @media with no closing brace (EOF)" {
+  let css = "@media screen { .x { color: red; }"
+  let stylesheet = @parser.parse_stylesheet(css)
+  // Rule inside still parsed
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse @media with EOF before brace" {
+  // @media keyword with no body
+  let css = "@media screen"
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="0")
+}
+
+///|
+test "parse @media with garbage at-rule inside" {
+  let css =
+    #|@media screen {
+    #|  @junk-at-rule garbage;
+    #|  .ok { color: red; }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+  inspect(stylesheet.rules[0].selector_text, content=".ok")
+}
+
+///|
+test "parse @supports nested inside @media + nested at-rule inside @supports" {
+  let css =
+    #|@media (min-width: 600px) {
+    #|  @supports (display: flex) {
+    #|    @junk-rule garbage;
+    #|    .x { display: flex; }
+    #|  }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse @supports with unparseable rule inside still skips it" {
+  let css =
+    #|@supports (display: flex) {
+    #|  @import url("base.css");
+    #|  .ok { display: flex; }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+}
+
+///|
+test "parse @supports with failing condition body skipped" {
+  // @supports not (color: light-dark(red, red)) — condition fails
+  // (because we DO support light-dark), so the body is skipped.
+  let css =
+    #|@supports not (color: light-dark(red, red)) {
+    #|  .skipped { color: red; }
+    #|}
+    #|.kept { color: blue; }
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="1")
+  inspect(stylesheet.rules[0].selector_text, content=".kept")
+}
+
+///|
+test "parse @media with extra braces inside (defensive)" {
+  let css =
+    #|@media screen {
+    #|  .x { color: red; }
+    #|  { defensive }
+    #|  .y { color: blue; }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  // .x and .y parsed; the loose { skipped via brace tracking
+  assert_true(stylesheet.rules.length() >= 1)
+}

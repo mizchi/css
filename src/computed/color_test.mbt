@@ -275,3 +275,117 @@ test "parse_color - radial-gradient and conic-gradient are transparent" {
   inspect(resolved("repeating-linear-gradient(red, blue)").a, content="0")
   inspect(resolved("repeating-radial-gradient(red, blue)").a, content="0")
 }
+
+///|
+test "parse_color_with_ctx - light-dark() resolves to light arg by default" {
+  let ctx = @computed.ComputeContext::new()
+  let r = @computed.parse_color_with_ctx("light-dark(#ff0000, #0000ff)", ctx)
+  match r {
+    Resolved(c) => inspect(c.r, content="255")
+    _ => fail("expected Resolved")
+  }
+}
+
+///|
+test "parse_color_with_ctx - light-dark() with var() inside" {
+  let ctx = @computed.ComputeContext::new()
+  let r = @computed.parse_color_with_ctx("light-dark(var(--a, red), blue)", ctx)
+  match r {
+    Resolved(c) => inspect(c.r, content="255")
+    _ => fail("expected Resolved")
+  }
+}
+
+///|
+test "parse_color - hex with paren in var() balanced" {
+  // Exercise the inner paren-depth tracking in resolve_color_var_fallback.
+  let c = resolved("var(--x, rgba(255, 0, 0, 1))")
+  inspect(c.r, content="255")
+}
+
+///|
+test "parse_color - var() with no fallback returns input unchanged" {
+  // No comma in var() -> returns "var(--x)" which then parses as transparent.
+  let c = resolved("var(--no-fallback)")
+  inspect(c.a, content="0")
+}
+
+///|
+test "resolve_current_color resolves CurrentColor and Inherit to parent" {
+  let parent_color = @types.Color::rgb(50, 100, 150)
+  let resolved_val = @computed.parse_color("red")
+  inspect(
+    @computed.resolve_current_color(resolved_val, parent_color).r,
+    content="255",
+  )
+  let cc = @computed.parse_color("currentColor")
+  inspect(
+    @computed.resolve_current_color(cc, parent_color).r,
+    content="50",
+  )
+  let inh = @computed.parse_color("inherit")
+  inspect(
+    @computed.resolve_current_color(inh, parent_color).g,
+    content="100",
+  )
+}
+
+///|
+test "parse_linear_gradient - basic two-color" {
+  let bg = @computed.parse_linear_gradient("linear-gradient(red, blue)")
+  let s = bg.to_string()
+  assert_true(s.has_prefix("Gradient"))
+  assert_true(s.contains("180")) // default angle
+}
+
+///|
+test "parse_linear_gradient - direction keywords" {
+  let directions = [
+    ("to top", "0"),
+    ("to right", "90"),
+    ("to bottom", "180"),
+    ("to left", "270"),
+    ("to top right", "45"),
+    ("to right top", "45"),
+    ("to bottom right", "135"),
+    ("to right bottom", "135"),
+    ("to bottom left", "225"),
+    ("to left bottom", "225"),
+    ("to top left", "315"),
+    ("to left top", "315"),
+  ]
+  for d in directions {
+    let bg = @computed.parse_linear_gradient(
+      "linear-gradient(" + d.0 + ", red, blue)",
+    )
+    let s = bg.to_string()
+    assert_true(s.contains("angle_deg: " + d.1))
+  }
+}
+
+///|
+test "parse_linear_gradient - explicit deg angle" {
+  let bg = @computed.parse_linear_gradient("linear-gradient(45deg, red, blue)")
+  let s = bg.to_string()
+  assert_true(s.contains("angle_deg: 45"))
+}
+
+///|
+test "parse_linear_gradient - turn unit" {
+  let bg = @computed.parse_linear_gradient(
+    "linear-gradient(0.25turn, red, blue)",
+  )
+  let s = bg.to_string()
+  // 0.25 * 360 = 90
+  assert_true(s.contains("angle_deg: 90"))
+}
+
+///|
+test "parse_linear_gradient - bad input returns None" {
+  let bg1 = @computed.parse_linear_gradient("not-a-gradient")
+  inspect(bg1, content="None")
+  let bg2 = @computed.parse_linear_gradient("linear-gradient(red)") // too few stops
+  inspect(bg2, content="None")
+  let bg3 = @computed.parse_linear_gradient("linear-gradient(") // no closing paren
+  inspect(bg3, content="None")
+}
