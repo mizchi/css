@@ -3,52 +3,52 @@
 
 ///|
 test "wpt parse-heading.html: valid :heading" {
-  wpt_assert_valid("wpt parse-heading.html: valid :heading", ":heading", [":heading"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid :heading", ":heading", [":heading"], false)
 }
 
 ///|
 test "wpt parse-heading.html: valid :heading(2)" {
-  wpt_assert_valid("wpt parse-heading.html: valid :heading(2)", ":heading(2)", [":heading(2)"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid :heading(2)", ":heading(2)", [":heading(2)"], false)
 }
 
 ///|
 test "wpt parse-heading.html: valid :heading(99999)" {
-  wpt_assert_valid("wpt parse-heading.html: valid :heading(99999)", ":heading(99999)", [":heading(99999)"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid :heading(99999)", ":heading(99999)", [":heading(99999)"], false)
 }
 
 ///|
 test "wpt parse-heading.html: valid :heading(0)" {
-  wpt_assert_valid("wpt parse-heading.html: valid :heading(0)", ":heading(0)", [":heading(0)"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid :heading(0)", ":heading(0)", [":heading(0)"], false)
 }
 
 ///|
 test "wpt parse-heading.html: valid :heading(0, 1, 2)" {
-  wpt_assert_valid("wpt parse-heading.html: valid :heading(0, 1, 2)", ":heading(0, 1, 2)", [":heading(0, 1, 2)"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid :heading(0, 1, 2)", ":heading(0, 1, 2)", [":heading(0, 1, 2)"], false)
 }
 
 ///|
 test "wpt parse-heading.html: valid :heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)" {
-  wpt_assert_valid("wpt parse-heading.html: valid :heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)", ":heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)", [":heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid :heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)", ":heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)", [":heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)"], false)
 }
 
 ///|
 test "wpt parse-heading.html: valid :heading(-1)" {
-  wpt_assert_valid("wpt parse-heading.html: valid :heading(-1)", ":heading(-1)", [":heading(-1)"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid :heading(-1)", ":heading(-1)", [":heading(-1)"], false)
 }
 
 ///|
 test "wpt parse-heading.html: valid h1:heading" {
-  wpt_assert_valid("wpt parse-heading.html: valid h1:heading", "h1:heading", ["h1:heading"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid h1:heading", "h1:heading", ["h1:heading"], false)
 }
 
 ///|
 test "wpt parse-heading.html: valid h1:heading(1)" {
-  wpt_assert_valid("wpt parse-heading.html: valid h1:heading(1)", "h1:heading(1)", ["h1:heading(1)"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid h1:heading(1)", "h1:heading(1)", ["h1:heading(1)"], false)
 }
 
 ///|
 test "wpt parse-heading.html: valid h1:heading(2)" {
-  wpt_assert_valid("wpt parse-heading.html: valid h1:heading(2)", "h1:heading(2)", ["h1:heading(2)"], true)
+  wpt_assert_valid("wpt parse-heading.html: valid h1:heading(2)", "h1:heading(2)", ["h1:heading(2)"], false)
 }
 
 ///|

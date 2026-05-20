@@ -133,7 +133,7 @@ test "wpt parse-has.html: invalid .a:has b" {
 
 ///|
 test "wpt parse-has.html: invalid :has()" {
-  wpt_assert_invalid("wpt parse-has.html: invalid :has()", ":has()", true)
+  wpt_assert_invalid("wpt parse-has.html: invalid :has()", ":has()", false)
 }
 
 ///|

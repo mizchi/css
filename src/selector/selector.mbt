@@ -139,12 +139,28 @@ pub enum PseudoClass {
   Root
   Empty
   // Negation
-  Not(Array[CompoundSelector])
+  // CSS Selectors 4: `<complex-real-selector-list>` argument.
+  Not(Array[ComplexSelector])
   // Matches-any
   Is(Array[ComplexSelector])
   Where(Array[ComplexSelector])
   Has(Array[RelativeSelector])
   State(String)
+  /// `:host` — Shadow DOM host element with no further constraints.
+  /// Spec: https://drafts.csswg.org/css-scoping-1/#host-selector
+  Host
+  /// `:host(<compound-selector>)` — Shadow DOM host matching a selector.
+  HostFunc(CompoundSelector)
+  /// `:host-context(<compound-selector>)` — Host that has a matching ancestor.
+  HostContextFunc(CompoundSelector)
+  /// `:heading` — any HTML heading element (h1-h6).
+  /// `:heading(N, ...)` — headings of the specified levels.
+  /// Spec: CSS Selectors 4 (draft).
+  Heading(Array[Int])
+  /// `:dir(ltr|rtl)` — directionality. Spec: CSS Selectors 4.
+  Dir(String)
+  /// `:lang(<language-code>+)` — language-tag match. Spec: Selectors 4.
+  Lang(Array[String])
   // User-action
   Hover
   Active
@@ -208,6 +224,38 @@ pub impl Show for PseudoClass with output(self, logger) {
       logger.write_string(state)
       logger.write_string(")")
     }
+    Host => logger.write_string(":host")
+    HostFunc(_) => logger.write_string(":host(...)")
+    HostContextFunc(_) => logger.write_string(":host-context(...)")
+    Heading(levels) => {
+      if levels.is_empty() {
+        logger.write_string(":heading")
+      } else {
+        logger.write_string(":heading(")
+        for i, n in levels {
+          if i > 0 {
+            logger.write_string(", ")
+          }
+          logger.write_string(n.to_string())
+        }
+        logger.write_string(")")
+      }
+    }
+    Dir(dir) => {
+      logger.write_string(":dir(")
+      logger.write_string(dir)
+      logger.write_string(")")
+    }
+    Lang(tags) => {
+      logger.write_string(":lang(")
+      for i, t in tags {
+        if i > 0 {
+          logger.write_string(", ")
+        }
+        logger.write_string(t)
+      }
+      logger.write_string(")")
+    }
     Hover => logger.write_string(":hover")
     Active => logger.write_string(":active")
     Focus => logger.write_string(":focus")
@@ -239,6 +287,19 @@ pub enum PseudoElement {
   Marker
   Placeholder
   Selection
+  Backdrop
+  FileSelectorButton
+  PlaceholderShown
+  TargetText
+  SpellingError
+  GrammarError
+  Cue
+  /// `::part(<ident>+)` — Shadow DOM exposed-part targeting.
+  /// Spec: https://drafts.csswg.org/css-shadow-parts-1/#part
+  Part(Array[String])
+  /// `::slotted(<compound-selector-list>)` — Shadow DOM slot targeting.
+  /// Spec: https://drafts.csswg.org/css-scoping-1/#slotted-pseudo
+  Slotted(Array[CompoundSelector])
 }
 
 ///|
@@ -251,6 +312,24 @@ pub impl Show for PseudoElement with output(self, logger) {
     Marker => logger.write_string("::marker")
     Placeholder => logger.write_string("::placeholder")
     Selection => logger.write_string("::selection")
+    Backdrop => logger.write_string("::backdrop")
+    FileSelectorButton => logger.write_string("::file-selector-button")
+    PlaceholderShown => logger.write_string("::placeholder-shown")
+    TargetText => logger.write_string("::target-text")
+    SpellingError => logger.write_string("::spelling-error")
+    GrammarError => logger.write_string("::grammar-error")
+    Cue => logger.write_string("::cue")
+    Part(names) => {
+      logger.write_string("::part(")
+      for i, name in names {
+        if i > 0 {
+          logger.write_string(" ")
+        }
+        logger.write_string(name)
+      }
+      logger.write_string(")")
+    }
+    Slotted(_) => logger.write_string("::slotted(...)")
   }
 }
 

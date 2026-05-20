@@ -58,31 +58,37 @@ moon test --package mizchi/css/wpt              # green again
 
 ## Current status
 
-| Source                                 | Tests | Passing |
-|----------------------------------------|------:|--------:|
-| `invalid-pseudos.html`                 |    12 |    12/12 |
-| `parse-attribute.html`                 |    16 |    14/16 |
-| `parse-child.html`                     |     2 |     2/2 |
-| `parse-class.html`                     |     4 |     4/4 |
-| `parse-descendant.html`                |     3 |     3/3 |
-| `parse-focus-visible.html`             |     3 |     3/3 |
-| `parse-has.html`                       |    29 |   26/29 |
-| `parse-heading.html`                   |    28 |   18/28 |
-| `parse-id.html`                        |     3 |     3/3 |
-| `parse-is.html`                        |     6 |     6/6 |
-| `parse-not.html`                       |    26 |   13/26 |
-| `parse-part.html`                      |    28 |    6/28 |
-| `parse-sibling.html`                   |     3 |     3/3 |
-| `parse-slotted.html`                   |    19 |   10/19 |
-| `parse-state.html`                     |    24 |   17/24 |
-| `parse-universal.html`                 |     3 |     3/3 |
-| `parse-where.html`                     |     6 |     6/6 |
-| **total**                              | **215** | **149/215** (69%) |
+| Source                     | Tests | Passing |
+|----------------------------|------:|--------:|
+| `invalid-pseudos.html`     |    12 |   12/12 ✓ |
+| `parse-attribute.html`     |    16 |   14/16 |
+| `parse-child.html`         |     2 |    2/2 ✓ |
+| `parse-class.html`         |     4 |    4/4 ✓ |
+| `parse-descendant.html`    |     3 |    3/3 ✓ |
+| `parse-focus-visible.html` |     3 |    3/3 ✓ |
+| `parse-has.html`           |    29 |   27/29 |
+| `parse-heading.html`       |    28 |   28/28 ✓ |
+| `parse-id.html`            |     3 |    3/3 ✓ |
+| `parse-is.html`            |     6 |    6/6 ✓ |
+| `parse-not.html`           |    26 |   23/26 |
+| `parse-part.html`          |    28 |   28/28 ✓ |
+| `parse-sibling.html`       |     3 |    3/3 ✓ |
+| `parse-slotted.html`       |    19 |   19/19 ✓ |
+| `parse-state.html`         |    24 |   24/24 ✓ |
+| `parse-universal.html`     |     3 |    3/3 ✓ |
+| `parse-where.html`         |     6 |    6/6 ✓ |
+| **total**                  | **215** | **208/215** (**96.7%**) |
 
-The remaining 66 failures are all listed in `known-failures.json`. They
-cluster around features mizchi/css hasn't implemented yet — primarily
-`::part`, `::slotted`, `:host`, namespace selectors, and forgiving empty
-argument validation in `:not()` / `:has()`.
+The 7 remaining failures are listed in `known-failures.json`:
+
+- **6 namespace selectors** (`*|*`, `*|att`, `[|att]`) — `parse-attribute`,
+  `parse-has`, `parse-not`. Implementing CSS namespaces requires adding
+  namespace fields to `Type`/`Universal`/`AttributeSelector` ASTs and
+  threading `@namespace` declarations through the parser.
+- **1 deep `:host(:not(complex))` validation** — `:host()`'s compound-
+  selector constraint extends recursively through nested `:not()`/
+  `:is()`/`:where()`. Detecting "is this whole subtree compound?"
+  requires a separate walk we haven't implemented.
 
 ## Roadmap (phase 2+)
 

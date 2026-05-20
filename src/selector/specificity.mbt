@@ -25,7 +25,7 @@ fn pseudo_class_specificity(pc : PseudoClass) -> Specificity {
     Not(selectors) => {
       let mut max = Specificity::zero()
       for sel in selectors {
-        let spec = compound_specificity(sel)
+        let spec = complex_specificity(sel)
         if spec.compare_to(max) > 0 {
           max = spec
         }
