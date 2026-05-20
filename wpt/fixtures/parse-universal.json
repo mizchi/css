@@ -1,0 +1,28 @@
+{
+  "source": "css/selectors/parsing/parse-universal.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "*",
+      "expected": [
+        "*"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "div :first-child",
+      "expected": [
+        "div *:first-child",
+        "div :first-child"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "div *:first-child",
+      "expected": [
+        "div *:first-child",
+        "div :first-child"
+      ]
+    }
+  ]
+}

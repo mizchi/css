@@ -1,0 +1,138 @@
+{
+  "source": "css/selectors/parsing/parse-slotted.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "::slotted(bar)",
+      "expected": [
+        "::slotted(bar)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::slotted([attr=\"foo\"])",
+      "expected": [
+        "::slotted([attr=\"foo\"])"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::slotted(*)",
+      "expected": [
+        "::slotted(*)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::slotted(.class)",
+      "expected": [
+        "::slotted(.class)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::slotted(:not(foo))",
+      "expected": [
+        "::slotted(:not(foo))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::slotted(:not(:nth-last-of-type(2)):not([slot=\"foo\"]))",
+      "expected": [
+        "::slotted(:not(:nth-last-of-type(2)):not([slot=\"foo\"]))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::slotted(:first-child)",
+      "expected": [
+        "::slotted(:first-child)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::slotted(:hover)",
+      "expected": [
+        "::slotted(:hover)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::slotted(:has(:first-child:last-child))",
+      "expected": [
+        "::slotted(:has(:first-child:last-child))"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted",
+      "expected": [
+        "::slotted"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted()",
+      "expected": [
+        "::slotted()"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted(0)",
+      "expected": [
+        "::slotted(0)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":slotted(foo)",
+      "expected": [
+        ":slotted(foo)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted(foo):first-child",
+      "expected": [
+        "::slotted(foo):first-child"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted(foo):hover",
+      "expected": [
+        "::slotted(foo):hover"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted(foo):focus",
+      "expected": [
+        "::slotted(foo):focus"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted(foo):lang(en)",
+      "expected": [
+        "::slotted(foo):lang(en)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted(foo):dir(ltr)",
+      "expected": [
+        "::slotted(foo):dir(ltr)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted(foo) + ::slotted(bar)",
+      "expected": [
+        "::slotted(foo) + ::slotted(bar)"
+      ]
+    }
+  ]
+}

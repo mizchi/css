@@ -19,6 +19,17 @@ Originally extracted from [`mizchi/crater`](https://github.com/mizchi/crater) (a
 | `mizchi/css/computed` | Computed-style resolution (cascade output → `Style`) |
 | `mizchi/css` | Facade re-exporting the most-used types |
 
+## Web Platform Tests
+
+`wpt/` ships a runner that converts upstream WPT selector-parsing tests
+(`css/selectors/parsing/**`) into MoonBit test cases. After
+`node wpt/extract.mjs && node wpt/gen-mbt.mjs`, the suite is exercised
+with `moon test --package mizchi/css/wpt` — 215 tests scraped directly
+from web-platform-tests/wpt, of which 149 pass today. The remaining 66
+cover features the parser doesn't yet support (Shadow DOM pseudos,
+namespace selectors, forgiving `:not()`/`:has()` empty-arg validation)
+and are tracked in `wpt/known-failures.json`. See `wpt/README.md`.
+
 ## License
 
 Apache-2.0.

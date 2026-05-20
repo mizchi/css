@@ -1,0 +1,209 @@
+{
+  "source": "css/selectors/parsing/parse-has.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": ":has(a)",
+      "expected": [
+        ":has(a)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":has(#a)",
+      "expected": [
+        ":has(#a)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":has(.a)",
+      "expected": [
+        ":has(.a)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":has([a])",
+      "expected": [
+        ":has([a])"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":has([a=\"b\"])",
+      "expected": [
+        ":has([a=\"b\"])"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":has([a|=\"b\"])",
+      "expected": [
+        ":has([a|=\"b\"])"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":has(:hover)",
+      "expected": [
+        ":has(:hover)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "*:has(.a)",
+      "expected": [
+        "*:has(.a)",
+        ":has(.a)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:has(.b)",
+      "expected": [
+        ".a:has(.b)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:has(> .b)",
+      "expected": [
+        ".a:has(> .b)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:has(~ .b)",
+      "expected": [
+        ".a:has(~ .b)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:has(+ .b)",
+      "expected": [
+        ".a:has(+ .b)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:has(.b) .c",
+      "expected": [
+        ".a:has(.b) .c"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a .b:has(.c)",
+      "expected": [
+        ".a .b:has(.c)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a .b:has(.c .d)",
+      "expected": [
+        ".a .b:has(.c .d)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a .b:has(.c .d) .e",
+      "expected": [
+        ".a .b:has(.c .d) .e"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:has(.b:is(.c .d))",
+      "expected": [
+        ".a:has(.b:is(.c .d))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:is(.b:has(.c) .d)",
+      "expected": [
+        ".a:is(.b:has(.c) .d)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:not(:has(.b))",
+      "expected": [
+        ".a:not(:has(.b))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:has(:not(.b))",
+      "expected": [
+        ".a:has(:not(.b))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a:has(.b):has(.c)",
+      "expected": [
+        ".a:has(.b):has(.c)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "*|*:has(*)",
+      "expected": [
+        ":has(*)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":has(*|*)",
+      "expected": [
+        ":has(*)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":has",
+      "expected": [
+        ":has"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ".a:has",
+      "expected": [
+        ".a:has"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ".a:has b",
+      "expected": [
+        ".a:has b"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":has()",
+      "expected": [
+        ":has()"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":has(123)",
+      "expected": [
+        ":has(123)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":has(.a, 123)",
+      "expected": [
+        ":has(.a, 123)"
+      ]
+    }
+  ]
+}

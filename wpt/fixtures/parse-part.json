@@ -1,0 +1,201 @@
+{
+  "source": "css/selectors/parsing/parse-part.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "::part(--foo)",
+      "expected": [
+        "::part(--foo)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(bar)",
+      "expected": [
+        "::part(bar)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(--)",
+      "expected": [
+        "::part(--)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(--0)",
+      "expected": [
+        "::part(--0)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo bar)",
+      "expected": [
+        "::part(foo bar)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(-foo bar)",
+      "expected": [
+        "::part(-foo bar)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo):focus",
+      "expected": [
+        "::part(foo):focus"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo):hover",
+      "expected": [
+        "::part(foo):hover"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo):focus-within",
+      "expected": [
+        "::part(foo):focus-within"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo)::before",
+      "expected": [
+        "::part(foo)::before"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo)::after",
+      "expected": [
+        "::part(foo)::after"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo)::placeholder",
+      "expected": [
+        "::part(foo)::placeholder"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo)::first-line",
+      "expected": [
+        "::part(foo)::first-line"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo)::first-letter",
+      "expected": [
+        "::part(foo)::first-letter"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo)::file-selector-button",
+      "expected": [
+        "::part(foo)::file-selector-button"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo):is(:focus)",
+      "expected": [
+        "::part(foo):is(:focus)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":lang(en)::part(foo)",
+      "expected": [
+        ":lang(en)::part(foo)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":dir(ltr)::part(foo)",
+      "expected": [
+        ":dir(ltr)::part(foo)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo):lang(en)",
+      "expected": [
+        "::part(foo):lang(en)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo):dir(ltr)",
+      "expected": [
+        "::part(foo):dir(ltr)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo):disabled",
+      "expected": [
+        "::part(foo):disabled"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(foo):checked",
+      "expected": [
+        "::part(foo):checked"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":part()",
+      "expected": [
+        ":part()"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":part(0)",
+      "expected": [
+        ":part(0)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":part('foo')",
+      "expected": [
+        ":part('foo')"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":part([foo])",
+      "expected": [
+        ":part([foo])"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::part(foo) + ::part(bar)",
+      "expected": [
+        "::part(foo) + ::part(bar)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::part(foo):has(li)",
+      "expected": [
+        "::part(foo):has(li)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "source": "css/selectors/parsing/parse-where.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": ":where(ul,ol,.list) > [hidden]",
+      "expected": [
+        ":where(ul, ol, .list) > [hidden]"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":where(:hover,:focus)",
+      "expected": [
+        ":where(:hover, :focus)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "a:where(:not(:hover))",
+      "expected": [
+        "a:where(:not(:hover))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":where(#a)",
+      "expected": [
+        ":where(#a)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a.b ~ :where(.c.d ~ .e.f)",
+      "expected": [
+        ".a.b ~ :where(.c.d ~ .e.f)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ".a.b ~ .c.d:where(span.e + .f, .g.h > .i.j .k)",
+      "expected": [
+        ".a.b ~ .c.d:where(span.e + .f, .g.h > .i.j .k)"
+      ]
+    }
+  ]
+}

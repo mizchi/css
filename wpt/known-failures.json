@@ -1,0 +1,335 @@
+{
+  "description": "Tests expected to fail because the underlying selector feature is not yet implemented (shadow DOM pseudos, namespace selectors, empty :not()/:has() forgiving validation, etc.). Each entry is matched verbatim by gen-mbt.mjs and turned into a known-failure case. A test that starts passing reports an error so we can clean it up.",
+  "expected_failures": [
+    {
+      "source": "parse-attribute.html",
+      "input": "[*|att]",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-attribute.html",
+      "input": "[|att]",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-has.html",
+      "input": ":has()",
+      "kind": "invalid"
+    },
+    {
+      "source": "parse-has.html",
+      "input": ":has(*|*)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-has.html",
+      "input": "*|*:has(*)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": ":heading",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": ":heading(-1)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": ":heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": ":heading(0, 1, 2)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": ":heading(0)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": ":heading(2)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": ":heading(99999)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": "h1:heading",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": "h1:heading(1)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-heading.html",
+      "input": "h1:heading(2)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":host(:not(.a))",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(::before)",
+      "kind": "invalid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(:host(:not(.a)))",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(:host(.a))",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(:not())",
+      "kind": "invalid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(:unknownpseudo)",
+      "kind": "invalid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(.a .b ~ c, .d .e)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(.a .b ~ c)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(.a + .b)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(.a, :unknownpseudo)",
+      "kind": "invalid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not()",
+      "kind": "invalid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": ":not(*|*)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-not.html",
+      "input": "*|*:not(*)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(--)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(--0)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(--foo)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(-foo bar)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(bar)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo bar)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo)::after",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo)::before",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo)::file-selector-button",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo)::first-letter",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo)::first-line",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo)::placeholder",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo):checked",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo):dir(ltr)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo):disabled",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo):focus",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo):focus-within",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo):hover",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo):is(:focus)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": "::part(foo):lang(en)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": ":dir(ltr)::part(foo)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-part.html",
+      "input": ":lang(en)::part(foo)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-slotted.html",
+      "input": "::slotted(:first-child)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-slotted.html",
+      "input": "::slotted(:has(:first-child:last-child))",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-slotted.html",
+      "input": "::slotted(:hover)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-slotted.html",
+      "input": "::slotted(:not(:nth-last-of-type(2)):not([slot=\"foo\"]))",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-slotted.html",
+      "input": "::slotted(:not(foo))",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-slotted.html",
+      "input": "::slotted(.class)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-slotted.html",
+      "input": "::slotted([attr=\"foo\"])",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-slotted.html",
+      "input": "::slotted(*)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-slotted.html",
+      "input": "::slotted(bar)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-state.html",
+      "input": "::part(inner):state(bar)::after",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-state.html",
+      "input": "::part(inner):state(bar)::before",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-state.html",
+      "input": ":host(:state(--foo))",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-state.html",
+      "input": "my-input::after:state(foo)",
+      "kind": "invalid"
+    },
+    {
+      "source": "parse-state.html",
+      "input": "my-input::first-letter:state(foo)",
+      "kind": "invalid"
+    },
+    {
+      "source": "parse-state.html",
+      "input": "my-input[type=\"foo\"]:state(--0)::part(inner)",
+      "kind": "valid"
+    },
+    {
+      "source": "parse-state.html",
+      "input": "my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)",
+      "kind": "valid"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "source": "css/selectors/parsing/parse-focus-visible.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": ":focus-visible",
+      "expected": [
+        ":focus-visible"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "a:focus-visible",
+      "expected": [
+        "a:focus-visible"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":focus:not(:focus-visible)",
+      "expected": [
+        ":focus:not(:focus-visible)"
+      ]
+    }
+  ]
+}

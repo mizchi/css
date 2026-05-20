@@ -1,0 +1,19 @@
+{
+  "source": "css/selectors/parsing/parse-child.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "body > p",
+      "expected": [
+        "body > p"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "div ol>li p",
+      "expected": [
+        "div ol > li p"
+      ]
+    }
+  ]
+}

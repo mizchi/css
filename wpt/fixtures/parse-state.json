@@ -1,0 +1,173 @@
+{
+  "source": "css/selectors/parsing/parse-state.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": ":state(--foo)",
+      "expected": [
+        ":state(--foo)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":state(bar)",
+      "expected": [
+        ":state(bar)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":state(--)",
+      "expected": [
+        ":state(--)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":state(--0)",
+      "expected": [
+        ":state(--0)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":host(:state(--foo))",
+      "expected": [
+        ":host(:state(--foo))"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "my-input[type=\"foo\"]:state(checked)",
+      "expected": [
+        "my-input[type=\"foo\"]:state(checked)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "my-input[type=\"foo\"]:state(--0)::before",
+      "expected": [
+        "my-input[type=\"foo\"]:state(--0)::before"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "my-input[type=\"foo\"]:state(--0)::part(inner)",
+      "expected": [
+        "my-input[type=\"foo\"]:state(--0)::part(inner)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)",
+      "expected": [
+        "my-input[type=\"foo\"]:state(--0)::part(inner):state(bar)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(inner):state(bar)::before",
+      "expected": [
+        "::part(inner):state(bar)::before"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "::part(inner):state(bar)::after",
+      "expected": [
+        "::part(inner):state(bar)::after"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":state",
+      "expected": [
+        ":state"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":state(",
+      "expected": [
+        ":state("
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":state()",
+      "expected": [
+        ":state()"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":state(0)",
+      "expected": [
+        ":state(0)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":state(0rem)",
+      "expected": [
+        ":state(0rem)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":state(url())",
+      "expected": [
+        ":state(url())"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":state(foo(1))",
+      "expected": [
+        ":state(foo(1))"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":state(:host)",
+      "expected": [
+        ":state(:host)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "my-input::after:state(foo)",
+      "expected": [
+        "my-input::after:state(foo)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::part(inner):state(bar)::before:state(foo)",
+      "expected": [
+        "::part(inner):state(bar)::before:state(foo)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::part(inner):state(bar)::after:state(foo)",
+      "expected": [
+        "::part(inner):state(bar)::after:state(foo)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "my-input::first-letter:state(foo)",
+      "expected": [
+        "my-input::first-letter:state(foo)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": "::slotted(foo):state(foo)",
+      "expected": [
+        "::slotted(foo):state(foo)"
+      ]
+    }
+  ]
+}

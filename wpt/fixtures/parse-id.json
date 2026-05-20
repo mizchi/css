@@ -1,0 +1,27 @@
+{
+  "source": "css/selectors/parsing/parse-id.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": "h1#chapter1",
+      "expected": [
+        "h1#chapter1"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "#chapter1",
+      "expected": [
+        "#chapter1"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "*#z98y",
+      "expected": [
+        "*#z98y",
+        "#z98y"
+      ]
+    }
+  ]
+}

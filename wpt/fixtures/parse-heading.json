@@ -1,0 +1,201 @@
+{
+  "source": "css/selectors/parsing/parse-heading.html",
+  "tests": [
+    {
+      "kind": "valid",
+      "input": ":heading",
+      "expected": [
+        ":heading"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":heading(2)",
+      "expected": [
+        ":heading(2)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":heading(99999)",
+      "expected": [
+        ":heading(99999)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":heading(0)",
+      "expected": [
+        ":heading(0)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":heading(0, 1, 2)",
+      "expected": [
+        ":heading(0, 1, 2)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)",
+      "expected": [
+        ":heading(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": ":heading(-1)",
+      "expected": [
+        ":heading(-1)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "h1:heading",
+      "expected": [
+        "h1:heading"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "h1:heading(1)",
+      "expected": [
+        "h1:heading(1)"
+      ]
+    },
+    {
+      "kind": "valid",
+      "input": "h1:heading(2)",
+      "expected": [
+        "h1:heading(2)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading()",
+      "expected": [
+        ":heading()"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(1.0)",
+      "expected": [
+        ":heading(1.0)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(1.4)",
+      "expected": [
+        ":heading(1.4)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(n)",
+      "expected": [
+        ":heading(n)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(odd)",
+      "expected": [
+        ":heading(odd)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(even)",
+      "expected": [
+        ":heading(even)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(2n)",
+      "expected": [
+        ":heading(2n)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(2n+1)",
+      "expected": [
+        ":heading(2n+1)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(2n+2)",
+      "expected": [
+        ":heading(2n+2)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(-n+3)",
+      "expected": [
+        ":heading(-n+3)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(2n, 3n)",
+      "expected": [
+        ":heading(2n, 3n)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(2, 3n)",
+      "expected": [
+        ":heading(2, 3n)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(2 of .foo)",
+      "expected": [
+        ":heading(2 of .foo)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(2n of .foo)",
+      "expected": [
+        ":heading(2n of .foo)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(calc(1))",
+      "expected": [
+        ":heading(calc(1))"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(max(1, 2))",
+      "expected": [
+        ":heading(max(1, 2))"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(min(1, 2)",
+      "expected": [
+        ":heading(min(1, 2)"
+      ]
+    },
+    {
+      "kind": "invalid",
+      "input": ":heading(var(--level))",
+      "expected": [
+        ":heading(var(--level))"
+      ]
+    }
+  ]
+}

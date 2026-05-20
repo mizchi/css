@@ -1,0 +1,84 @@
+{
+  "summary": [
+    {
+      "source": "css/selectors/parsing/parse-anplusb.html",
+      "count": 0
+    },
+    {
+      "source": "css/selectors/parsing/parse-attribute.html",
+      "count": 16
+    },
+    {
+      "source": "css/selectors/parsing/parse-child.html",
+      "count": 2
+    },
+    {
+      "source": "css/selectors/parsing/parse-class.html",
+      "count": 4
+    },
+    {
+      "source": "css/selectors/parsing/parse-descendant.html",
+      "count": 3
+    },
+    {
+      "source": "css/selectors/parsing/parse-focus-visible.html",
+      "count": 3
+    },
+    {
+      "source": "css/selectors/parsing/parse-has.html",
+      "count": 29
+    },
+    {
+      "source": "css/selectors/parsing/parse-has-forgiving-selector.html",
+      "count": 0
+    },
+    {
+      "source": "css/selectors/parsing/parse-heading.html",
+      "count": 28
+    },
+    {
+      "source": "css/selectors/parsing/parse-id.html",
+      "count": 3
+    },
+    {
+      "source": "css/selectors/parsing/parse-is-where.html",
+      "count": 0
+    },
+    {
+      "source": "css/selectors/parsing/parse-is.html",
+      "count": 6
+    },
+    {
+      "source": "css/selectors/parsing/parse-not.html",
+      "count": 26
+    },
+    {
+      "source": "css/selectors/parsing/parse-part.html",
+      "count": 28
+    },
+    {
+      "source": "css/selectors/parsing/parse-sibling.html",
+      "count": 3
+    },
+    {
+      "source": "css/selectors/parsing/parse-slotted.html",
+      "count": 19
+    },
+    {
+      "source": "css/selectors/parsing/parse-state.html",
+      "count": 24
+    },
+    {
+      "source": "css/selectors/parsing/parse-universal.html",
+      "count": 3
+    },
+    {
+      "source": "css/selectors/parsing/parse-where.html",
+      "count": 6
+    },
+    {
+      "source": "css/selectors/parsing/invalid-pseudos.html",
+      "count": 12
+    }
+  ]
+}
