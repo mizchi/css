@@ -462,6 +462,134 @@ test "parse multiple sibling declarations" {
 }
 
 ///|
+test "parse - border-left/right/top/bottom-width individual" {
+  let s = parse_inline_style(
+    "border-left-width: 1px; border-right-width: 2px; border-top-width: 3px; border-bottom-width: 4px",
+  )
+  inspect(s.border.left, content="Length(1)")
+  inspect(s.border.right, content="Length(2)")
+  inspect(s.border.top, content="Length(3)")
+  inspect(s.border.bottom, content="Length(4)")
+}
+
+///|
+test "parse - border-block and border-block-width shorthand" {
+  let s = parse_inline_style("border-block: 5px")
+  inspect(s.border.top, content="Length(5)")
+  inspect(s.border.bottom, content="Length(5)")
+  let s2 = parse_inline_style("border-block-width: 7px")
+  inspect(s2.border.top, content="Length(7)")
+  inspect(s2.border.bottom, content="Length(7)")
+}
+
+///|
+test "parse - border-inline shorthand" {
+  let s = parse_inline_style("border-inline: 6px")
+  inspect(s.border.left, content="Length(6)")
+  inspect(s.border.right, content="Length(6)")
+}
+
+///|
+test "parse - padding-block and padding-inline shorthands" {
+  let s = parse_inline_style("padding-block: 5px; padding-inline: 10px")
+  inspect(s.padding.top, content="Length(5)")
+  inspect(s.padding.bottom, content="Length(5)")
+  inspect(s.padding.left, content="Length(10)")
+  inspect(s.padding.right, content="Length(10)")
+}
+
+///|
+test "parse - row-gap and column-gap individually" {
+  let s = parse_inline_style("row-gap: 5px; column-gap: 10px")
+  inspect(s.row_gap, content="Length(5)")
+  inspect(s.column_gap, content="Length(10)")
+}
+
+///|
+test "parse - overflow-x and overflow-y separately" {
+  let s = parse_inline_style("overflow-x: scroll; overflow-y: hidden")
+  inspect(s.overflow_x, content="Scroll")
+  inspect(s.overflow_y, content="Hidden")
+}
+
+///|
+test "parse - top/right/bottom/left individually" {
+  let s = parse_inline_style(
+    "top: 1px; right: 2px; bottom: 3px; left: 4px",
+  )
+  inspect(s.inset.top, content="Length(1)")
+  inspect(s.inset.right, content="Length(2)")
+  inspect(s.inset.bottom, content="Length(3)")
+  inspect(s.inset.left, content="Length(4)")
+}
+
+///|
+test "parse - clip rect()" {
+  let s = parse_inline_style("clip: rect(1px, 2px, 3px, 4px)")
+  inspect(s.clip, content="rect(1, 2, 3, 4)")
+  let auto = parse_inline_style("clip: auto")
+  inspect(auto.clip, content="auto")
+}
+
+///|
+test "parse - clip-path inset/circle/ellipse/polygon/none" {
+  let inset = parse_inline_style("clip-path: inset(5px)")
+  let _ = inset.clip_path
+  let circle = parse_inline_style("clip-path: circle(20px at 30px 40px)")
+  let _ = circle.clip_path
+  let ellipse = parse_inline_style("clip-path: ellipse(20px 30px at 40px 50px)")
+  let _ = ellipse.clip_path
+  let polygon = parse_inline_style("clip-path: polygon(0 0, 100% 0, 50% 100%)")
+  let _ = polygon.clip_path
+  let none = parse_inline_style("clip-path: none")
+  let _ = none.clip_path
+  inspect(true, content="true")
+}
+
+///|
+test "parse - place-content shorthand" {
+  let s = parse_inline_style("place-content: center end")
+  inspect(s.align_content, content="Center")
+  inspect(s.justify_content, content="End")
+}
+
+///|
+test "parse - justify-self and justify-items" {
+  let s = parse_inline_style("justify-self: end; justify-items: center")
+  inspect(s.justify_self, content="End")
+  inspect(s.justify_items, content="Center")
+}
+
+///|
+test "parse - flex-flow shorthand individual" {
+  let s = parse_inline_style("flex-flow: column wrap")
+  inspect(s.flex_direction, content="Column")
+  inspect(s.flex_wrap, content="Wrap")
+}
+
+///|
+test "parse - margin-top/right/bottom/left individual" {
+  let s = parse_inline_style(
+    "margin-top: 1px; margin-right: 2px; margin-bottom: 3px; margin-left: 4px",
+  )
+  inspect(s.margin.top, content="Length(1)")
+  inspect(s.margin.right, content="Length(2)")
+  inspect(s.margin.bottom, content="Length(3)")
+  inspect(s.margin.left, content="Length(4)")
+}
+
+///|
+test "parse - padding-top/right/bottom/left individual" {
+  let s = parse_inline_style(
+    "padding-top: 1px; padding-right: 2px; padding-bottom: 3px; padding-left: 4px",
+  )
+  inspect(s.padding.top, content="Length(1)")
+  inspect(s.padding.right, content="Length(2)")
+  inspect(s.padding.bottom, content="Length(3)")
+  inspect(s.padding.left, content="Length(4)")
+}
+
+///|
 test "parse negative top left" {
   let style = parse_inline_style("top: -20px; left: -40px")
   inspect(style.inset.top, content="Length(-20)")
