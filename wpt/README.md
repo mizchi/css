@@ -66,9 +66,7 @@ moon test --package mizchi/css/wpt              # green again
 
 ## Current status
 
-**282 / 302 passing — 93.4% across selector-parsing + An+B.**
-
-Selector parsing: 215 / 215 (100%).
+**302 / 302 passing — 100% across selector-parsing + An+B.**
 
 | Source                     | Tests | Passing |
 |----------------------------|------:|--------:|
@@ -89,15 +87,9 @@ Selector parsing: 215 / 215 (100%).
 | `parse-state.html`         |    24 |   24/24 ✓ |
 | `parse-universal.html`     |     3 |    3/3 ✓ |
 | `parse-where.html`         |     6 |    6/6 ✓ |
-| `anb-parsing.html`         |    67 |   47/67   |
+| `anb-parsing.html`         |    67 |   67/67 ✓ |
 | `anb-serialization.html`   |    20 |   20/20 ✓ |
-| **total**                  | **302** | **282/302** |
-
-The 20 known An+B failures are all "signed integer after explicit
-operator" forms (`5n + +5`, `n - -1`, …): the parser folds the
-`+`/`-` sign into the second integer token at the tokenizer level
-and can no longer tell the original input apart from `5n + 5`. Fixing
-them requires preserving the leading-sign text on `Number` tokens.
+| **total**                  | **302** | **302/302** ✓ |
 
 ## Roadmap (phase 3+)
 

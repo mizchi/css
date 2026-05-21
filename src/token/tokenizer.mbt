@@ -8,11 +8,19 @@ priv struct Tokenizer {
   input : String
   mut pos : Int
   len : Int
+  /// Set by `consume_number` to record whether the just-consumed number
+  /// token had an explicit leading `+`/`-` sign. Read by
+  /// `tokenize_with_signs` after each `next_token` call. CSS Syntax 3
+  /// keeps this as a "type flag" on `<number-token>`; the public
+  /// `Token::Number` doesn't carry it (would break the API), so the
+  /// parallel `signs` array preserves it for the selector parser's An+B
+  /// path.
+  mut last_num_signed : Bool
 }
 
 ///|
 fn Tokenizer::new(input : String) -> Tokenizer {
-  { input, pos: 0, len: input.length() }
+  { input, pos: 0, len: input.length(), last_num_signed: false }
 }
 
 ///|
@@ -167,7 +175,8 @@ fn Tokenizer::consume_number(self : Tokenizer) -> (Double, NumType) {
 
   // Optional sign
   let first = self.peek_char()
-  if first == '+' || first == '-' {
+  self.last_num_signed = first == '+' || first == '-'
+  if self.last_num_signed {
     buf.write_char(first)
     self.pos += 1
   }
@@ -519,4 +528,32 @@ pub fn tokenize(input : String) -> Array[Token] {
     }
   }
   tokens
+}
+
+///|
+/// Tokenize and also return a parallel array marking which `Number`
+/// tokens had an explicit leading `+`/`-` sign in the source. Used by
+/// the selector parser to validate `<an+b>` shapes that depend on the
+/// "type flag" CSS Syntax 3 records on `<number-token>`. The signs
+/// array has the same length as the tokens array; entries are `false`
+/// for non-`Number` tokens.
+pub fn tokenize_with_signs(input : String) -> (Array[Token], Array[Bool]) {
+  let tokenizer = Tokenizer::new(input)
+  let tokens : Array[Token] = []
+  let signs : Array[Bool] = []
+  while true {
+    tokenizer.last_num_signed = false
+    let token = tokenizer.next_token()
+    let signed = match token {
+      Number(_, _) => tokenizer.last_num_signed
+      _ => false
+    }
+    tokens.push(token)
+    signs.push(signed)
+    match token {
+      EOF => break
+      _ => continue
+    }
+  }
+  (tokens, signs)
 }
