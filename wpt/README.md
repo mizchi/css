@@ -58,37 +58,28 @@ moon test --package mizchi/css/wpt              # green again
 
 ## Current status
 
+**215 / 215 passing — 100% of the WPT selector-parsing suite.**
+
 | Source                     | Tests | Passing |
 |----------------------------|------:|--------:|
 | `invalid-pseudos.html`     |    12 |   12/12 ✓ |
-| `parse-attribute.html`     |    16 |   14/16 |
+| `parse-attribute.html`     |    16 |   16/16 ✓ |
 | `parse-child.html`         |     2 |    2/2 ✓ |
 | `parse-class.html`         |     4 |    4/4 ✓ |
 | `parse-descendant.html`    |     3 |    3/3 ✓ |
 | `parse-focus-visible.html` |     3 |    3/3 ✓ |
-| `parse-has.html`           |    29 |   27/29 |
+| `parse-has.html`           |    29 |   29/29 ✓ |
 | `parse-heading.html`       |    28 |   28/28 ✓ |
 | `parse-id.html`            |     3 |    3/3 ✓ |
 | `parse-is.html`            |     6 |    6/6 ✓ |
-| `parse-not.html`           |    26 |   23/26 |
+| `parse-not.html`           |    26 |   26/26 ✓ |
 | `parse-part.html`          |    28 |   28/28 ✓ |
 | `parse-sibling.html`       |     3 |    3/3 ✓ |
 | `parse-slotted.html`       |    19 |   19/19 ✓ |
 | `parse-state.html`         |    24 |   24/24 ✓ |
 | `parse-universal.html`     |     3 |    3/3 ✓ |
 | `parse-where.html`         |     6 |    6/6 ✓ |
-| **total**                  | **215** | **208/215** (**96.7%**) |
-
-The 7 remaining failures are listed in `known-failures.json`:
-
-- **6 namespace selectors** (`*|*`, `*|att`, `[|att]`) — `parse-attribute`,
-  `parse-has`, `parse-not`. Implementing CSS namespaces requires adding
-  namespace fields to `Type`/`Universal`/`AttributeSelector` ASTs and
-  threading `@namespace` declarations through the parser.
-- **1 deep `:host(:not(complex))` validation** — `:host()`'s compound-
-  selector constraint extends recursively through nested `:not()`/
-  `:is()`/`:where()`. Detecting "is this whole subtree compound?"
-  requires a separate walk we haven't implemented.
+| **total**                  | **215** | **215/215** ✓ |
 
 ## Roadmap (phase 2+)
 

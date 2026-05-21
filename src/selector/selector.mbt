@@ -64,11 +64,19 @@ pub struct AttributeSelector {
   match_type : AttributeMatch
   /// Case-insensitive flag [attr=value i]
   case_insensitive : Bool
+  /// True when written with `*|` (any-namespace) prefix, e.g.
+  /// `[*|att]`. The implicit (`[att]`) and `[|att]` (explicit
+  /// no-namespace) forms both leave this false — they share the same
+  /// canonical serialization.
+  any_namespace : Bool
 }
 
 ///|
 pub impl Show for AttributeSelector with output(self, logger) {
   logger.write_string("[")
+  if self.any_namespace {
+    logger.write_string("*|")
+  }
   logger.write_string(self.name)
   match self.match_type {
     Exists => ()
@@ -379,11 +387,22 @@ pub struct CompoundSelector {
   type_selector : SimpleSelector?
   /// Other simple selectors (id, class, attribute, pseudo)
   subclasses : Array[SimpleSelector]
+  /// True when the type selector was written with the `*|` (any-
+  /// namespace) prefix as in `*|*` or `*|name`. CSS canonical form
+  /// drops the `*|*` universal when subclasses are present.
+  any_ns_universal : Bool
 }
 
 ///|
 pub impl Show for CompoundSelector with output(self, logger) {
   match self.type_selector {
+    Some(Universal) =>
+      // Canonical form drops `*|*` when combined with other subclasses.
+      if self.any_ns_universal && self.subclasses.length() > 0 {
+        ()
+      } else {
+        logger.write_string("*")
+      }
     Some(sel) => sel.output(logger)
     None => ()
   }
@@ -526,25 +545,25 @@ pub fn Specificity::compare_to(self : Specificity, other : Specificity) -> Int {
 ///|
 /// Create a simple compound selector with just a type selector
 pub fn CompoundSelector::from_type(tag_name : String) -> CompoundSelector {
-  { type_selector: Some(Type(tag_name)), subclasses: [] }
+  { type_selector: Some(Type(tag_name)), subclasses: [], any_ns_universal: false }
 }
 
 ///|
 /// Create a simple compound selector with just a class selector
 pub fn CompoundSelector::from_class(class_name : String) -> CompoundSelector {
-  { type_selector: None, subclasses: [Class(class_name)] }
+  { type_selector: None, subclasses: [Class(class_name)], any_ns_universal: false }
 }
 
 ///|
 /// Create a simple compound selector with just an ID selector
 pub fn CompoundSelector::from_id(id : String) -> CompoundSelector {
-  { type_selector: None, subclasses: [Id(id)] }
+  { type_selector: None, subclasses: [Id(id)], any_ns_universal: false }
 }
 
 ///|
 /// Create a simple compound selector with universal selector
 pub fn CompoundSelector::universal() -> CompoundSelector {
-  { type_selector: Some(Universal), subclasses: [] }
+  { type_selector: Some(Universal), subclasses: [], any_ns_universal: false }
 }
 
 ///|

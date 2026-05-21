@@ -180,28 +180,144 @@ fn SelectorParser::parse_complex_selector(
 }
 
 ///|
+///|
+/// CSS Namespaces 3 prefix on a type/universal/attribute selector.
+priv enum NamespacePrefix {
+  NoPrefix  // nothing — use default namespace
+  AnyNs     // `*|` — any namespace
+  EmptyNs   // `|`  — explicit no namespace (canonically dropped)
+  NamedNs   // `name|` — named namespace (the name itself isn't kept;
+            // mizchi/css doesn't track @namespace declarations)
+}
+
+///|
+/// Match-everything helper so the unused EmptyNs/NamedNs constructors
+/// (parsed but not significant to canonical Show) don't trip the
+/// dead-code linter. We otherwise treat them identically to NoPrefix.
+fn ns_prefix_collapse(p : NamespacePrefix) -> NamespacePrefix {
+  match p {
+    AnyNs => AnyNs
+    NoPrefix | EmptyNs | NamedNs => NoPrefix
+  }
+}
+
+///|
+/// Optimistically consume a namespace prefix (`*|`, `|`, or `name|`).
+/// If the next non-prefix tokens don't form a valid head (type/universal),
+/// the caller restores `self.pos`.
+fn SelectorParser::parse_ns_prefix(
+  self : SelectorParser,
+) -> NamespacePrefix {
+  let start = self.pos
+  match self.peek() {
+    Delim('|') =>
+      match self.peek_at(1) {
+        Ident(_) | Delim('*') => {
+          let _ = self.advance()
+          return EmptyNs
+        }
+        _ => return NoPrefix
+      }
+    Delim('*') =>
+      match self.peek_at(1) {
+        Delim('|') =>
+          match self.peek_at(2) {
+            Ident(_) | Delim('*') => {
+              let _ = self.advance()
+              let _ = self.advance()
+              return AnyNs
+            }
+            _ => return NoPrefix
+          }
+        _ => return NoPrefix
+      }
+    Ident(_) =>
+      match self.peek_at(1) {
+        Delim('|') =>
+          match self.peek_at(2) {
+            // `name|=` is the dash-match operator inside an attribute
+            // selector, which we never enter from here; still, guard
+            // against `name|something` followed by `=`.
+            Delim('=') => return NoPrefix
+            Ident(_) | Delim('*') => {
+              let _ = self.advance()
+              let _ = self.advance()
+              return NamedNs
+            }
+            _ => return NoPrefix
+          }
+        _ => return NoPrefix
+      }
+    _ => return NoPrefix
+  }
+  let _ = start // keep `start` referenced if compiler complains
+  NoPrefix
+}
+
+///|
+fn SelectorParser::peek_at(
+  self : SelectorParser,
+  offset : Int,
+) -> @token.Token {
+  let idx = self.pos + offset
+  if idx >= self.tokens.length() {
+    // Fall back to the tokenizer's trailing EOF (always present).
+    return self.tokens[self.tokens.length() - 1]
+  }
+  self.tokens[idx]
+}
+
+///|
 fn SelectorParser::parse_compound_selector(
   self : SelectorParser,
 ) -> CompoundSelector? {
   let mut type_selector : SimpleSelector? = None
   let subclasses : Array[SimpleSelector] = []
+  let mut any_ns_universal = false
   // Tracks whether we've already consumed a pseudo-element and, if so,
   // whether it's ::part (which permits a small whitelist of subsequent
   // selectors per CSS Shadow Parts 1) or another element (which closes
   // the compound).
   let mut saw_pe : PseudoElement? = None
 
-  // First, try to parse type selector or universal
+  // First, try to parse a (possibly namespaced) type selector or
+  // universal. CSS Namespaces 3 allows the prefixes:
+  //   `*|`    any namespace
+  //   `|`     explicit no namespace (canonically dropped)
+  //   `name|` named namespace (we discard the name; we don't track
+  //           @namespace declarations)
+  // followed by an identifier or `*`.
+  let saved_pos = self.pos
+  let ns_prefix : NamespacePrefix = ns_prefix_collapse(self.parse_ns_prefix())
   match self.peek() {
     Ident(name) => {
       let _ = self.advance()
       type_selector = Some(Type(name.to_lower()))
+      // CSS Namespaces 3 §6: any/named prefixes don't affect serialization
+      // beyond optionally keeping the `*|` prefix on attribute selectors.
+      // For type selectors we discard the prefix at parse time — the
+      // canonical form is just `name`.
+      let _ = ns_prefix
     }
     Delim('*') => {
       let _ = self.advance()
       type_selector = Some(Universal)
+      // Only the `*|` (any-namespace) prefix on `*` is observable in the
+      // canonical serialization: `*|*` is dropped when subclasses follow,
+      // whereas a bare `*` is kept.
+      match ns_prefix {
+        AnyNs => any_ns_universal = true
+        _ => ()
+      }
     }
-    _ => ()
+    _ =>
+      // No type / universal followed the namespace prefix — back off
+      // entirely. Same effect as the original parser when there's
+      // nothing to consume.
+      match ns_prefix {
+        NoPrefix => ()
+        _ => self.pos = saved_pos
+      }
   }
 
   // Parse subclass selectors
@@ -294,7 +410,7 @@ fn SelectorParser::parse_compound_selector(
   if type_selector is None && subclasses.is_empty() {
     return None
   }
-  Some({ type_selector, subclasses })
+  Some({ type_selector, subclasses, any_ns_universal })
 }
 
 ///|
@@ -388,6 +504,13 @@ fn SelectorParser::parse_attribute_selector(
   }
   self.skip_whitespace()
 
+  // Optional namespace prefix on the attribute name (CSS Namespaces 3).
+  let ns_prefix : NamespacePrefix = ns_prefix_collapse(self.parse_ns_prefix())
+  let any_namespace = match ns_prefix {
+    AnyNs => true
+    _ => false
+  }
+
   // Get attribute name
   let name = match self.peek() {
     Ident(n) => {
@@ -402,7 +525,7 @@ fn SelectorParser::parse_attribute_selector(
   let match_type : AttributeMatch = match self.peek() {
     RightBracket => {
       let _ = self.advance()
-      return Some({ name, match_type: Exists, case_insensitive: false })
+      return Some({ name, match_type: Exists, case_insensitive: false, any_namespace })
     }
     Delim('=') => {
       let _ = self.advance()
@@ -510,7 +633,7 @@ fn SelectorParser::parse_attribute_selector(
     }
     _ => return None
   }
-  Some({ name, match_type, case_insensitive })
+  Some({ name, match_type, case_insensitive, any_namespace })
 }
 
 ///|
@@ -648,6 +771,56 @@ fn not_arg_has_invalid(selectors : Array[ComplexSelector]) -> Bool {
     }
   }
   false
+}
+
+///|
+/// CSS Scoping 1: `:host()` / `:host-context()` accept a single
+/// `<compound-selector>`. The compound-selector restriction extends
+/// recursively through `:not()`, `:is()`, `:where()`, and `:has()`: no
+/// inner pseudo-class may contain a complex selector with combinators.
+fn compound_is_strictly_compound(c : CompoundSelector) -> Bool {
+  for sub in c.subclasses {
+    match sub {
+      PseudoClass(pc) =>
+        if !pseudo_class_is_strictly_compound(pc) {
+          return false
+        }
+      _ => ()
+    }
+  }
+  true
+}
+
+///|
+fn complex_is_strictly_compound(c : ComplexSelector) -> Bool {
+  if c.tail.length() > 0 {
+    return false
+  }
+  compound_is_strictly_compound(c.head)
+}
+
+///|
+fn pseudo_class_is_strictly_compound(pc : PseudoClass) -> Bool {
+  match pc {
+    Not(sels) | Is(sels) | Where(sels) => {
+      for s in sels {
+        if !complex_is_strictly_compound(s) {
+          return false
+        }
+      }
+      true
+    }
+    Has(rels) => {
+      for r in rels {
+        if !complex_is_strictly_compound(r.selector) {
+          return false
+        }
+      }
+      true
+    }
+    HostFunc(c) | HostContextFunc(c) => compound_is_strictly_compound(c)
+    _ => true
+  }
 }
 
 ///|
@@ -815,10 +988,13 @@ fn SelectorParser::parse_pseudo_class(self : SelectorParser) -> PseudoClass? {
           let compound = self.parse_compound_selector()
           self.skip_whitespace()
           match (self.peek(), compound) {
-            (RightParen, Some(c)) => {
-              let _ = self.advance()
-              Some(HostFunc(c))
-            }
+            (RightParen, Some(c)) =>
+              if compound_is_strictly_compound(c) {
+                let _ = self.advance()
+                Some(HostFunc(c))
+              } else {
+                None
+              }
             _ => None
           }
         }
@@ -827,10 +1003,13 @@ fn SelectorParser::parse_pseudo_class(self : SelectorParser) -> PseudoClass? {
           let compound = self.parse_compound_selector()
           self.skip_whitespace()
           match (self.peek(), compound) {
-            (RightParen, Some(c)) => {
-              let _ = self.advance()
-              Some(HostContextFunc(c))
-            }
+            (RightParen, Some(c)) =>
+              if compound_is_strictly_compound(c) {
+                let _ = self.advance()
+                Some(HostContextFunc(c))
+              } else {
+                None
+              }
             _ => None
           }
         }
