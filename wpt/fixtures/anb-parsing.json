@@ -1,0 +1,274 @@
+{
+  "source": "css/css-syntax/anb-parsing.html",
+  "kind": "anb",
+  "tests": [
+    {
+      "input": "odd",
+      "expected": "2n+1"
+    },
+    {
+      "input": "even",
+      "expected": "2n"
+    },
+    {
+      "input": "1",
+      "expected": "1"
+    },
+    {
+      "input": "+1",
+      "expected": "1"
+    },
+    {
+      "input": "-1",
+      "expected": "-1"
+    },
+    {
+      "input": "5n",
+      "expected": "5n"
+    },
+    {
+      "input": "5N",
+      "expected": "5n"
+    },
+    {
+      "input": "+n",
+      "expected": "n"
+    },
+    {
+      "input": "n",
+      "expected": "n"
+    },
+    {
+      "input": "N",
+      "expected": "n"
+    },
+    {
+      "input": "+ n",
+      "expected": "parse error"
+    },
+    {
+      "input": "-n",
+      "expected": "-n"
+    },
+    {
+      "input": "-N",
+      "expected": "-n"
+    },
+    {
+      "input": "5n-5",
+      "expected": "5n-5"
+    },
+    {
+      "input": "+n-5",
+      "expected": "n-5"
+    },
+    {
+      "input": "n-5",
+      "expected": "n-5"
+    },
+    {
+      "input": "+ n-5",
+      "expected": "parse error"
+    },
+    {
+      "input": "-n-5",
+      "expected": "-n-5"
+    },
+    {
+      "input": "5n +5",
+      "expected": "5n+5"
+    },
+    {
+      "input": "5n -5",
+      "expected": "5n-5"
+    },
+    {
+      "input": "+n +5",
+      "expected": "n+5"
+    },
+    {
+      "input": "n +5",
+      "expected": "n+5"
+    },
+    {
+      "input": "+n -5",
+      "expected": "n-5"
+    },
+    {
+      "input": "+ n +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "n 5",
+      "expected": "parse error"
+    },
+    {
+      "input": "-n +5",
+      "expected": "-n+5"
+    },
+    {
+      "input": "-n -5",
+      "expected": "-n-5"
+    },
+    {
+      "input": "-n 5",
+      "expected": "parse error"
+    },
+    {
+      "input": "5n- 5",
+      "expected": "5n-5"
+    },
+    {
+      "input": "5n- -5",
+      "expected": "parse error"
+    },
+    {
+      "input": "5n- +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "-5n- 5",
+      "expected": "-5n-5"
+    },
+    {
+      "input": "+n- 5",
+      "expected": "n-5"
+    },
+    {
+      "input": "n- 5",
+      "expected": "n-5"
+    },
+    {
+      "input": "+ n- 5",
+      "expected": "parse error"
+    },
+    {
+      "input": "n- +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "n- -5",
+      "expected": "parse error"
+    },
+    {
+      "input": "-n- 5",
+      "expected": "-n-5"
+    },
+    {
+      "input": "-n- +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "-n- -5",
+      "expected": "parse error"
+    },
+    {
+      "input": "5n + 5",
+      "expected": "5n+5"
+    },
+    {
+      "input": "5n - 5",
+      "expected": "5n-5"
+    },
+    {
+      "input": "5n + +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "5n + -5",
+      "expected": "parse error"
+    },
+    {
+      "input": "5n - +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "5n - -5",
+      "expected": "parse error"
+    },
+    {
+      "input": "+n + 5",
+      "expected": "n+5"
+    },
+    {
+      "input": "n + 5",
+      "expected": "n+5"
+    },
+    {
+      "input": "+ n + 5",
+      "expected": "parse error"
+    },
+    {
+      "input": "+n - 5",
+      "expected": "n-5"
+    },
+    {
+      "input": "+n + +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "+n + -5",
+      "expected": "parse error"
+    },
+    {
+      "input": "+n - +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "+n - -5",
+      "expected": "parse error"
+    },
+    {
+      "input": "-n + 5",
+      "expected": "-n+5"
+    },
+    {
+      "input": "-n - 5",
+      "expected": "-n-5"
+    },
+    {
+      "input": "-n + +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "-n + -5",
+      "expected": "parse error"
+    },
+    {
+      "input": "-n - +5",
+      "expected": "parse error"
+    },
+    {
+      "input": "-n - -5",
+      "expected": "parse error"
+    },
+    {
+      "input": "1 - n",
+      "expected": "parse error"
+    },
+    {
+      "input": "0 - n",
+      "expected": "parse error"
+    },
+    {
+      "input": "-1 + n",
+      "expected": "parse error"
+    },
+    {
+      "input": "2 n + 2",
+      "expected": "parse error"
+    },
+    {
+      "input": "- 2n",
+      "expected": "parse error"
+    },
+    {
+      "input": "+ 2n",
+      "expected": "parse error"
+    },
+    {
+      "input": "+2 n",
+      "expected": "parse error"
+    }
+  ]
+}

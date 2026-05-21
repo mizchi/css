@@ -52,19 +52,32 @@ function fromMoon() {
   const failures = [];
   // moon prints lines like:
   //   [pkg] test wpt/parse_attribute_html_test.mbt:10 ("wpt parse-attribute.html: valid [att]") failed: ...
-  const re =
+  //   [pkg] test wpt/syntax_anb_parsing_html_test.mbt:10 ("wpt anb-parsing.html: + n -> parse error") failed: ...
+  const reSelector =
     /test wpt\/(\S+)_test\.mbt:\d+ \("wpt ([^:]+): (valid|invalid) (.+?)"\) failed:/g;
-  let m;
-  while ((m = re.exec(out)) !== null) {
-    const sourceBasename = m[2]; // e.g. "parse-attribute.html"
-    const kind = m[3];
-    let input = m[4];
-    // Moon doubles-escapes \" → \\\" in the test-name display. Reverse.
-    input = input.replace(/\\\\"/g, '\\"').replace(/\\\\/g, "\\");
-    // Then decode the MoonBit string literal escapes.
-    input = input.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
-    failures.push({ source: sourceBasename, input, kind });
-  }
+  const reAnb =
+    /test wpt\/(\S+)_test\.mbt:\d+ \("wpt ([^:]+): (.+?) -> (.+?)"\) failed:/g;
+  const consume = (re, kindFn) => {
+    let m;
+    while ((m = re.exec(out)) !== null) {
+      const sourceBasename = m[2];
+      const result = kindFn(m);
+      if (!result) continue;
+      let { kind, input } = result;
+      // Moon doubles-escapes \" → \\\" in the test-name display. Reverse.
+      input = input.replace(/\\\\"/g, '\\"').replace(/\\\\/g, "\\");
+      input = input.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+      failures.push({ source: sourceBasename, input, kind });
+    }
+  };
+  consume(reSelector, (m) => ({ kind: m[3], input: m[4] }));
+  consume(reAnb, (m) => {
+    // Skip if already captured by reSelector (matches both `valid`/`invalid`
+    // and An+B if the line happens to include "->"). reAnb-only lines have
+    // a `: <input> -> <expected>` shape that doesn't include valid/invalid.
+    if (/: (valid|invalid) /.test(m[0])) return null;
+    return { kind: "anb", input: m[3] };
+  });
   // Dedup
   const seen = new Set();
   const dedup = [];

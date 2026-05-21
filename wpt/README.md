@@ -5,8 +5,13 @@ selector-parsing tests so they can run against `mizchi/css`'s parser.
 
 `mizchi/css` is a parser and computed-style library, not a browser, so we
 focus on the WPT subsets that don't depend on a DOM or layout engine.
-Phase 1 (this directory) covers `css/selectors/parsing/**` — selector text
-parsing and canonicalization.
+Currently this directory covers:
+
+- `css/selectors/parsing/**` — selector text parsing and canonicalization
+- `css/css-syntax/anb-parsing.html` — `<an+b>` micro-syntax inside
+  `:nth-child(...)`
+- `css/css-syntax/anb-serialization.html` — canonical serialization of
+  `<an+b>` values
 
 ## How it works
 
@@ -15,7 +20,8 @@ directly from MoonBit, so instead:
 
 1. **`extract.mjs`** scrapes WPT HTML files for the actual input/expected
    pairs (e.g. `test_valid_selector('[att=val]', '[att="val"]')`) and
-   writes them to `fixtures/*.json`.
+   writes them to `fixtures/*.json`. **`extract-anb.mjs`** does the same
+   for `testANB(input, expected)` cases from the css-syntax suite.
 2. **`gen-mbt.mjs`** converts those JSON fixtures into MoonBit test
    sources under `src/wpt/`, where they become regular `moon test` cases.
 3. The harness in `src/wpt/harness.mbt` parses both the input and each
@@ -23,12 +29,14 @@ directly from MoonBit, so instead:
    compares the resulting ASTs (via `Show` string equality). Two
    selectors that parse to the same AST are treated as equivalent —
    sufficient for spec conformance even before we ship a CSS-canonical
-   serializer.
+   serializer. An+B cases are roundtripped through `:nth-child(<input>)`
+   and the canonical form is extracted from the serialized selector.
 
 ## Workflow
 
 ```bash
-node wpt/extract.mjs                # fetch WPT HTML, write fixtures/*.json
+node wpt/extract.mjs                # fetch WPT selector HTML, write fixtures/*.json
+node wpt/extract-anb.mjs            # fetch WPT css-syntax An+B HTML
 node wpt/gen-mbt.mjs                # regenerate src/wpt/*_test.mbt
 moon test --package mizchi/css/wpt  # run the suite
 ```
@@ -58,7 +66,9 @@ moon test --package mizchi/css/wpt              # green again
 
 ## Current status
 
-**215 / 215 passing — 100% of the WPT selector-parsing suite.**
+**282 / 302 passing — 93.4% across selector-parsing + An+B.**
+
+Selector parsing: 215 / 215 (100%).
 
 | Source                     | Tests | Passing |
 |----------------------------|------:|--------:|
@@ -79,11 +89,20 @@ moon test --package mizchi/css/wpt              # green again
 | `parse-state.html`         |    24 |   24/24 ✓ |
 | `parse-universal.html`     |     3 |    3/3 ✓ |
 | `parse-where.html`         |     6 |    6/6 ✓ |
-| **total**                  | **215** | **215/215** ✓ |
+| `anb-parsing.html`         |    67 |   47/67   |
+| `anb-serialization.html`   |    20 |   20/20 ✓ |
+| **total**                  | **302** | **282/302** |
 
-## Roadmap (phase 2+)
+The 20 known An+B failures are all "signed integer after explicit
+operator" forms (`5n + +5`, `n - -1`, …): the parser folds the
+`+`/`-` sign into the second integer token at the tokenizer level
+and can no longer tell the original input apart from `5n + 5`. Fixing
+them requires preserving the leading-sign text on `Number` tokens.
 
-- `css/css-syntax/**` — tokenization and CSS Syntax 3 conformance
+## Roadmap (phase 3+)
+
+- `css/css-syntax/**` (rest) — tokenization and remaining CSS Syntax 3
+  conformance tests
 - `css/selectors/` (non-parsing) — selector matching against mock DOM
   trees parsed from each test file's `<style>` and `<body>`
 - `css/css-cascade/**` — cascade ordering, importance, layers

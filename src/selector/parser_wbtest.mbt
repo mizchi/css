@@ -196,17 +196,12 @@ test "parse pseudo-class nth-child odd" {
 }
 
 ///|
-test "parse pseudo-class nth-child compact anb form" {
+test "parse :nth-child rejects invalid `2n1` compact form" {
+  // CSS Selectors 4 requires an explicit `+` or `-` between An and B,
+  // or that the B part be a single signed-integer token. `2n1`
+  // (Dimension(2, "n1") in our tokenizer) is not valid An+B.
   let sel = parse_selector_text(":nth-child(2n1)")
-  inspect(sel is Some(_), content="true")
-  let s = sel.unwrap()
-  match s.head.subclasses[0] {
-    PseudoClass(NthChild(expr)) => {
-      inspect(expr.a, content="2")
-      inspect(expr.b, content="1")
-    }
-    _ => fail("expected :nth-child pseudo-class")
-  }
+  inspect(sel is None, content="true")
 }
 
 ///|

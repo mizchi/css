@@ -1146,6 +1146,12 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
   // Handle keywords: odd, even
   match self.peek() {
     Ident(kw) => {
+      // Match against the lowercase identifier. Supported forms:
+      //   "odd", "even"
+      //   "n"           a=1, b=parse_nth_b() (allows trailing ± N)
+      //   "-n"          a=-1, b=parse_nth_b()
+      //   "n-<digits>"  a=1,  b=-<digits>    (CSS Selectors 4 ndashdigit-ident)
+      //   "-n-<digits>" a=-1, b=-<digits>
       let kw_lower = kw.to_lower()
       if kw_lower == "odd" {
         let _ = self.advance()
@@ -1157,7 +1163,6 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
       }
       if kw_lower == "n" {
         let _ = self.advance()
-        // Just 'n' = 1n+0
         self.skip_whitespace()
         let b = self.parse_nth_b()
         return Some({ a: 1, b })
@@ -1167,6 +1172,43 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
         self.skip_whitespace()
         let b = self.parse_nth_b()
         return Some({ a: -1, b })
+      }
+      match ndashdigit_to_b(kw_lower, "n-") {
+        Some(b) => {
+          let _ = self.advance()
+          return Some({ a: 1, b })
+        }
+        None => ()
+      }
+      match ndashdigit_to_b(kw_lower, "-n-") {
+        Some(b) => {
+          let _ = self.advance()
+          return Some({ a: -1, b })
+        }
+        None => ()
+      }
+      // ndash-ident: bare `n-` / `-n-` consumes a signless integer next.
+      if kw_lower == "n-" {
+        let _ = self.advance()
+        self.skip_whitespace()
+        match self.peek() {
+          Number(n, _) => {
+            let _ = self.advance()
+            return Some({ a: 1, b: -n.to_int() })
+          }
+          _ => return None
+        }
+      }
+      if kw_lower == "-n-" {
+        let _ = self.advance()
+        self.skip_whitespace()
+        match self.peek() {
+          Number(n, _) => {
+            let _ = self.advance()
+            return Some({ a: -1, b: -n.to_int() })
+          }
+          _ => return None
+        }
       }
       return None
     }
@@ -1179,26 +1221,44 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
         let b = self.parse_nth_b()
         return Some({ a, b })
       }
+      // ndash-dimension: `5n-` followed (after optional whitespace) by a
+      // signless integer N — interpreted as `5n-N`.
+      if unit_lower == "n-" {
+        let _ = self.advance()
+        let a = num.to_int()
+        self.skip_whitespace()
+        match self.peek() {
+          Number(n, _) => {
+            let _ = self.advance()
+            return Some({ a, b: -n.to_int() })
+          }
+          _ => return None
+        }
+      }
+      // ndashdigit-dimension, e.g. `5n-3` lexes as Dimension(5, "n-3").
+      match ndashdigit_to_b(unit_lower, "n-") {
+        Some(b) => {
+          let _ = self.advance()
+          return Some({ a: num.to_int(), b })
+        }
+        None => ()
+      }
+      // Fallback for `5n+3` lex shapes (unit_lower starts with "n+").
       if unit_lower.length() > 1 && unit_lower[0] == 'n' {
         let suffix = unit_lower.unsafe_substring(
           start=1,
           end=unit_lower.length(),
         )
-        let b = @string.parse_int(suffix) catch {
-          _ =>
-            if suffix.length() > 1 && suffix[0] == '+' {
-              @string.parse_int(
-                suffix.unsafe_substring(start=1, end=suffix.length()),
-              ) catch {
-                _ => 0
-              }
-            } else {
-              0
-            }
+        if suffix.length() > 1 && suffix[0] == '+' {
+          let b = @string.parse_int(
+            suffix.unsafe_substring(start=1, end=suffix.length()),
+          ) catch {
+            _ => return None
+          }
+          let _ = self.advance()
+          return Some({ a: num.to_int(), b })
         }
-        let _ = self.advance()
-        let a = num.to_int()
-        return Some({ a, b })
+        return None
       }
       return None
     }
@@ -1208,18 +1268,37 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
       return Some({ a: 0, b: num.to_int() })
     }
     Delim('+') => {
+      // `+` must be immediately followed by `n`-form ident or a number;
+      // CSS Selectors 4 forbids whitespace between `+` and what follows.
       let _ = self.advance()
-      self.skip_whitespace()
       match self.peek() {
-        Ident(kw) =>
-          if kw.to_lower() == "n" {
+        Ident(kw) => {
+          let kw_lower = kw.to_lower()
+          if kw_lower == "n" {
             let _ = self.advance()
             self.skip_whitespace()
             let b = self.parse_nth_b()
             return Some({ a: 1, b })
-          } else {
-            return None
           }
+          if kw_lower == "n-" {
+            let _ = self.advance()
+            self.skip_whitespace()
+            match self.peek() {
+              Number(n, _) => {
+                let _ = self.advance()
+                return Some({ a: 1, b: -n.to_int() })
+              }
+              _ => return None
+            }
+          }
+          match ndashdigit_to_b(kw_lower, "n-") {
+            Some(b) => {
+              let _ = self.advance()
+              return Some({ a: 1, b })
+            }
+            None => return None
+          }
+        }
         Number(num, _) => {
           let _ = self.advance()
           return Some({ a: 0, b: num.to_int() })
@@ -1228,18 +1307,19 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
       }
     }
     Delim('-') => {
+      // Same: `-` immediately followed by `n` (or signless N).
       let _ = self.advance()
-      self.skip_whitespace()
       match self.peek() {
-        Ident(kw) =>
-          if kw.to_lower() == "n" {
+        Ident(kw) => {
+          let kw_lower = kw.to_lower()
+          if kw_lower == "n" {
             let _ = self.advance()
             self.skip_whitespace()
             let b = self.parse_nth_b()
             return Some({ a: -1, b })
-          } else {
-            return None
           }
+          return None
+        }
         Number(num, _) => {
           let _ = self.advance()
           return Some({ a: 0, b: -num.to_int() })
@@ -1249,6 +1329,29 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
     }
     _ => return None
   }
+}
+
+///|
+/// Parse `<prefix><digits>` patterns from a lowercased identifier. The
+/// prefix is one of "n-" / "-n-"; the returned integer is the negative
+/// of the digit run (the `-` is part of the ident token).
+fn ndashdigit_to_b(name : String, prefix : String) -> Int? {
+  if !name.has_prefix(prefix) {
+    return None
+  }
+  let digits = name.unsafe_substring(start=prefix.length(), end=name.length())
+  if digits.is_empty() {
+    return None
+  }
+  // All remaining chars must be digits.
+  for i in 0..<digits.length() {
+    let c = digits[i].to_int().unsafe_to_char()
+    if c < '0' || c > '9' {
+      return None
+    }
+  }
+  let n = @string.parse_int(digits) catch { _ => return None }
+  Some(-n)
 }
 
 ///|
