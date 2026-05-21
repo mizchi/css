@@ -527,7 +527,12 @@ test "Show impls for Origin, Importance, PropertyValue, Declaration" {
 test "Declaration::with_metadata" {
   let spec : @selector.Specificity = { a: 1, b: 2, c: 3 }
   let d = Declaration::with_metadata(
-    "padding", PropertyValue::Inherit, User, Important, spec, 42,
+    "padding",
+    PropertyValue::Inherit,
+    User,
+    Important,
+    spec,
+    42,
   )
   inspect(d.property, content="padding")
   inspect(d.source_order, content="42")
@@ -656,8 +661,14 @@ test "IndexedStylesheet::match_element_with_media gates by media query" {
   let element = @selector.Element::with_classes("div", ["card"])
   let big = @media.MediaEnvironment::new(1024.0, 768.0)
   let small = @media.MediaEnvironment::new(400.0, 768.0)
-  inspect(indexed.match_element_with_media(element, Some(big)).length(), content="1")
-  inspect(indexed.match_element_with_media(element, Some(small)).length(), content="0")
+  inspect(
+    indexed.match_element_with_media(element, Some(big)).length(),
+    content="1",
+  )
+  inspect(
+    indexed.match_element_with_media(element, Some(small)).length(),
+    content="0",
+  )
 }
 
 ///|
@@ -674,8 +685,14 @@ test "Stylesheet::match_element_with_media gates by media query" {
   let element = @selector.Element::with_classes("div", ["card"])
   let big = @media.MediaEnvironment::new(1024.0, 768.0)
   let small = @media.MediaEnvironment::new(400.0, 768.0)
-  inspect(sheet.match_element_with_media(element, Some(big)).length(), content="1")
-  inspect(sheet.match_element_with_media(element, Some(small)).length(), content="0")
+  inspect(
+    sheet.match_element_with_media(element, Some(big)).length(),
+    content="1",
+  )
+  inspect(
+    sheet.match_element_with_media(element, Some(small)).length(),
+    content="0",
+  )
   // No env -> always matches
   inspect(sheet.match_element_with_media(element, None).length(), content="1")
 }
@@ -716,9 +733,7 @@ test "indexed cascade rejects non-matching candidate (full selector check)" {
   // fails — must hit the rejection branch inside push_rule_match.
   let sheet = Stylesheet::new(Author)
   let sel = @selector.parse_selector_text(".parent > .child").unwrap()
-  sheet.add_rule(".parent > .child", sel, [
-    Declaration::new("color", "red"),
-  ])
+  sheet.add_rule(".parent > .child", sel, [Declaration::new("color", "red")])
   // Element has class "child" (matches head) but no parent.
   let element = @selector.Element::new("div").add_class("child")
   let result = cascade_element(element, [sheet], [])

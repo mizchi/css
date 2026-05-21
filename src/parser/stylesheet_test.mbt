@@ -922,6 +922,17 @@ test "parse declarations after ampersand nested block" {
 }
 
 ///|
+test "parse pseudo rule selector text with is selector list" {
+  let css =
+    #|:is(ol, li, div)::before { content: "B"; }
+    #|:is(ol, li, div)::after { content: "A"; }
+  let stylesheet = @parser.parse_stylesheet(css)
+  inspect(stylesheet.rules.length(), content="2")
+  inspect(stylesheet.rules[0].selector_text, content=":is(ol, li, div)::before")
+  inspect(stylesheet.rules[1].selector_text, content=":is(ol, li, div)::after")
+}
+
+///|
 test "parse_stylesheet_with_diagnostics collects mixed properties" {
   let css =
     #|.card {

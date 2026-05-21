@@ -61,10 +61,7 @@ test "Dimension::resolve - MinContent/MaxContent/FitContent return None" {
 
 ///|
 test "Dimension::resolve_or_intrinsic - MinContent/MaxContent/FitContent use fallback" {
-  inspect(
-    Dimension::resolve_or_intrinsic(MaxContent, 100.0, 7.0),
-    content="7",
-  )
+  inspect(Dimension::resolve_or_intrinsic(MaxContent, 100.0, 7.0), content="7")
 }
 
 ///|
@@ -174,14 +171,8 @@ test "Dimension::resolve_or_intrinsic" {
     Dimension::resolve_or_intrinsic(Percent(0.4), 100.0, 5.0),
     content="40",
   )
-  inspect(
-    Dimension::resolve_or_intrinsic(Auto, 100.0, 5.0),
-    content="5",
-  )
-  inspect(
-    Dimension::resolve_or_intrinsic(MinContent, 100.0, 5.0),
-    content="5",
-  )
+  inspect(Dimension::resolve_or_intrinsic(Auto, 100.0, 5.0), content="5")
+  inspect(Dimension::resolve_or_intrinsic(MinContent, 100.0, 5.0), content="5")
   inspect(
     Dimension::resolve_or_intrinsic(FitContent(50.0), 100.0, 5.0),
     content="5",
@@ -249,7 +240,10 @@ test "clamp behavior" {
 ///|
 test "apply_aspect_ratio" {
   debug_inspect(apply_aspect_ratio_width(100.0, Some(2.0)), content="Some(200)")
-  debug_inspect(apply_aspect_ratio_height(200.0, Some(2.0)), content="Some(100)")
+  debug_inspect(
+    apply_aspect_ratio_height(200.0, Some(2.0)),
+    content="Some(100)",
+  )
   debug_inspect(apply_aspect_ratio_width(100.0, None), content="None")
   debug_inspect(apply_aspect_ratio_width(100.0, Some(0.0)), content="None")
   debug_inspect(apply_aspect_ratio_height(100.0, Some(-1.0)), content="None")

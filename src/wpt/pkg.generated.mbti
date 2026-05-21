@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "mizchi/css/wpt"
+
+// Values
+pub fn wpt_assert_anb(String, String, String, Bool) -> Unit raise
+
+pub fn wpt_assert_invalid(String, String, Bool) -> Unit raise
+
+pub fn wpt_assert_valid(String, String, Array[String], Bool) -> Unit raise
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

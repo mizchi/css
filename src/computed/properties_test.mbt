@@ -56,7 +56,10 @@ test "initial_value - unknown property defaults to auto" {
 test "parse_dimension - intrinsic and fit-content" {
   inspect(@computed.parse_dimension("min-content"), content="MinContent")
   inspect(@computed.parse_dimension("max-content"), content="MaxContent")
-  inspect(@computed.parse_dimension("fit-content(50px)"), content="FitContent(50)")
+  inspect(
+    @computed.parse_dimension("fit-content(50px)"),
+    content="FitContent(50)",
+  )
   inspect(@computed.parse_dimension("none"), content="Auto")
 }
 
@@ -155,10 +158,19 @@ test "parse_display - table and ruby types" {
   inspect(@computed.parse_display("table-cell"), content="TableCell")
   inspect(@computed.parse_display("table-caption"), content="TableCaption")
   inspect(@computed.parse_display("table-row-group"), content="TableRowGroup")
-  inspect(@computed.parse_display("table-header-group"), content="TableHeaderGroup")
-  inspect(@computed.parse_display("table-footer-group"), content="TableFooterGroup")
+  inspect(
+    @computed.parse_display("table-header-group"),
+    content="TableHeaderGroup",
+  )
+  inspect(
+    @computed.parse_display("table-footer-group"),
+    content="TableFooterGroup",
+  )
   inspect(@computed.parse_display("table-column"), content="TableColumn")
-  inspect(@computed.parse_display("table-column-group"), content="TableColumnGroup")
+  inspect(
+    @computed.parse_display("table-column-group"),
+    content="TableColumnGroup",
+  )
   inspect(@computed.parse_display("ruby"), content="Inline")
   inspect(@computed.parse_display("ruby-text"), content="Inline")
   inspect(@computed.parse_display("contents"), content="Contents")
@@ -169,7 +181,10 @@ test "parse_flex_direction" {
   inspect(@computed.parse_flex_direction("row"), content="Row")
   inspect(@computed.parse_flex_direction("row-reverse"), content="RowReverse")
   inspect(@computed.parse_flex_direction("column"), content="Column")
-  inspect(@computed.parse_flex_direction("column-reverse"), content="ColumnReverse")
+  inspect(
+    @computed.parse_flex_direction("column-reverse"),
+    content="ColumnReverse",
+  )
   inspect(@computed.parse_flex_direction("ROW"), content="Row")
   inspect(@computed.parse_flex_direction("garbage"), content="Row")
 }
@@ -196,8 +211,14 @@ test "parse_alignment_with_overflow strips safe/unsafe prefix" {
 test "parse_aspect_ratio" {
   debug_inspect(@computed.parse_aspect_ratio("auto"), content="None")
   debug_inspect(@computed.parse_aspect_ratio("2"), content="Some(2)")
-  debug_inspect(@computed.parse_aspect_ratio("16 / 9"), content="Some(1.7777777777777777)")
-  debug_inspect(@computed.parse_aspect_ratio("16/9"), content="Some(1.7777777777777777)")
+  debug_inspect(
+    @computed.parse_aspect_ratio("16 / 9"),
+    content="Some(1.7777777777777777)",
+  )
+  debug_inspect(
+    @computed.parse_aspect_ratio("16/9"),
+    content="Some(1.7777777777777777)",
+  )
 }
 
 ///|
@@ -570,9 +591,7 @@ test "parse_grid_line_shorthand" {
 
 ///|
 test "parse_grid_area_shorthand" {
-  let (s1, s2, s3, s4) = @computed.parse_grid_area_shorthand(
-    "1 / 2 / 3 / 4",
-  )
+  let (s1, s2, s3, s4) = @computed.parse_grid_area_shorthand("1 / 2 / 3 / 4")
   inspect(s1, content="Line(1)")
   inspect(s2, content="Line(2)")
   inspect(s3, content="Line(3)")

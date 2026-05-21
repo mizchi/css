@@ -18,7 +18,7 @@ test "parse aspect-ratio - single number and ratio" {
   let ratio = parse_inline_style("aspect-ratio: 4/3")
   debug_inspect(single.aspect_ratio, content="Some(2)")
   match ratio.aspect_ratio {
-    Some(v) => assert_true((v - (4.0 / 3.0)).abs() < 0.001)
+    Some(v) => assert_true((v - 4.0 / 3.0).abs() < 0.001)
     None => fail("expected aspect ratio")
   }
 }
@@ -121,7 +121,6 @@ test "parse grid-template-columns with auto-fit" {
   )
   inspect(s.grid_template_columns.length(), content="1")
 }
-
 
 ///|
 test "parse overflow: hidden" {
@@ -247,7 +246,7 @@ test "parse inset shorthand 3 values" {
 test "parse aspect-ratio property" {
   let s = parse_inline_style("aspect-ratio: 4 / 3")
   match s.aspect_ratio {
-    Some(v) => assert_true((v - (4.0 / 3.0)).abs() < 0.001)
+    Some(v) => assert_true((v - 4.0 / 3.0).abs() < 0.001)
     None => fail("expected aspect ratio")
   }
 }
@@ -449,7 +448,6 @@ test "parse trailing semicolon" {
   inspect(s.display, content="Flex")
 }
 
-
 ///|
 test "parse multiple sibling declarations" {
   let s = parse_inline_style(
@@ -514,9 +512,7 @@ test "parse - overflow-x and overflow-y separately" {
 
 ///|
 test "parse - top/right/bottom/left individually" {
-  let s = parse_inline_style(
-    "top: 1px; right: 2px; bottom: 3px; left: 4px",
-  )
+  let s = parse_inline_style("top: 1px; right: 2px; bottom: 3px; left: 4px")
   inspect(s.inset.top, content="Length(1)")
   inspect(s.inset.right, content="Length(2)")
   inspect(s.inset.bottom, content="Length(3)")
@@ -638,14 +634,8 @@ test "parse grid-template-columns with non-zero unitless drops the rest" {
 ///|
 test "parse contain-intrinsic-size single value" {
   let s = parse_inline_style("contain-intrinsic-size: 100px")
-  debug_inspect(
-    s.contain_intrinsic_inline_size,
-    content="Some(100)",
-  )
-  debug_inspect(
-    s.contain_intrinsic_block_size,
-    content="Some(100)",
-  )
+  debug_inspect(s.contain_intrinsic_inline_size, content="Some(100)")
+  debug_inspect(s.contain_intrinsic_block_size, content="Some(100)")
 }
 
 ///|

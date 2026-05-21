@@ -181,7 +181,10 @@ test "CssColorValue Show outputs" {
   let r = @computed.parse_color("#ff0000")
   let s = r.to_string()
   assert_true(s.length() > 0)
-  inspect(@computed.parse_color("currentColor").to_string(), content="currentColor")
+  inspect(
+    @computed.parse_color("currentColor").to_string(),
+    content="currentColor",
+  )
   inspect(@computed.parse_color("inherit").to_string(), content="inherit")
 }
 
@@ -189,34 +192,29 @@ test "CssColorValue Show outputs" {
 test "parse_color - large named color set" {
   // Covers a wide swath of named colors to exercise the named-color table.
   let names = [
-    "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige",
-    "bisque", "blanchedalmond", "blueviolet", "brown", "burlywood",
-    "cadetblue", "chartreuse", "chocolate", "coral", "cornflowerblue",
-    "cornsilk", "crimson", "cyan", "darkblue", "darkcyan", "darkgoldenrod",
-    "darkgray", "darkgreen", "darkgrey", "darkkhaki", "darkmagenta",
-    "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon",
-    "darkseagreen", "darkslateblue", "darkslategray", "darkslategrey",
-    "darkturquoise", "darkviolet", "deeppink", "deepskyblue", "dimgray",
-    "dimgrey", "dodgerblue", "firebrick", "floralwhite", "forestgreen",
-    "fuchsia", "gainsboro", "ghostwhite", "gold", "goldenrod", "gray",
-    "greenyellow", "grey", "honeydew", "hotpink", "indianred", "indigo",
-    "ivory", "khaki", "lavender", "lavenderblush", "lawngreen",
-    "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
-    "lightgoldenrodyellow", "lightgray", "lightgreen", "lightgrey",
-    "lightpink", "lightsalmon", "lightseagreen", "lightskyblue",
-    "lightslategray", "lightslategrey", "lightsteelblue", "lightyellow",
-    "lime", "limegreen", "linen", "magenta", "maroon", "mediumaquamarine",
-    "mediumblue", "mediumorchid", "mediumpurple", "mediumseagreen",
-    "mediumslateblue", "mediumspringgreen", "mediumturquoise",
-    "mediumvioletred", "midnightblue", "mintcream", "mistyrose", "moccasin",
-    "navajowhite", "navy", "oldlace", "olive", "olivedrab", "orange",
-    "orangered", "orchid", "palegoldenrod", "palegreen", "paleturquoise",
-    "palevioletred", "papayawhip", "peachpuff", "peru", "pink", "plum",
-    "powderblue", "purple", "rebeccapurple", "rosybrown", "royalblue",
-    "saddlebrown", "salmon", "sandybrown", "seagreen", "seashell", "sienna",
-    "silver", "skyblue", "slateblue", "slategray", "slategrey", "snow",
-    "springgreen", "steelblue", "tan", "teal", "thistle", "tomato",
-    "turquoise", "violet", "wheat", "whitesmoke", "yellow", "yellowgreen",
+    "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque",
+    "blanchedalmond", "blueviolet", "brown", "burlywood", "cadetblue", "chartreuse",
+    "chocolate", "coral", "cornflowerblue", "cornsilk", "crimson", "cyan", "darkblue",
+    "darkcyan", "darkgoldenrod", "darkgray", "darkgreen", "darkgrey", "darkkhaki",
+    "darkmagenta", "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon",
+    "darkseagreen", "darkslateblue", "darkslategray", "darkslategrey", "darkturquoise",
+    "darkviolet", "deeppink", "deepskyblue", "dimgray", "dimgrey", "dodgerblue",
+    "firebrick", "floralwhite", "forestgreen", "fuchsia", "gainsboro", "ghostwhite",
+    "gold", "goldenrod", "gray", "greenyellow", "grey", "honeydew", "hotpink", "indianred",
+    "indigo", "ivory", "khaki", "lavender", "lavenderblush", "lawngreen", "lemonchiffon",
+    "lightblue", "lightcoral", "lightcyan", "lightgoldenrodyellow", "lightgray",
+    "lightgreen", "lightgrey", "lightpink", "lightsalmon", "lightseagreen", "lightskyblue",
+    "lightslategray", "lightslategrey", "lightsteelblue", "lightyellow", "lime",
+    "limegreen", "linen", "magenta", "maroon", "mediumaquamarine", "mediumblue",
+    "mediumorchid", "mediumpurple", "mediumseagreen", "mediumslateblue", "mediumspringgreen",
+    "mediumturquoise", "mediumvioletred", "midnightblue", "mintcream", "mistyrose",
+    "moccasin", "navajowhite", "navy", "oldlace", "olive", "olivedrab", "orange",
+    "orangered", "orchid", "palegoldenrod", "palegreen", "paleturquoise", "palevioletred",
+    "papayawhip", "peachpuff", "peru", "pink", "plum", "powderblue", "purple", "rebeccapurple",
+    "rosybrown", "royalblue", "saddlebrown", "salmon", "sandybrown", "seagreen",
+    "seashell", "sienna", "silver", "skyblue", "slateblue", "slategray", "slategrey",
+    "snow", "springgreen", "steelblue", "tan", "teal", "thistle", "tomato", "turquoise",
+    "violet", "wheat", "whitesmoke", "yellow", "yellowgreen",
   ]
   for n in names {
     let v = @computed.parse_color(n)
@@ -319,15 +317,9 @@ test "resolve_current_color resolves CurrentColor and Inherit to parent" {
     content="255",
   )
   let cc = @computed.parse_color("currentColor")
-  inspect(
-    @computed.resolve_current_color(cc, parent_color).r,
-    content="50",
-  )
+  inspect(@computed.resolve_current_color(cc, parent_color).r, content="50")
   let inh = @computed.parse_color("inherit")
-  inspect(
-    @computed.resolve_current_color(inh, parent_color).g,
-    content="100",
-  )
+  inspect(@computed.resolve_current_color(inh, parent_color).g, content="100")
 }
 
 ///|
@@ -402,9 +394,7 @@ test "parse_linear_gradient - unknown direction defaults to bottom" {
 
 ///|
 test "parse_linear_gradient - color stop with percentage" {
-  let bg = @computed.parse_linear_gradient(
-    "linear-gradient(red 25%, blue 75%)",
-  )
+  let bg = @computed.parse_linear_gradient("linear-gradient(red 25%, blue 75%)")
   let s = bg.to_string()
   assert_true(s.contains("position: 0.25"))
   assert_true(s.contains("position: 0.75"))

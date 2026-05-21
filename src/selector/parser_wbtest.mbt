@@ -316,8 +316,7 @@ test "parse :not with compound selector" {
     _ => fail("expected class first")
   }
   match sel.unwrap().head.subclasses[1] {
-    PseudoClass(Not(selectors)) =>
-      inspect(selectors.length(), content="1")
+    PseudoClass(Not(selectors)) => inspect(selectors.length(), content="1")
     _ => fail("expected :not")
   }
 }
@@ -326,14 +325,12 @@ test "parse :not with compound selector" {
 test "parse :is() and :where() with multiple selectors" {
   let is_sel = parse_selector_text(":is(h1, h2, h3)")
   match is_sel.unwrap().head.subclasses[0] {
-    PseudoClass(Is(selectors)) =>
-      inspect(selectors.length(), content="3")
+    PseudoClass(Is(selectors)) => inspect(selectors.length(), content="3")
     _ => fail("expected :is")
   }
   let where_sel = parse_selector_text(":where(.a, .b)")
   match where_sel.unwrap().head.subclasses[0] {
-    PseudoClass(Where(selectors)) =>
-      inspect(selectors.length(), content="2")
+    PseudoClass(Where(selectors)) => inspect(selectors.length(), content="2")
     _ => fail("expected :where")
   }
 }
@@ -342,8 +339,7 @@ test "parse :is() and :where() with multiple selectors" {
 test "parse :has with multiple relative selectors" {
   let sel = parse_selector_text(":has(.foo, > .bar)")
   match sel.unwrap().head.subclasses[0] {
-    PseudoClass(Has(selectors)) =>
-      inspect(selectors.length(), content="2")
+    PseudoClass(Has(selectors)) => inspect(selectors.length(), content="2")
     _ => fail("expected :has")
   }
 }
@@ -375,8 +371,8 @@ test "parse all user-action pseudo-classes" {
 ///|
 test "parse all form pseudo-classes" {
   let names = [
-    "enabled", "disabled", "checked", "indeterminate", "required", "optional",
-    "valid", "invalid", "read-only", "read-write",
+    "enabled", "disabled", "checked", "indeterminate", "required", "optional", "valid",
+    "invalid", "read-only", "read-write",
   ]
   for n in names {
     let sel = parse_selector_text(":" + n)
@@ -409,14 +405,7 @@ test "parse attribute selectors - all match types" {
     _ => fail("expected attribute")
   }
   let cases = [
-    "[a]",
-    "[a=b]",
-    "[a~=b]",
-    "[a|=b]",
-    "[a^=b]",
-    "[a$=b]",
-    "[a*=b]",
-    "[a=b i]",
+    "[a]", "[a=b]", "[a~=b]", "[a|=b]", "[a^=b]", "[a$=b]", "[a*=b]", "[a=b i]",
   ]
   for c in cases {
     let sel = parse_selector_text(c)
@@ -440,9 +429,7 @@ test "parse_selector_text - empty string returns None" {
 test "parse attribute - case-sensitive 's' flag" {
   let sel = parse_selector_text("[type=text s]").unwrap()
   match sel.head.subclasses[0] {
-    Attribute(a) => {
-      inspect(a.case_insensitive, content="false")
-    }
+    Attribute(a) => inspect(a.case_insensitive, content="false")
     _ => fail("expected attribute")
   }
 }

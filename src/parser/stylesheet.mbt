@@ -814,8 +814,9 @@ fn parse_selector_list_from_tokens(
   while i < end {
     match tokens[i] {
       @token.Token::EOF => break
-      @token.Token::LeftParen | @token.Token::LeftBracket =>
-        depth = depth + 1
+      @token.Token::Function(_)
+      | @token.Token::LeftParen
+      | @token.Token::LeftBracket => depth = depth + 1
       @token.Token::RightParen | @token.Token::RightBracket =>
         if depth > 0 {
           depth = depth - 1

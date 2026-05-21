@@ -184,7 +184,10 @@ test "support level - partial coverage" {
     get_support_level("font-size"),
     content="Partial(relative units may not work correctly)",
   )
-  inspect(get_support_level("font-weight"), content="Partial(numeric values only)")
+  inspect(
+    get_support_level("font-weight"),
+    content="Partial(numeric values only)",
+  )
   inspect(
     get_support_level("color"),
     content="Partial(named colors, hex, rgb supported)",
@@ -193,13 +196,19 @@ test "support level - partial coverage" {
     get_support_level("border"),
     content="Partial(shorthand parsing limited)",
   )
-  inspect(get_support_level("opacity"), content="Partial(rendered as visible/hidden)")
+  inspect(
+    get_support_level("opacity"),
+    content="Partial(rendered as visible/hidden)",
+  )
 }
 
 ///|
 test "support level - deprecated and vendor prefixes" {
   inspect(get_support_level("clip"), content="Deprecated(use clip-path)")
-  inspect(get_support_level("zoom"), content="Deprecated(use transform: scale())")
+  inspect(
+    get_support_level("zoom"),
+    content="Deprecated(use transform: scale())",
+  )
   inspect(get_support_level("-webkit-clip-path"), content="UnsupportedVisual")
   inspect(get_support_level("-moz-appearance"), content="UnsupportedVisual")
   inspect(get_support_level("-ms-grid"), content="UnsupportedVisual")
@@ -253,35 +262,28 @@ test "affects_layout flags layout-affecting and unknown" {
 ///|
 test "support level - large sweep of visual-only properties" {
   let visual_props = [
-    "background-image", "background-position", "background-size",
-    "background-repeat", "background-attachment", "background-origin",
-    "background-clip", "transition", "transition-property",
-    "transition-duration", "transition-timing-function", "transition-delay",
-    "animation", "animation-name", "animation-duration",
-    "animation-timing-function", "animation-delay",
-    "animation-iteration-count", "animation-direction",
-    "animation-fill-mode", "animation-play-state", "filter", "backdrop-filter",
-    "outline-width", "outline-style", "outline-color", "outline-offset",
-    "pointer-events", "user-select", "scroll-behavior", "scroll-snap-type",
-    "scroll-margin", "scroll-padding", "overflow-anchor", "will-change",
-    "mask", "mask-image", "mix-blend-mode", "isolation", "object-fit",
-    "object-position", "appearance", "resize", "caret-color",
-    "text-rendering", "font-feature-settings", "font-variant",
-    "font-variant-ligatures", "font-kerning", "font-optical-sizing",
-    "font-stretch", "font-synthesis", "font-display", "touch-action",
-    "overflow-clip-margin", "overscroll-behavior", "text-emphasis",
-    "text-orientation", "text-combine-upright", "backface-visibility",
-    "fill", "stroke", "stroke-width", "accent-color", "color-scheme",
-    "forced-color-adjust", "print-color-adjust", "line-clamp", "marker",
-    "marker-start", "marker-end", "text-transform", "text-indent",
-    "white-space", "word-break", "word-wrap", "overflow-wrap", "hyphens",
-    "list-style", "list-style-type", "list-style-position",
-    "list-style-image", "table-layout", "border-spacing", "caption-side",
-    "empty-cells", "quotes", "content", "counter-reset", "counter-increment",
-    "transform-origin", "transform-style", "perspective",
-    "perspective-origin", "text-decoration", "text-decoration-line",
-    "text-decoration-color", "text-decoration-style",
-    "text-decoration-thickness", "text-shadow", "box-shadow",
+    "background-image", "background-position", "background-size", "background-repeat",
+    "background-attachment", "background-origin", "background-clip", "transition",
+    "transition-property", "transition-duration", "transition-timing-function", "transition-delay",
+    "animation", "animation-name", "animation-duration", "animation-timing-function",
+    "animation-delay", "animation-iteration-count", "animation-direction", "animation-fill-mode",
+    "animation-play-state", "filter", "backdrop-filter", "outline-width", "outline-style",
+    "outline-color", "outline-offset", "pointer-events", "user-select", "scroll-behavior",
+    "scroll-snap-type", "scroll-margin", "scroll-padding", "overflow-anchor", "will-change",
+    "mask", "mask-image", "mix-blend-mode", "isolation", "object-fit", "object-position",
+    "appearance", "resize", "caret-color", "text-rendering", "font-feature-settings",
+    "font-variant", "font-variant-ligatures", "font-kerning", "font-optical-sizing",
+    "font-stretch", "font-synthesis", "font-display", "touch-action", "overflow-clip-margin",
+    "overscroll-behavior", "text-emphasis", "text-orientation", "text-combine-upright",
+    "backface-visibility", "fill", "stroke", "stroke-width", "accent-color", "color-scheme",
+    "forced-color-adjust", "print-color-adjust", "line-clamp", "marker", "marker-start",
+    "marker-end", "text-transform", "text-indent", "white-space", "word-break", "word-wrap",
+    "overflow-wrap", "hyphens", "list-style", "list-style-type", "list-style-position",
+    "list-style-image", "table-layout", "border-spacing", "caption-side", "empty-cells",
+    "quotes", "content", "counter-reset", "counter-increment", "transform-origin",
+    "transform-style", "perspective", "perspective-origin", "text-decoration", "text-decoration-line",
+    "text-decoration-color", "text-decoration-style", "text-decoration-thickness",
+    "text-shadow", "box-shadow",
   ]
   for p in visual_props {
     let level = get_support_level(p)
@@ -293,16 +295,13 @@ test "support level - large sweep of visual-only properties" {
 ///|
 test "support level - sweep of supported logical properties" {
   let logical = [
-    "margin-inline", "margin-inline-start", "margin-inline-end",
-    "margin-block", "margin-block-start", "margin-block-end",
-    "padding-inline", "padding-inline-start", "padding-inline-end",
-    "padding-block", "padding-block-start", "padding-block-end",
-    "inset-inline", "inset-inline-start", "inset-inline-end",
-    "inset-block", "inset-block-start", "inset-block-end",
-    "border-inline", "border-inline-start", "border-inline-end",
-    "border-block", "border-block-start", "border-block-end",
-    "border-inline-width", "border-block-width", "inline-size",
-    "block-size", "min-inline-size", "min-block-size",
+    "margin-inline", "margin-inline-start", "margin-inline-end", "margin-block",
+    "margin-block-start", "margin-block-end", "padding-inline", "padding-inline-start",
+    "padding-inline-end", "padding-block", "padding-block-start", "padding-block-end",
+    "inset-inline", "inset-inline-start", "inset-inline-end", "inset-block", "inset-block-start",
+    "inset-block-end", "border-inline", "border-inline-start", "border-inline-end",
+    "border-block", "border-block-start", "border-block-end", "border-inline-width",
+    "border-block-width", "inline-size", "block-size", "min-inline-size", "min-block-size",
     "max-inline-size", "max-block-size",
   ]
   for p in logical {
@@ -313,13 +312,11 @@ test "support level - sweep of supported logical properties" {
 ///|
 test "support level - sweep of layout-supported flex/grid" {
   let layout = [
-    "flex-direction", "flex-wrap", "flex-flow", "justify-content",
-    "align-items", "align-content", "flex", "flex-grow", "flex-shrink",
-    "flex-basis", "align-self", "order", "grid-template-rows",
-    "grid-template-columns", "grid-auto-rows", "grid-auto-columns",
-    "grid-auto-flow", "grid-row-start", "grid-row-end",
-    "grid-column-start", "grid-column-end", "grid-row", "grid-column",
-    "grid-area", "row-gap", "column-gap", "grid-gap",
+    "flex-direction", "flex-wrap", "flex-flow", "justify-content", "align-items",
+    "align-content", "flex", "flex-grow", "flex-shrink", "flex-basis", "align-self",
+    "order", "grid-template-rows", "grid-template-columns", "grid-auto-rows", "grid-auto-columns",
+    "grid-auto-flow", "grid-row-start", "grid-row-end", "grid-column-start", "grid-column-end",
+    "grid-row", "grid-column", "grid-area", "row-gap", "column-gap", "grid-gap",
   ]
   for p in layout {
     inspect(get_support_level(p), content="Supported")
@@ -329,10 +326,9 @@ test "support level - sweep of layout-supported flex/grid" {
 ///|
 test "support level - sweep of more layout-affecting" {
   let layout = [
-    "column-count", "column-width", "break-before", "break-after",
-    "break-inside", "page-break-before", "page-break-after",
-    "page-break-inside", "orphans", "widows", "shape-margin",
-    "shape-image-threshold",
+    "column-count", "column-width", "break-before", "break-after", "break-inside",
+    "page-break-before", "page-break-after", "page-break-inside", "orphans", "widows",
+    "shape-margin", "shape-image-threshold",
   ]
   for p in layout {
     inspect(get_support_level(p), content="UnsupportedLayout")
@@ -403,11 +399,9 @@ test "support level - all border-width sides individually" {
 ///|
 test "support level - all border-block/inline styles" {
   let visuals = [
-    "border-inline-color", "border-inline-start-color",
-    "border-inline-end-color", "border-block-color",
-    "border-block-start-color", "border-block-end-color",
-    "border-inline-style", "border-inline-start-style",
-    "border-inline-end-style", "border-block-style",
+    "border-inline-color", "border-inline-start-color", "border-inline-end-color",
+    "border-block-color", "border-block-start-color", "border-block-end-color", "border-inline-style",
+    "border-inline-start-style", "border-inline-end-style", "border-block-style",
     "border-block-start-style", "border-block-end-style",
   ]
   for v in visuals {
@@ -512,7 +506,10 @@ test "support level - font variants individually" {
     content="Partial(limited font support)",
   )
   inspect(get_support_level("font-style"), content="Partial(basic support)")
-  inspect(get_support_level("font"), content="Partial(shorthand parsing limited)")
+  inspect(
+    get_support_level("font"),
+    content="Partial(shorthand parsing limited)",
+  )
   inspect(
     get_support_level("background-color"),
     content="Partial(solid colors only)",
@@ -538,7 +535,10 @@ test "support level - visibility, opacity, clear" {
 
 ///|
 test "support level - backdrop-filter vendor-prefixed" {
-  inspect(get_support_level("-webkit-backdrop-filter"), content="UnsupportedVisual")
+  inspect(
+    get_support_level("-webkit-backdrop-filter"),
+    content="UnsupportedVisual",
+  )
   inspect(get_support_level("mask-size"), content="UnsupportedVisual")
   inspect(get_support_level("mask-repeat"), content="UnsupportedVisual")
   inspect(get_support_level("mask-position"), content="UnsupportedVisual")

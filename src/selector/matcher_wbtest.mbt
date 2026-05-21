@@ -367,6 +367,18 @@ test "match :is with selector list" {
 }
 
 ///|
+test "match :is with type selector list" {
+  inspect(
+    matches_selector_text(Element::new("ol"), ":is(ol, li, div)"),
+    content="true",
+  )
+  inspect(
+    matches_selector_text(Element::new("span"), ":is(ol, li, div)"),
+    content="false",
+  )
+}
+
+///|
 test "match :where (zero specificity but still matches)" {
   let div = Element::new("div").add_class("foo")
   inspect(matches_selector_text(div, ":where(.foo)"), content="true")
@@ -472,7 +484,10 @@ test "link pseudo-class requires href" {
 test "fast_has_prefix - rejects when prefix longer than s" {
   // Triggered via [attr^=long-value] where attr value is shorter
   let elem = Element::new("a").set_attribute("href", "x")
-  inspect(matches_selector_text(elem, "a[href^=\"hello-world\"]"), content="false")
+  inspect(
+    matches_selector_text(elem, "a[href^=\"hello-world\"]"),
+    content="false",
+  )
 }
 
 ///|
@@ -484,7 +499,10 @@ test "fast_has_prefix - mismatched first char" {
 ///|
 test "fast_has_suffix - rejects when suffix longer than s" {
   let elem = Element::new("a").set_attribute("href", "x")
-  inspect(matches_selector_text(elem, "a[href$=\"hello-world\"]"), content="false")
+  inspect(
+    matches_selector_text(elem, "a[href$=\"hello-world\"]"),
+    content="false",
+  )
 }
 
 ///|
@@ -564,10 +582,7 @@ test "matches_pseudo_class - NthLastOfType" {
 ///|
 test "matches_has - next-sibling combinator path" {
   let next = Element::new("p").add_class("after")
-  let elem = {
-    ..Element::new("div"),
-    next_sibling: Some(next),
-  }
+  let elem = { ..Element::new("div"), next_sibling: Some(next) }
   inspect(matches_selector_text(elem, "div:has(+ .after)"), content="true")
   inspect(matches_selector_text(elem, "div:has(+ .missing)"), content="false")
 }
@@ -575,14 +590,8 @@ test "matches_has - next-sibling combinator path" {
 ///|
 test "matches_has - subsequent-sibling combinator path with intermediate" {
   let target = Element::new("section").add_class("found")
-  let middle = {
-    ..Element::new("article"),
-    next_sibling: Some(target),
-  }
-  let elem = {
-    ..Element::new("div"),
-    next_sibling: Some(middle),
-  }
+  let middle = { ..Element::new("article"), next_sibling: Some(target) }
+  let elem = { ..Element::new("div"), next_sibling: Some(middle) }
   inspect(matches_selector_text(elem, "div:has(~ .found)"), content="true")
   inspect(matches_selector_text(elem, "div:has(~ .nope)"), content="false")
 }
@@ -613,16 +622,15 @@ test "matches_complex - NextSibling combinator path" {
 test "matches_complex - SubsequentSibling no match" {
   // Element with prev_sibling that doesn't match
   let prev = Element::new("span").add_class("other")
-  let elem = {
-    ..Element::new("p"),
-    prev_sibling: Some(prev),
-  }
+  let elem = { ..Element::new("p"), prev_sibling: Some(prev) }
   inspect(matches_selector_text(elem, ".target ~ p"), content="false")
 }
 
 ///|
 test "matches_attribute - case-insensitive Prefix/Suffix/Substring" {
-  let elem = Element::new("a").set_attribute("href", "HTTPS://Example.COM/Path.HTML")
+  let elem = Element::new("a").set_attribute(
+    "href", "HTTPS://Example.COM/Path.HTML",
+  )
   inspect(matches_selector_text(elem, "a[href^=\"https\" i]"), content="true")
   inspect(matches_selector_text(elem, "a[href$=\".html\" i]"), content="true")
   inspect(matches_selector_text(elem, "a[href*=\"example\" i]"), content="true")
@@ -632,7 +640,10 @@ test "matches_attribute - case-insensitive Prefix/Suffix/Substring" {
 test "fast_dash_match - value strictly shorter than query (vl < ql)" {
   // [lang|=long-name] against lang="en" — value shorter than query
   let elem = Element::new("p").set_attribute("lang", "en")
-  inspect(matches_selector_text(elem, "p[lang|=\"long-name\"]"), content="false")
+  inspect(
+    matches_selector_text(elem, "p[lang|=\"long-name\"]"),
+    content="false",
+  )
 }
 
 ///|
@@ -656,14 +667,8 @@ test "matches_has - explicit Descendant combinator" {
 test "matches_complex - SubsequentSibling deep chain" {
   // Build a chain: target → middle → elem; all should be siblings
   let target = Element::new("h1").add_class("target")
-  let middle = {
-    ..Element::new("span"),
-    prev_sibling: Some(target),
-  }
-  let elem = {
-    ..Element::new("p"),
-    prev_sibling: Some(middle),
-  }
+  let middle = { ..Element::new("span"), prev_sibling: Some(target) }
+  let elem = { ..Element::new("p"), prev_sibling: Some(middle) }
   inspect(matches_selector_text(elem, ".target ~ p"), content="true")
 }
 

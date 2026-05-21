@@ -235,7 +235,7 @@ pub impl Show for PseudoClass with output(self, logger) {
     Host => logger.write_string(":host")
     HostFunc(_) => logger.write_string(":host(...)")
     HostContextFunc(_) => logger.write_string(":host-context(...)")
-    Heading(levels) => {
+    Heading(levels) =>
       if levels.is_empty() {
         logger.write_string(":heading")
       } else {
@@ -248,7 +248,6 @@ pub impl Show for PseudoClass with output(self, logger) {
         }
         logger.write_string(")")
       }
-    }
     Dir(dir) => {
       logger.write_string(":dir(")
       logger.write_string(dir)
@@ -545,13 +544,21 @@ pub fn Specificity::compare_to(self : Specificity, other : Specificity) -> Int {
 ///|
 /// Create a simple compound selector with just a type selector
 pub fn CompoundSelector::from_type(tag_name : String) -> CompoundSelector {
-  { type_selector: Some(Type(tag_name)), subclasses: [], any_ns_universal: false }
+  {
+    type_selector: Some(Type(tag_name)),
+    subclasses: [],
+    any_ns_universal: false,
+  }
 }
 
 ///|
 /// Create a simple compound selector with just a class selector
 pub fn CompoundSelector::from_class(class_name : String) -> CompoundSelector {
-  { type_selector: None, subclasses: [Class(class_name)], any_ns_universal: false }
+  {
+    type_selector: None,
+    subclasses: [Class(class_name)],
+    any_ns_universal: false,
+  }
 }
 
 ///|

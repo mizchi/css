@@ -25,11 +25,10 @@ fn build_bench_medium_css() -> String {
       " > .row { width: 100%; background-color: #f0f0f0; border: 1px solid #ccc; }\n",
     )
   }
-  let media = (
+  let media =
     #|@media (min-width: 768px) {
     #|  .responsive { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
     #|}
-  )
   buf.write_string(media)
   buf.to_string()
 }
@@ -48,8 +47,7 @@ test "bench parse_stylesheet medium" (it : @bench.T) {
 
 ///|
 test "bench parse_inline_style" (it : @bench.T) {
-  let css =
-    "display: flex; padding: 8px 16px; color: #3498db; background-color: rgba(0,0,0,0.5); font-size: 14px;"
+  let css = "display: flex; padding: 8px 16px; color: #3498db; background-color: rgba(0,0,0,0.5); font-size: 14px;"
   it.bench(fn() { it.keep(parse_inline_style(css)) })
 }
 
@@ -105,8 +103,7 @@ test "bench full pipeline small" (it : @bench.T) {
 
 ///|
 test "bench compute_inline_style" (it : @bench.T) {
-  let css =
-    "display: flex; padding: 8px 16px; color: #3498db; background-color: rgba(0,0,0,0.5); font-size: 14px; flex-grow: 1;"
+  let css = "display: flex; padding: 8px 16px; color: #3498db; background-color: rgba(0,0,0,0.5); font-size: 14px; flex-grow: 1;"
   let ctx = ComputeContext::new()
   it.bench(fn() { it.keep(compute_inline_style(css, ctx)) })
 }
@@ -130,8 +127,7 @@ test "bench tokenize small" (it : @bench.T) {
 
 ///|
 test "bench tokenize inline" (it : @bench.T) {
-  let css =
-    "display: flex; padding: 8px 16px; color: #3498db; background-color: rgba(0,0,0,0.5); font-size: 14px;"
+  let css = "display: flex; padding: 8px 16px; color: #3498db; background-color: rgba(0,0,0,0.5); font-size: 14px;"
   it.bench(fn() { it.keep(@token.tokenize(css)) })
 }
 

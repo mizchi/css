@@ -108,10 +108,19 @@ test "Show for SingleTrackSizing" {
   inspect(SingleTrackSizing::Auto, content="Auto")
   inspect(SingleTrackSizing::MinContent, content="MinContent")
   inspect(SingleTrackSizing::MaxContent, content="MaxContent")
-  inspect(SingleTrackSizing::FitContentLength(100.0), content="FitContentLength(100)")
-  inspect(SingleTrackSizing::FitContentPercent(0.5), content="FitContentPercent(0.5)")
   inspect(
-    SingleTrackSizing::MinMax(MinTrackSizing::Length(10.0), MaxTrackSizing::Fr(1.0)),
+    SingleTrackSizing::FitContentLength(100.0),
+    content="FitContentLength(100)",
+  )
+  inspect(
+    SingleTrackSizing::FitContentPercent(0.5),
+    content="FitContentPercent(0.5)",
+  )
+  inspect(
+    SingleTrackSizing::MinMax(
+      MinTrackSizing::Length(10.0),
+      MaxTrackSizing::Fr(1.0),
+    ),
     content="MinMax(Length(10), Fr(1))",
   )
 }
@@ -140,10 +149,10 @@ test "Show for TrackSizingFunction" {
   inspect(RepeatCount::Count(3), content="Count(3)")
   inspect(RepeatCount::AutoFill, content="AutoFill")
   inspect(RepeatCount::AutoFit, content="AutoFit")
-  let rep = TrackSizingFunction::Repeat(
-    RepeatCount::Count(2),
-    [SingleTrackSizing::Fr(1.0), SingleTrackSizing::Auto],
-  )
+  let rep = TrackSizingFunction::Repeat(RepeatCount::Count(2), [
+    SingleTrackSizing::Fr(1.0),
+    SingleTrackSizing::Auto,
+  ])
   inspect(rep, content="Repeat(Count(2), [Fr(1), Auto])")
 }
 

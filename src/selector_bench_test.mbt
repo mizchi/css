@@ -10,24 +10,16 @@
 fn build_bench_dom_chain(depth : Int) -> Element {
   let mut current = Element::new("html").set_id("root")
   for i in 0..<depth {
-    let tag = if i % 2 == 0 {
-      "div"
-    } else {
-      "section"
-    }
-    let cls = if i % 2 == 0 {
-      "row"
-    } else {
-      "container"
-    }
+    let tag = if i % 2 == 0 { "div" } else { "section" }
+    let cls = if i % 2 == 0 { "row" } else { "container" }
     current = Element::new(tag).add_class(cls).set_parent(current)
   }
   Element::new("a")
-    .add_class("leaf")
-    .add_class("primary")
-    .add_class("active")
-    .set_attribute("href", "https://example.com")
-    .set_parent(current)
+  .add_class("leaf")
+  .add_class("primary")
+  .add_class("active")
+  .set_attribute("href", "https://example.com")
+  .set_parent(current)
 }
 
 ///|
@@ -122,8 +114,9 @@ test "bench matches_selector compound selector deep" (it : @bench.T) {
 test "bench matches_selector compound non-matching last component" (
   it : @bench.T,
 ) {
-  let element = Element::with_classes("button", ["btn", "primary"])
-    .set_id("submit")
+  let element = Element::with_classes("button", ["btn", "primary"]).set_id(
+    "submit",
+  )
   // Last class mismatch should reject quickly.
   let sel = parse_selector("button.btn.primary.large#submit").unwrap()
   it.bench(fn() { it.keep(matches_selector(element, sel)) })
@@ -148,9 +141,7 @@ test "bench matches_selector descendant depth 20" (it : @bench.T) {
 }
 
 ///|
-test "bench matches_selector descendant non-matching depth 20" (
-  it : @bench.T,
-) {
+test "bench matches_selector descendant non-matching depth 20" (it : @bench.T) {
   // Worst case: walk up to root and never find a match
   let element = build_bench_dom_chain(20)
   let sel = parse_selector("#nope .leaf").unwrap()
@@ -158,9 +149,7 @@ test "bench matches_selector descendant non-matching depth 20" (
 }
 
 ///|
-test "bench matches_selector child combinator chain depth 5" (
-  it : @bench.T,
-) {
+test "bench matches_selector child combinator chain depth 5" (it : @bench.T) {
   // .container > .row > .container > .row > .container > a.leaf
   let element = build_bench_dom_chain(5)
   let sel = parse_selector(
@@ -170,9 +159,7 @@ test "bench matches_selector child combinator chain depth 5" (
 }
 
 ///|
-test "bench matches_selector child combinator early-reject" (
-  it : @bench.T,
-) {
+test "bench matches_selector child combinator early-reject" (it : @bench.T) {
   // First-step parent class miss
   let element = build_bench_dom_chain(5)
   let sel = parse_selector(".never > a.leaf").unwrap()
@@ -282,27 +269,21 @@ test "bench matches_selector :is(...) multi" (it : @bench.T) {
 ///|
 test "bench matches_selector_list hit first" (it : @bench.T) {
   let element = Element::with_classes("div", ["match-a"])
-  let list = parse_selector_list(
-    ".match-a, .b, .c, .d, .e, .f, .g, .h, .i, .j",
-  ).unwrap()
+  let list = parse_selector_list(".match-a, .b, .c, .d, .e, .f, .g, .h, .i, .j").unwrap()
   it.bench(fn() { it.keep(matches_selector_list(element, list)) })
 }
 
 ///|
 test "bench matches_selector_list hit last" (it : @bench.T) {
   let element = Element::with_classes("div", ["match-j"])
-  let list = parse_selector_list(
-    ".a, .b, .c, .d, .e, .f, .g, .h, .i, .match-j",
-  ).unwrap()
+  let list = parse_selector_list(".a, .b, .c, .d, .e, .f, .g, .h, .i, .match-j").unwrap()
   it.bench(fn() { it.keep(matches_selector_list(element, list)) })
 }
 
 ///|
 test "bench matches_selector_list miss all" (it : @bench.T) {
   let element = Element::with_classes("div", ["none"])
-  let list = parse_selector_list(
-    ".a, .b, .c, .d, .e, .f, .g, .h, .i, .j",
-  ).unwrap()
+  let list = parse_selector_list(".a, .b, .c, .d, .e, .f, .g, .h, .i, .j").unwrap()
   it.bench(fn() { it.keep(matches_selector_list(element, list)) })
 }
 
@@ -329,7 +310,9 @@ test "bench cascade_element_indexed 50-rule stylesheet" (it : @bench.T) {
   let sheet = build_bench_rule_set(50)
   let indexed = IndexedStylesheet::new(sheet)
   let element = Element::with_classes("div", ["item-17", "container"])
-  it.bench(fn() { it.keep(cascade_element_indexed(element, [indexed], [], None)) })
+  it.bench(fn() {
+    it.keep(cascade_element_indexed(element, [indexed], [], None))
+  })
 }
 
 ///|
@@ -337,7 +320,9 @@ test "bench cascade_element_indexed 500-rule stylesheet" (it : @bench.T) {
   let sheet = build_bench_rule_set(500)
   let indexed = IndexedStylesheet::new(sheet)
   let element = Element::with_classes("div", ["item-237", "container"])
-  it.bench(fn() { it.keep(cascade_element_indexed(element, [indexed], [], None)) })
+  it.bench(fn() {
+    it.keep(cascade_element_indexed(element, [indexed], [], None))
+  })
 }
 
 ///|
@@ -348,7 +333,9 @@ test "bench cascade_element_indexed 500 rules, non-matching element" (
   let sheet = build_bench_rule_set(500)
   let indexed = IndexedStylesheet::new(sheet)
   let element = Element::new("span") // no classes, no id
-  it.bench(fn() { it.keep(cascade_element_indexed(element, [indexed], [], None)) })
+  it.bench(fn() {
+    it.keep(cascade_element_indexed(element, [indexed], [], None))
+  })
 }
 
 // ---------------------------------------------------------------------------

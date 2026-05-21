@@ -19,10 +19,7 @@ test "Token::to_string for each constructible variant" {
     content="Number(1.5, num)",
   )
   inspect(Token::Percentage(50.0).to_string(), content="Percentage(50)")
-  inspect(
-    Token::Dimension(10.0, "px").to_string(),
-    content="Dimension(10, px)",
-  )
+  inspect(Token::Dimension(10.0, "px").to_string(), content="Dimension(10, px)")
   inspect(Token::Delim('>').to_string(), content="Delim(>)")
   inspect(Token::Whitespace.to_string(), content="Whitespace")
   inspect(Token::Colon.to_string(), content="Colon")

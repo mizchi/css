@@ -8,10 +8,20 @@ test "wpt parse-universal.html: valid *" {
 
 ///|
 test "wpt parse-universal.html: valid div :first-child" {
-  wpt_assert_valid("wpt parse-universal.html: valid div :first-child", "div :first-child", ["div *:first-child", "div :first-child"], false)
+  wpt_assert_valid(
+    "wpt parse-universal.html: valid div :first-child",
+    "div :first-child",
+    ["div *:first-child", "div :first-child"],
+    false,
+  )
 }
 
 ///|
 test "wpt parse-universal.html: valid div *:first-child" {
-  wpt_assert_valid("wpt parse-universal.html: valid div *:first-child", "div *:first-child", ["div *:first-child", "div :first-child"], false)
+  wpt_assert_valid(
+    "wpt parse-universal.html: valid div *:first-child",
+    "div *:first-child",
+    ["div *:first-child", "div :first-child"],
+    false,
+  )
 }

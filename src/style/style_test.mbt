@@ -128,10 +128,7 @@ test "Transform::quarter_turns snaps to 90 degree increments" {
 
 ///|
 test "Transform::has_affine_matrix only when explicitly set" {
-  let identity_matrix : Transform = {
-    ..Transform::none(),
-    has_matrix: true,
-  }
+  let identity_matrix : Transform = { ..Transform::none(), has_matrix: true }
   assert_false(identity_matrix.has_affine_matrix())
   let real_matrix : Transform = {
     ..Transform::none(),
@@ -206,15 +203,9 @@ test "Style::contained_intrinsic_*_fallback follows writing mode" {
 
 ///|
 test "Style::has_multicol with column-width set" {
-  let s : Style = {
-    ..Style::default(),
-    column_width: @types.Length(200.0),
-  }
+  let s : Style = { ..Style::default(), column_width: @types.Length(200.0) }
   assert_true(s.has_multicol())
-  let s_zero : Style = {
-    ..Style::default(),
-    column_width: @types.Length(0.0),
-  }
+  let s_zero : Style = { ..Style::default(), column_width: @types.Length(0.0) }
   assert_false(s_zero.has_multicol())
 }
 
@@ -382,10 +373,7 @@ test "Style::contained_intrinsic_*_fallback in vertical mode with Some(0)" {
 
 ///|
 test "Style::has_multicol with Percent column-width" {
-  let s : Style = {
-    ..Style::default(),
-    column_width: @types.Percent(0.5),
-  }
+  let s : Style = { ..Style::default(), column_width: @types.Percent(0.5) }
   assert_true(s.has_multicol())
 }
 
@@ -429,15 +417,9 @@ test "All style Show impls" {
 
 ///|
 test "Style::has_multicol with MinContent/MaxContent/FitContent column-width" {
-  let s_min : Style = {
-    ..Style::default(),
-    column_width: @types.MinContent,
-  }
+  let s_min : Style = { ..Style::default(), column_width: @types.MinContent }
   assert_false(s_min.has_multicol())
-  let s_max : Style = {
-    ..Style::default(),
-    column_width: @types.MaxContent,
-  }
+  let s_max : Style = { ..Style::default(), column_width: @types.MaxContent }
   assert_false(s_max.has_multicol())
   let s_fit : Style = {
     ..Style::default(),

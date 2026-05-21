@@ -1777,10 +1777,7 @@ test "compute_inline z-index value" {
 test "compute_inline aspect-ratio" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline("aspect-ratio: 16 / 9", ctx)
-  debug_inspect(
-    style.aspect_ratio,
-    content="Some(1.7777777777777777)",
-  )
+  debug_inspect(style.aspect_ratio, content="Some(1.7777777777777777)")
 }
 
 ///|
@@ -1863,7 +1860,9 @@ test "compute_inline text-decoration" {
   let ctx = @computed.ComputeContext::new()
   let underline = @computed.compute_inline("text-decoration: underline", ctx)
   inspect(underline.text_decoration_underline, content="true")
-  let line_through = @computed.compute_inline("text-decoration: line-through", ctx)
+  let line_through = @computed.compute_inline(
+    "text-decoration: line-through", ctx,
+  )
   inspect(line_through.text_decoration_line_through, content="true")
   let overline = @computed.compute_inline("text-decoration: overline", ctx)
   inspect(overline.text_decoration_overline, content="true")
@@ -1940,9 +1939,7 @@ test "compute_inline order and flex shorthand" {
 ///|
 test "compute_inline color custom property fallback" {
   let ctx = @computed.ComputeContext::new()
-  let style = @computed.compute_inline(
-    "color: var(--brand, #00ff00)", ctx,
-  )
+  let style = @computed.compute_inline("color: var(--brand, #00ff00)", ctx)
   inspect(style.color.g, content="255")
 }
 
@@ -1963,8 +1960,7 @@ test "compute_inline logical margin properties" {
 test "compute_inline logical padding properties" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "padding-inline: 10px; padding-block: 20px",
-    ctx,
+    "padding-inline: 10px; padding-block: 20px", ctx,
   )
   inspect(style.padding.left, content="Length(10)")
   inspect(style.padding.right, content="Length(10)")
@@ -1986,8 +1982,7 @@ test "compute_inline inset shorthand" {
 test "compute_inline inline-size and block-size in horizontal writing mode" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "inline-size: 200px; block-size: 100px",
-    ctx,
+    "inline-size: 200px; block-size: 100px", ctx,
   )
   // In horizontal-tb (default): inline -> width, block -> height
   inspect(style.width, content="Length(200)")
@@ -1998,8 +1993,7 @@ test "compute_inline inline-size and block-size in horizontal writing mode" {
 test "compute_inline inline-size in vertical writing mode" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "writing-mode: vertical-rl; inline-size: 200px; block-size: 100px",
-    ctx,
+    "writing-mode: vertical-rl; inline-size: 200px; block-size: 100px", ctx,
   )
   // vertical-rl: inline -> height, block -> width
   inspect(style.height, content="Length(200)")
@@ -2010,8 +2004,7 @@ test "compute_inline inline-size in vertical writing mode" {
 test "compute_inline padding block-start/end" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "padding-block-start: 1px; padding-block-end: 2px",
-    ctx,
+    "padding-block-start: 1px; padding-block-end: 2px", ctx,
   )
   inspect(style.padding.top, content="Length(1)")
   inspect(style.padding.bottom, content="Length(2)")
@@ -2061,8 +2054,7 @@ test "compute_inline overflow shorthand" {
 test "compute_inline overflow-x and overflow-y separately" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "overflow-x: hidden; overflow-y: scroll",
-    ctx,
+    "overflow-x: hidden; overflow-y: scroll", ctx,
   )
   inspect(style.overflow_x, content="Hidden")
   inspect(style.overflow_y, content="Scroll")
@@ -2087,10 +2079,7 @@ test "compute_inline background-color transparent keyword" {
 ///|
 test "compute_inline initial keyword resets to default" {
   let ctx = @computed.ComputeContext::new()
-  let style = @computed.compute_inline(
-    "display: flex; display: initial",
-    ctx,
-  )
+  let style = @computed.compute_inline("display: flex; display: initial", ctx)
   // initial resets back to block (the initial value for display)
   inspect(style.display, content="Block")
 }
@@ -2099,8 +2088,7 @@ test "compute_inline initial keyword resets to default" {
 test "compute_inline grid-row and grid-column shorthand" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "grid-row: 1 / 3; grid-column: 2 / 4",
-    ctx,
+    "grid-row: 1 / 3; grid-column: 2 / 4", ctx,
   )
   // GridLine starts/ends both set
   inspect(style.grid_row.start, content="Line(1)")
@@ -2121,8 +2109,7 @@ test "compute_inline cursor parses without error" {
 test "compute_inline align-items and justify-items separately" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "align-items: center; justify-items: end",
-    ctx,
+    "align-items: center; justify-items: end", ctx,
   )
   inspect(style.align_items, content="Center")
   inspect(style.justify_items, content="End")
@@ -2132,8 +2119,7 @@ test "compute_inline align-items and justify-items separately" {
 test "compute_inline align-self and justify-self separately" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "align-self: end; justify-self: center",
-    ctx,
+    "align-self: end; justify-self: center", ctx,
   )
   inspect(style.align_self, content="End")
   inspect(style.justify_self, content="Center")
@@ -2152,8 +2138,7 @@ test "apply_property_direct mutates existing style" {
 test "compute_inline table-layout, border-collapse, caption-side" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "table-layout: fixed; border-collapse: collapse; caption-side: bottom",
-    ctx,
+    "table-layout: fixed; border-collapse: collapse; caption-side: bottom", ctx,
   )
   inspect(style.table_layout, content="Fixed")
   inspect(style.border_collapse, content="Collapse")
@@ -2221,8 +2206,7 @@ test "compute_inline clip-path inset" {
 test "compute_inline clip-path circle" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
-    "clip-path: circle(50px at 25px 50px)",
-    ctx,
+    "clip-path: circle(50px at 25px 50px)", ctx,
   )
   let is_circle = match style.clip_path {
     Circle(_, _, _) => true
@@ -2314,9 +2298,7 @@ test "compute_inline justify-content space variants" {
 test "compute_inline custom property declaration" {
   let ctx = @computed.ComputeContext::new()
   let (_, vars) = @computed.compute_with_vars(
-    @cascade.cascade([
-      @cascade.Declaration::new("--my-color", "#123456"),
-    ]),
+    @cascade.cascade([@cascade.Declaration::new("--my-color", "#123456")]),
     ctx,
   )
   debug_inspect(vars.get("--my-color"), content="Some(\"#123456\")")
@@ -2364,10 +2346,7 @@ test "compute_inline parses font shorthand minimal" {
 /// Helper: build a parent style with a single property set, then compute a
 /// declaration that explicitly inherits that property. Returns the computed
 /// child style.
-fn compute_inheriting(
-  prop : String,
-  parent : @style.Style,
-) -> @style.Style {
+fn compute_inheriting(prop : String, parent : @style.Style) -> @style.Style {
   let ctx = @computed.ComputeContext::with_parent(parent)
   let decl : @cascade.Declaration = {
     property: prop,
@@ -2382,14 +2361,28 @@ fn compute_inheriting(
 
 ///|
 test "Inherit - display variants" {
-  for d in [
-    @types.Inline, @types.InlineBlock, @types.Flex, @types.InlineFlex,
-    @types.Grid, @types.InlineGrid, @types.Table, @types.InlineTable,
-    @types.TableRow, @types.TableCell, @types.TableCaption,
-    @types.TableRowGroup, @types.TableHeaderGroup, @types.TableFooterGroup,
-    @types.TableColumn, @types.TableColumnGroup, @types.Display::None,
-    @types.Contents, @types.FlowRoot,
-  ] {
+  for
+    d in [
+      @types.Inline,
+      @types.InlineBlock,
+      @types.Flex,
+      @types.InlineFlex,
+      @types.Grid,
+      @types.InlineGrid,
+      @types.Table,
+      @types.InlineTable,
+      @types.TableRow,
+      @types.TableCell,
+      @types.TableCaption,
+      @types.TableRowGroup,
+      @types.TableHeaderGroup,
+      @types.TableFooterGroup,
+      @types.TableColumn,
+      @types.TableColumnGroup,
+      @types.Display::None,
+      @types.Contents,
+      @types.FlowRoot,
+    ] {
     let parent : @style.Style = { ..@style.Style::default(), display: d }
     let s = compute_inheriting("display", parent)
     inspect(s.display, content=d.to_string())
@@ -2398,10 +2391,12 @@ test "Inherit - display variants" {
 
 ///|
 test "Inherit - position variants" {
-  for p in [
-    @types.Position::Relative, @types.Position::Absolute,
-    @types.Position::Fixed,
-  ] {
+  for
+    p in [
+      @types.Position::Relative,
+      @types.Position::Absolute,
+      @types.Position::Fixed,
+    ] {
     let parent : @style.Style = { ..@style.Style::default(), position: p }
     let s = compute_inheriting("position", parent)
     inspect(s.position, content=p.to_string())
@@ -2410,14 +2405,9 @@ test "Inherit - position variants" {
 
 ///|
 test "Inherit - flex-direction variants" {
-  for d in [
-    @types.RowReverse, @types.FlexDirection::Column,
-    @types.ColumnReverse,
-  ] {
-    let parent : @style.Style = {
-      ..@style.Style::default(),
-      flex_direction: d,
-    }
+  for
+    d in [@types.RowReverse, @types.FlexDirection::Column, @types.ColumnReverse] {
+    let parent : @style.Style = { ..@style.Style::default(), flex_direction: d }
     let s = compute_inheriting("flex-direction", parent)
     inspect(s.flex_direction, content=d.to_string())
   }
@@ -2445,10 +2435,22 @@ test "Inherit - dimensions" {
   }
   inspect(compute_inheriting("width", parent).width, content="Length(100)")
   inspect(compute_inheriting("height", parent).height, content="Percent(0.5)")
-  inspect(compute_inheriting("min-width", parent).min_width, content="Length(50)")
-  inspect(compute_inheriting("min-height", parent).min_height, content="Length(20)")
-  inspect(compute_inheriting("max-width", parent).max_width, content="Length(200)")
-  inspect(compute_inheriting("max-height", parent).max_height, content="Length(150)")
+  inspect(
+    compute_inheriting("min-width", parent).min_width,
+    content="Length(50)",
+  )
+  inspect(
+    compute_inheriting("min-height", parent).min_height,
+    content="Length(20)",
+  )
+  inspect(
+    compute_inheriting("max-width", parent).max_width,
+    content="Length(200)",
+  )
+  inspect(
+    compute_inheriting("max-height", parent).max_height,
+    content="Length(150)",
+  )
 }
 
 ///|
@@ -2504,15 +2506,16 @@ test "Inherit - margin/padding individual sides" {
 
 ///|
 test "Inherit - margin-trim variants" {
-  for mt in [
-    @style.MarginTrim::BlockStart, @style.MarginTrim::BlockEnd,
-    @style.MarginTrim::Block, @style.MarginTrim::InlineStart,
-    @style.MarginTrim::InlineEnd, @style.MarginTrim::Inline,
-  ] {
-    let parent : @style.Style = {
-      ..@style.Style::default(),
-      margin_trim: mt,
-    }
+  for
+    mt in [
+      @style.MarginTrim::BlockStart,
+      @style.MarginTrim::BlockEnd,
+      @style.MarginTrim::Block,
+      @style.MarginTrim::InlineStart,
+      @style.MarginTrim::InlineEnd,
+      @style.MarginTrim::Inline,
+    ] {
+    let parent : @style.Style = { ..@style.Style::default(), margin_trim: mt }
     let s = compute_inheriting("margin-trim", parent)
     inspect(s.margin_trim, content=mt.to_string())
   }
@@ -2538,10 +2541,7 @@ test "Inherit - column-* values" {
     compute_inheriting("column-width", parent).column_width,
     content="Length(100)",
   )
-  inspect(
-    compute_inheriting("column-fill", parent).column_fill,
-    content="Auto",
-  )
+  inspect(compute_inheriting("column-fill", parent).column_fill, content="Auto")
   inspect(
     compute_inheriting("break-before", parent).break_before,
     content="Column",
@@ -2554,10 +2554,7 @@ test "Inherit - column-* values" {
     compute_inheriting("break-inside", parent).break_inside,
     content="Avoid",
   )
-  inspect(
-    compute_inheriting("column-span", parent).column_span,
-    content="All",
-  )
+  inspect(compute_inheriting("column-span", parent).column_span, content="All")
 }
 
 ///|
@@ -2588,22 +2585,13 @@ test "Inherit - text and color properties" {
     compute_inheriting("background-color", parent).background_color.r,
     content="40",
   )
-  inspect(
-    compute_inheriting("font-size", parent).font_size,
-    content="18",
-  )
-  inspect(
-    compute_inheriting("font-weight", parent).font_weight,
-    content="700",
-  )
+  inspect(compute_inheriting("font-size", parent).font_size, content="18")
+  inspect(compute_inheriting("font-weight", parent).font_weight, content="700")
   inspect(
     compute_inheriting("text-overflow", parent).text_overflow,
     content="Ellipsis",
   )
-  inspect(
-    compute_inheriting("text-align", parent).text_align,
-    content="Center",
-  )
+  inspect(compute_inheriting("text-align", parent).text_align, content="Center")
   inspect(
     compute_inheriting("white-space", parent).white_space,
     content="PreWrap",
@@ -2636,10 +2624,7 @@ test "Inherit - table properties" {
     compute_inheriting("writing-mode", parent).writing_mode,
     content="VerticalRl",
   )
-  inspect(
-    compute_inheriting("direction", parent).direction,
-    content="Rtl",
-  )
+  inspect(compute_inheriting("direction", parent).direction, content="Rtl")
 }
 
 ///|
@@ -2650,17 +2635,11 @@ test "Inherit - contain-intrinsic-size" {
     contain_intrinsic_block_size: Some(40.0),
   }
   debug_inspect(
-    compute_inheriting(
-      "contain-intrinsic-inline-size",
-      parent,
-    ).contain_intrinsic_inline_size,
+    compute_inheriting("contain-intrinsic-inline-size", parent).contain_intrinsic_inline_size,
     content="Some(80)",
   )
   debug_inspect(
-    compute_inheriting(
-      "contain-intrinsic-block-size",
-      parent,
-    ).contain_intrinsic_block_size,
+    compute_inheriting("contain-intrinsic-block-size", parent).contain_intrinsic_block_size,
     content="Some(40)",
   )
 }

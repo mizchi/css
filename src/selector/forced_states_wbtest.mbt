@@ -109,7 +109,9 @@ test "matches_complex_with_forced_states - child combinator with non-forced ance
   assert_true(matches_complex_with_forced_states(element, sel, forced))
   // Wrong ancestor class -> no match
   let other_parent = Element::new("div").add_class("other")
-  let element2 = Element::new("button").add_class("btn").set_parent(other_parent)
+  let element2 = Element::new("button")
+    .add_class("btn")
+    .set_parent(other_parent)
   assert_false(matches_complex_with_forced_states(element2, sel, forced))
 }
 
@@ -117,7 +119,10 @@ test "matches_complex_with_forced_states - child combinator with non-forced ance
 test "matches_complex_with_forced_states - next-sibling combinator" {
   let sel = must_parse(".prev + .btn:hover")
   let prev = Element::new("span").add_class("prev")
-  let element = { ..Element::new("button").add_class("btn"), prev_sibling: Some(prev) }
+  let element = {
+    ..Element::new("button").add_class("btn"),
+    prev_sibling: Some(prev),
+  }
   let forced : ForcedPseudoStates = {
     ..ForcedPseudoStates::none(),
     hover: true,
@@ -133,7 +138,10 @@ test "matches_complex_with_forced_states - subsequent-sibling combinator" {
   let sel = must_parse(".prev ~ .btn:hover")
   let prev = Element::new("span").add_class("prev")
   let middle = { ..Element::new("span"), prev_sibling: Some(prev) }
-  let element = { ..Element::new("button").add_class("btn"), prev_sibling: Some(middle) }
+  let element = {
+    ..Element::new("button").add_class("btn"),
+    prev_sibling: Some(middle),
+  }
   let forced : ForcedPseudoStates = {
     ..ForcedPseudoStates::none(),
     hover: true,

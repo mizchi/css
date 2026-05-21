@@ -99,9 +99,7 @@ test "compute_inline_style and compute_inline_raw" {
 ///|
 test "compute_style_with_vars exposes custom property map" {
   let element = Element::new("div")
-  let sheet = parse_stylesheet(
-    "div { --brand: #ff0; color: var(--brand); }",
-  )
+  let sheet = parse_stylesheet("div { --brand: #ff0; color: var(--brand); }")
   let cascaded = cascade_element(element, [sheet], [])
   let (_style, vars) = compute_style_with_vars(cascaded, ComputeContext::new())
   inspect(vars.contains("--brand"), content="true")

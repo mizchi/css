@@ -53,7 +53,9 @@ test "wpt anb-parsing.html: N -> n" {
 
 ///|
 test "wpt anb-parsing.html: + n -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: + n -> parse error", "+ n", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: + n -> parse error", "+ n", "parse error", false,
+  )
 }
 
 ///|
@@ -83,7 +85,9 @@ test "wpt anb-parsing.html: n-5 -> n-5" {
 
 ///|
 test "wpt anb-parsing.html: + n-5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: + n-5 -> parse error", "+ n-5", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: + n-5 -> parse error", "+ n-5", "parse error", false,
+  )
 }
 
 ///|
@@ -118,12 +122,16 @@ test "wpt anb-parsing.html: +n -5 -> n-5" {
 
 ///|
 test "wpt anb-parsing.html: + n +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: + n +5 -> parse error", "+ n +5", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: + n +5 -> parse error", "+ n +5", "parse error", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: n 5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: n 5 -> parse error", "n 5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: n 5 -> parse error", "n 5", "parse error", true,
+  )
 }
 
 ///|
@@ -138,7 +146,9 @@ test "wpt anb-parsing.html: -n -5 -> -n-5" {
 
 ///|
 test "wpt anb-parsing.html: -n 5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: -n 5 -> parse error", "-n 5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -n 5 -> parse error", "-n 5", "parse error", true,
+  )
 }
 
 ///|
@@ -148,17 +158,23 @@ test "wpt anb-parsing.html: 5n- 5 -> 5n-5" {
 
 ///|
 test "wpt anb-parsing.html: 5n- -5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: 5n- -5 -> parse error", "5n- -5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 5n- -5 -> parse error", "5n- -5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 5n- +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: 5n- +5 -> parse error", "5n- +5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 5n- +5 -> parse error", "5n- +5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: -5n- 5 -> -5n-5" {
-  wpt_assert_anb("wpt anb-parsing.html: -5n- 5 -> -5n-5", "-5n- 5", "-5n-5", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -5n- 5 -> -5n-5", "-5n- 5", "-5n-5", false,
+  )
 }
 
 ///|
@@ -173,17 +189,23 @@ test "wpt anb-parsing.html: n- 5 -> n-5" {
 
 ///|
 test "wpt anb-parsing.html: + n- 5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: + n- 5 -> parse error", "+ n- 5", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: + n- 5 -> parse error", "+ n- 5", "parse error", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: n- +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: n- +5 -> parse error", "n- +5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: n- +5 -> parse error", "n- +5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: n- -5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: n- -5 -> parse error", "n- -5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: n- -5 -> parse error", "n- -5", "parse error", true,
+  )
 }
 
 ///|
@@ -193,42 +215,58 @@ test "wpt anb-parsing.html: -n- 5 -> -n-5" {
 
 ///|
 test "wpt anb-parsing.html: -n- +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: -n- +5 -> parse error", "-n- +5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -n- +5 -> parse error", "-n- +5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: -n- -5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: -n- -5 -> parse error", "-n- -5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -n- -5 -> parse error", "-n- -5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 5n + 5 -> 5n+5" {
-  wpt_assert_anb("wpt anb-parsing.html: 5n + 5 -> 5n+5", "5n + 5", "5n+5", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 5n + 5 -> 5n+5", "5n + 5", "5n+5", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 5n - 5 -> 5n-5" {
-  wpt_assert_anb("wpt anb-parsing.html: 5n - 5 -> 5n-5", "5n - 5", "5n-5", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 5n - 5 -> 5n-5", "5n - 5", "5n-5", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 5n + +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: 5n + +5 -> parse error", "5n + +5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 5n + +5 -> parse error", "5n + +5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 5n + -5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: 5n + -5 -> parse error", "5n + -5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 5n + -5 -> parse error", "5n + -5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 5n - +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: 5n - +5 -> parse error", "5n - +5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 5n - +5 -> parse error", "5n - +5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 5n - -5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: 5n - -5 -> parse error", "5n - -5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 5n - -5 -> parse error", "5n - -5", "parse error", true,
+  )
 }
 
 ///|
@@ -243,7 +281,9 @@ test "wpt anb-parsing.html: n + 5 -> n+5" {
 
 ///|
 test "wpt anb-parsing.html: + n + 5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: + n + 5 -> parse error", "+ n + 5", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: + n + 5 -> parse error", "+ n + 5", "parse error", false,
+  )
 }
 
 ///|
@@ -253,85 +293,119 @@ test "wpt anb-parsing.html: +n - 5 -> n-5" {
 
 ///|
 test "wpt anb-parsing.html: +n + +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: +n + +5 -> parse error", "+n + +5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: +n + +5 -> parse error", "+n + +5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: +n + -5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: +n + -5 -> parse error", "+n + -5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: +n + -5 -> parse error", "+n + -5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: +n - +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: +n - +5 -> parse error", "+n - +5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: +n - +5 -> parse error", "+n - +5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: +n - -5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: +n - -5 -> parse error", "+n - -5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: +n - -5 -> parse error", "+n - -5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: -n + 5 -> -n+5" {
-  wpt_assert_anb("wpt anb-parsing.html: -n + 5 -> -n+5", "-n + 5", "-n+5", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -n + 5 -> -n+5", "-n + 5", "-n+5", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: -n - 5 -> -n-5" {
-  wpt_assert_anb("wpt anb-parsing.html: -n - 5 -> -n-5", "-n - 5", "-n-5", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -n - 5 -> -n-5", "-n - 5", "-n-5", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: -n + +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: -n + +5 -> parse error", "-n + +5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -n + +5 -> parse error", "-n + +5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: -n + -5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: -n + -5 -> parse error", "-n + -5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -n + -5 -> parse error", "-n + -5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: -n - +5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: -n - +5 -> parse error", "-n - +5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -n - +5 -> parse error", "-n - +5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: -n - -5 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: -n - -5 -> parse error", "-n - -5", "parse error", true)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -n - -5 -> parse error", "-n - -5", "parse error", true,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 1 - n -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: 1 - n -> parse error", "1 - n", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 1 - n -> parse error", "1 - n", "parse error", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 0 - n -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: 0 - n -> parse error", "0 - n", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 0 - n -> parse error", "0 - n", "parse error", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: -1 + n -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: -1 + n -> parse error", "-1 + n", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: -1 + n -> parse error", "-1 + n", "parse error", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: 2 n + 2 -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: 2 n + 2 -> parse error", "2 n + 2", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: 2 n + 2 -> parse error", "2 n + 2", "parse error", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: - 2n -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: - 2n -> parse error", "- 2n", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: - 2n -> parse error", "- 2n", "parse error", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: + 2n -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: + 2n -> parse error", "+ 2n", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: + 2n -> parse error", "+ 2n", "parse error", false,
+  )
 }
 
 ///|
 test "wpt anb-parsing.html: +2 n -> parse error" {
-  wpt_assert_anb("wpt anb-parsing.html: +2 n -> parse error", "+2 n", "parse error", false)
+  wpt_assert_anb(
+    "wpt anb-parsing.html: +2 n -> parse error", "+2 n", "parse error", false,
+  )
 }

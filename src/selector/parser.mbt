@@ -200,14 +200,15 @@ fn SelectorParser::parse_complex_selector(
 }
 
 ///|
+
 ///|
 /// CSS Namespaces 3 prefix on a type/universal/attribute selector.
 priv enum NamespacePrefix {
-  NoPrefix  // nothing — use default namespace
-  AnyNs     // `*|` — any namespace
-  EmptyNs   // `|`  — explicit no namespace (canonically dropped)
-  NamedNs   // `name|` — named namespace (the name itself isn't kept;
-            // mizchi/css doesn't track @namespace declarations)
+  NoPrefix // nothing — use default namespace
+  AnyNs // `*|` — any namespace
+  EmptyNs // `|`  — explicit no namespace (canonically dropped)
+  NamedNs // `name|` — named namespace (the name itself isn't kept;
+  // mizchi/css doesn't track @namespace declarations)
 }
 
 ///|
@@ -225,9 +226,7 @@ fn ns_prefix_collapse(p : NamespacePrefix) -> NamespacePrefix {
 /// Optimistically consume a namespace prefix (`*|`, `|`, or `name|`).
 /// If the next non-prefix tokens don't form a valid head (type/universal),
 /// the caller restores `self.pos`.
-fn SelectorParser::parse_ns_prefix(
-  self : SelectorParser,
-) -> NamespacePrefix {
+fn SelectorParser::parse_ns_prefix(self : SelectorParser) -> NamespacePrefix {
   let start = self.pos
   match self.peek() {
     Delim('|') =>
@@ -275,10 +274,7 @@ fn SelectorParser::parse_ns_prefix(
 }
 
 ///|
-fn SelectorParser::peek_at(
-  self : SelectorParser,
-  offset : Int,
-) -> @token.Token {
+fn SelectorParser::peek_at(self : SelectorParser, offset : Int) -> @token.Token {
   let idx = self.pos + offset
   if idx >= self.tokens.length() {
     // Fall back to the tokenizer's trailing EOF (always present).
@@ -438,10 +434,7 @@ fn SelectorParser::parse_compound_selector(
 /// the most recently seen pseudo-element. Per CSS Shadow Parts 1 only
 /// `::part(...)` allows further subclasses; per CSS Scoping 1
 /// `::slotted(...)` and other pseudo-elements do not.
-fn not_allowed_after_pe(
-  saw_pe : PseudoElement?,
-  _allow_part : Bool,
-) -> Bool {
+fn not_allowed_after_pe(saw_pe : PseudoElement?, _allow_part : Bool) -> Bool {
   match saw_pe {
     None => false
     Some(Part(_)) => false // ::part allows id/class/attr — actually no per spec but be lenient
@@ -545,7 +538,12 @@ fn SelectorParser::parse_attribute_selector(
   let match_type : AttributeMatch = match self.peek() {
     RightBracket => {
       let _ = self.advance()
-      return Some({ name, match_type: Exists, case_insensitive: false, any_namespace })
+      return Some({
+        name,
+        match_type: Exists,
+        case_insensitive: false,
+        any_namespace,
+      })
     }
     Delim('=') => {
       let _ = self.advance()
@@ -756,6 +754,7 @@ fn SelectorParser::parse_pseudo_element(
 }
 
 ///|
+
 ///|
 /// CSS Selectors 4 — the argument of `:not()` may not contain pseudo-
 /// elements. (Unknown pseudo-classes have already been rejected by
@@ -1510,7 +1509,9 @@ pub fn parse_selector_list_from_tokens(
   while i < end {
     match tokens[i] {
       @token.Token::EOF => break
-      @token.Token::LeftParen | @token.Token::LeftBracket => depth = depth + 1
+      @token.Token::Function(_)
+      | @token.Token::LeftParen
+      | @token.Token::LeftBracket => depth = depth + 1
       @token.Token::RightParen | @token.Token::RightBracket =>
         if depth > 0 {
           depth = depth - 1

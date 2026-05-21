@@ -101,7 +101,7 @@ fn fast_contains(s : String, needle : String) -> Bool {
   }
   let last = sl - nl
   let first = needle[0]
-  for i in 0..=last {
+  for i in 0..<=last {
     if s[i] == first {
       let mut all = true
       let mut j = 1

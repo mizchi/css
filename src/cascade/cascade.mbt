@@ -223,7 +223,13 @@ pub fn Stylesheet::match_element_with_media(
   let matches : Array[RuleMatch] = []
   let idx = self.get_or_build_index()
   for rule_idx in idx.get_candidates(element) {
-    push_rule_match(matches, self.rules[rule_idx], element, self.origin, media_env)
+    push_rule_match(
+      matches,
+      self.rules[rule_idx],
+      element,
+      self.origin,
+      media_env,
+    )
   }
   matches
 }
@@ -357,12 +363,7 @@ fn cascade_stylesheet_matches_into(
   source_order_offset : Int,
 ) -> Int {
   cascade_stylesheet_into(
-    result,
-    stylesheet,
-    element,
-    media_env,
-    source_order_offset,
-    @selector.matches_complex,
+    result, stylesheet, element, media_env, source_order_offset, @selector.matches_complex,
   )
 }
 

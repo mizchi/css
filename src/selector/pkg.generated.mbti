@@ -2,6 +2,7 @@
 package "mizchi/css/selector"
 
 import {
+  "mizchi/css/token",
   "moonbitlang/core/debug",
 }
 
@@ -15,6 +16,8 @@ pub fn matches_complex_with_forced_states(Element, ComplexSelector, ForcedPseudo
 pub fn matches_pseudo_class_with_forced_states(Element, PseudoClass, ForcedPseudoStates) -> Bool
 
 pub fn matches_selector_list(Element, SelectorList) -> Bool
+
+pub fn parse_selector_list_from_tokens(Array[@token.Token], Int, Int) -> Array[ComplexSelector]
 
 pub fn parse_selector_list_text(String) -> SelectorList?
 
@@ -43,6 +46,7 @@ pub struct AttributeSelector {
   name : String
   match_type : AttributeMatch
   case_insensitive : Bool
+  any_namespace : Bool
 }
 pub impl Show for AttributeSelector
 
@@ -69,6 +73,7 @@ pub struct ComplexSelectorStep {
 pub struct CompoundSelector {
   type_selector : SimpleSelector?
   subclasses : Array[SimpleSelector]
+  any_ns_universal : Bool
 }
 pub fn CompoundSelector::from_class(String) -> Self
 pub fn CompoundSelector::from_id(String) -> Self
@@ -133,11 +138,17 @@ pub enum PseudoClass {
   NthLastOfType(NthExpr)
   Root
   Empty
-  Not(Array[CompoundSelector])
+  Not(Array[ComplexSelector])
   Is(Array[ComplexSelector])
   Where(Array[ComplexSelector])
   Has(Array[RelativeSelector])
   State(String)
+  Host
+  HostFunc(CompoundSelector)
+  HostContextFunc(CompoundSelector)
+  Heading(Array[Int])
+  Dir(String)
+  Lang(Array[String])
   Hover
   Active
   Focus
@@ -167,6 +178,15 @@ pub enum PseudoElement {
   Marker
   Placeholder
   Selection
+  Backdrop
+  FileSelectorButton
+  PlaceholderShown
+  TargetText
+  SpellingError
+  GrammarError
+  Cue
+  Part(Array[String])
+  Slotted(Array[CompoundSelector])
 }
 pub impl Show for PseudoElement
 

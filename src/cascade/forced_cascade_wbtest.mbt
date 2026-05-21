@@ -32,10 +32,7 @@ test "cascade_element_with_forced_states - none means base only" {
     None,
     @selector.ForcedPseudoStates::none(),
   )
-  debug_inspect(
-    result.get_value("background-color"),
-    content="Some(\"white\")",
-  )
+  debug_inspect(result.get_value("background-color"), content="Some(\"white\")")
   inspect(result.has("outline"), content="false")
 }
 
@@ -103,10 +100,7 @@ test "cascade_element_with_forced_states - focus enables :focus rules" {
     None,
     forced,
   )
-  debug_inspect(
-    result.get_value("outline"),
-    content="Some(\"2px solid red\")",
-  )
+  debug_inspect(result.get_value("outline"), content="Some(\"2px solid red\")")
 }
 
 ///|

@@ -80,9 +80,7 @@ pub fn wpt_assert_valid(
     (true, Some(_)) => () // expected failure
     (true, None) =>
       fail(
-        "test now passes — remove " +
-        name +
-        " from wpt/known-failures.json",
+        "test now passes — remove " + name + " from wpt/known-failures.json",
       )
   }
 }
@@ -100,9 +98,7 @@ pub fn wpt_assert_invalid(
     (true, Some(_)) => ()
     (true, None) =>
       fail(
-        "test now passes — remove " +
-        name +
-        " from wpt/known-failures.json",
+        "test now passes — remove " + name + " from wpt/known-failures.json",
       )
   }
 }
@@ -125,9 +121,7 @@ pub fn wpt_assert_anb(
     (true, Some(_)) => ()
     (true, None) =>
       fail(
-        "test now passes — remove " +
-        name +
-        " from wpt/known-failures.json",
+        "test now passes — remove " + name + " from wpt/known-failures.json",
       )
   }
 }
@@ -161,4 +155,3 @@ fn check_anb(input : String, expected : String) -> String? {
     )
   }
 }
-
