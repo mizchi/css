@@ -6,18 +6,36 @@
 /// Parser state
 priv struct SelectorParser {
   tokens : Array[@token.Token]
+  /// Exclusive upper bound on `pos`. When parsing a selector slice
+  /// from a larger token stream (e.g. a stylesheet's rule body),
+  /// `tokens_end` caps where the parser is allowed to read so callers
+  /// don't have to copy a sub-array.
+  tokens_end : Int
   mut pos : Int
 }
 
 ///|
 fn SelectorParser::new(tokens : Array[@token.Token]) -> SelectorParser {
-  { tokens, pos: 0 }
+  { tokens, tokens_end: tokens.length(), pos: 0 }
+}
+
+///|
+/// Build a parser bound to the half-open `[start, end)` slice of
+/// `tokens`. Used by `parse_stylesheet` to avoid re-tokenizing
+/// selectors it has already lexed.
+fn SelectorParser::from_slice(
+  tokens : Array[@token.Token],
+  start : Int,
+  end : Int,
+) -> SelectorParser {
+  { tokens, tokens_end: end, pos: start }
 }
 
 ///|
 fn SelectorParser::peek(self : SelectorParser) -> @token.Token {
-  if self.pos >= self.tokens.length() {
-    // Return a safe fallback - this should not happen if tokenize() adds EOF
+  if self.pos >= self.tokens_end {
+    // Return a safe fallback — the tokenizer always appends an EOF
+    // sentinel so the source array is never empty.
     self.tokens[self.tokens.length() - 1]
   } else {
     self.tokens[self.pos]
@@ -26,7 +44,7 @@ fn SelectorParser::peek(self : SelectorParser) -> @token.Token {
 
 ///|
 fn SelectorParser::is_at_end(self : SelectorParser) -> Bool {
-  self.pos >= self.tokens.length() ||
+  self.pos >= self.tokens_end ||
   (match self.tokens[self.pos] {
     EOF => true
     _ => false
@@ -144,8 +162,10 @@ fn SelectorParser::parse_complex_selector(
         Some(SubsequentSibling)
       }
       _ =>
-        if had_whitespace {
-          // Descendant combinator (whitespace)
+        if had_whitespace && !self.is_at_end() {
+          // Descendant combinator (whitespace) — only when something
+          // non-empty follows. Pure trailing whitespace at the end of a
+          // selector slice must not be treated as a descendant.
           Some(Descendant)
         } else {
           None
@@ -1363,4 +1383,72 @@ pub fn parse_selector_text(css : String) -> ComplexSelector? {
 pub fn parse_selector_list_text(css : String) -> SelectorList? {
   let tokens = @token.tokenize(css)
   parse_selector_list(tokens)
+}
+
+///|
+/// Parse a selector-list from an existing token stream in-place
+/// (`tokens[start..end]`). This is the fast path used by
+/// `parser/stylesheet`: callers reuse tokens they have already lexed
+/// instead of stringifying + re-tokenizing the slice.
+///
+/// Returns `(text, selector)` pairs because the stylesheet parser
+/// stores both the original source text and the parsed selector for
+/// every rule; we synthesize the text from the same slice.
+pub fn parse_selector_list_from_tokens(
+  tokens : Array[@token.Token],
+  start : Int,
+  end : Int,
+) -> Array[ComplexSelector] {
+  let result : Array[ComplexSelector] = []
+  // Find top-level commas inside the slice to split into selectors.
+  let mut depth = 0
+  let mut segment_start = start
+  let mut i = start
+  while i < end {
+    match tokens[i] {
+      @token.Token::EOF => break
+      @token.Token::LeftParen | @token.Token::LeftBracket => depth = depth + 1
+      @token.Token::RightParen | @token.Token::RightBracket =>
+        if depth > 0 {
+          depth = depth - 1
+        }
+      @token.Token::Comma =>
+        if depth == 0 {
+          match parse_selector_slice(tokens, segment_start, i) {
+            Some(sel) => result.push(sel)
+            None => ()
+          }
+          segment_start = i + 1
+        }
+      _ => ()
+    }
+    i = i + 1
+  }
+  // Final segment.
+  match parse_selector_slice(tokens, segment_start, end) {
+    Some(sel) => result.push(sel)
+    None => ()
+  }
+  result
+}
+
+///|
+fn parse_selector_slice(
+  tokens : Array[@token.Token],
+  start : Int,
+  end : Int,
+) -> ComplexSelector? {
+  let parser = SelectorParser::from_slice(tokens, start, end)
+  parser.skip_whitespace()
+  match parser.parse_complex_selector() {
+    None => None
+    Some(sel) => {
+      parser.skip_whitespace()
+      if parser.is_at_end() {
+        Some(sel)
+      } else {
+        None
+      }
+    }
+  }
 }

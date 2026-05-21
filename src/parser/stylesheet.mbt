@@ -428,11 +428,9 @@ fn parse_style_rule(
     return None
   }
 
-  // Extract selector text
-  let selector_text = tokens_to_string(tokens, selector_start, pos)
-
-  // Parse selectors (comma-separated)
-  let selectors = parse_selector_list_text(selector_text)
+  // Parse selectors directly from the already-lexed token stream —
+  // avoids stringifying then re-tokenizing each selector.
+  let selectors = parse_selector_list_from_tokens(tokens, selector_start, pos)
   if selectors.is_empty() {
     return None
   }
@@ -800,22 +798,63 @@ fn tokens_to_string(
 }
 
 ///|
-/// Parse comma-separated selector list
-fn parse_selector_list_text(
-  css : String,
+/// Parse comma-separated selector list directly from a token slice.
+/// Saves the round-trip through `tokens_to_string` +
+/// `@token.tokenize` that the previous string-based path required.
+fn parse_selector_list_from_tokens(
+  tokens : Array[@token.Token],
+  start : Int,
+  end : Int,
 ) -> Array[(String, @selector.ComplexSelector)] {
   let result : Array[(String, @selector.ComplexSelector)] = []
-  let parts = split_by_comma(css)
-  for part in parts {
-    let trimmed = part.trim().to_owned()
-    if !trimmed.is_empty() {
-      match @selector.parse_selector_text(trimmed) {
-        Some(sel) => result.push((trimmed, sel))
-        None => ()
-      }
+  // Find top-level commas; each segment becomes one (text, selector).
+  let mut depth = 0
+  let mut seg_start = start
+  let mut i = start
+  while i < end {
+    match tokens[i] {
+      @token.Token::EOF => break
+      @token.Token::LeftParen | @token.Token::LeftBracket =>
+        depth = depth + 1
+      @token.Token::RightParen | @token.Token::RightBracket =>
+        if depth > 0 {
+          depth = depth - 1
+        }
+      @token.Token::Comma =>
+        if depth == 0 {
+          push_selector(result, tokens, seg_start, i)
+          seg_start = i + 1
+        }
+      _ => ()
     }
+    i = i + 1
   }
+  push_selector(result, tokens, seg_start, end)
   result
+}
+
+///|
+fn push_selector(
+  result : Array[(String, @selector.ComplexSelector)],
+  tokens : Array[@token.Token],
+  start : Int,
+  end : Int,
+) -> Unit {
+  // Use the token-direct selector parser (no re-tokenization).
+  // Note `from_tokens` returns Array[ComplexSelector] over each
+  // top-level comma; here we feed it a slice that we already know
+  // contains a single selector (no top-level comma), so we expect 0 or 1.
+  let parsed = @selector.parse_selector_list_from_tokens(tokens, start, end)
+  if parsed.is_empty() {
+    return
+  }
+  // Reconstruct the text for the rule's `selector_text` debug field.
+  // It's not on the cascade hot path, but downstream code expects a
+  // non-empty string here.
+  let text = tokens_to_string(tokens, start, end).trim().to_owned()
+  for sel in parsed {
+    result.push((text, sel))
+  }
 }
 
 ///|
@@ -1137,11 +1176,9 @@ fn parse_style_rule_with_diagnostics(
     return None
   }
 
-  // Extract selector text
-  let selector_text = tokens_to_string(tokens, selector_start, pos)
-
-  // Parse selectors (comma-separated)
-  let selectors = parse_selector_list_text(selector_text)
+  // Parse selectors directly from the already-lexed token stream —
+  // avoids stringifying then re-tokenizing each selector.
+  let selectors = parse_selector_list_from_tokens(tokens, selector_start, pos)
   if selectors.is_empty() {
     return None
   }
