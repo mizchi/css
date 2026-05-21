@@ -107,3 +107,58 @@ pub fn wpt_assert_invalid(
   }
 }
 
+///|
+/// Roundtrip An+B through `:nth-child(<input>)` and compare the
+/// canonical form. WPT's `testANB(input, expected)` calls the same
+/// pattern on the CSSOM. `expected == "parse error"` means the
+/// parser must reject the input.
+pub fn wpt_assert_anb(
+  name : String,
+  input : String,
+  expected : String,
+  known_fail : Bool,
+) -> Unit raise {
+  let err = check_anb(input, expected)
+  match (known_fail, err) {
+    (false, None) => ()
+    (false, Some(msg)) => fail(msg)
+    (true, Some(_)) => ()
+    (true, None) =>
+      fail(
+        "test now passes — remove " +
+        name +
+        " from wpt/known-failures.json",
+      )
+  }
+}
+
+///|
+fn check_anb(input : String, expected : String) -> String? {
+  let selector_text = ":nth-child(" + input + ")"
+  let parsed = @selector.parse_selector_text(selector_text)
+  let got : String = match parsed {
+    None => "parse error"
+    Some(sel) => {
+      // Extract the An+B canonical form from `:nth-child(<...>)`.
+      let s = sel.to_string()
+      if s.has_prefix(":nth-child(") && s.has_suffix(")") {
+        s.unsafe_substring(start=11, end=s.length() - 1)
+      } else {
+        return Some("unexpected selector serialization: " + s)
+      }
+    }
+  }
+  if got == expected {
+    None
+  } else {
+    Some(
+      "An+B mismatch:\n  input    = " +
+      input +
+      "\n  expected = " +
+      expected +
+      "\n  got      = " +
+      got,
+    )
+  }
+}
+

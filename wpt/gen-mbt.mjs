@@ -72,13 +72,30 @@ function genTest(fixture) {
   const lines = [];
   const sourceBasename = fixture.source.split("/").pop();
   const safe = sanitizeIdent(
-    fixture.source.replace(/^css\/selectors\/parsing\//, ""),
+    fixture.source
+      .replace(/^css\/selectors\/parsing\//, "")
+      .replace(/^css\/css-syntax\//, "syntax_"),
   );
   lines.push(
     `/// Auto-generated from ${fixture.source}.`,
     `/// DO NOT EDIT — regenerate with \`node wpt/gen-mbt.mjs\`.`,
     ``,
   );
+  if (fixture.kind === "anb") {
+    for (const t of fixture.tests) {
+      const name = `wpt ${sourceBasename}: ${t.input} -> ${t.expected}`;
+      const escName = name.replace(/[^\x20-\x7e]/g, "?");
+      const knownFail = KNOWN_FAILURES.has(sourceBasename + SEP + t.input);
+      lines.push(
+        `///|`,
+        `test ${mbtString(escName)} {`,
+        `  wpt_assert_anb(${mbtString(name)}, ${mbtString(t.input)}, ${mbtString(t.expected)}, ${knownFail})`,
+        `}`,
+        ``,
+      );
+    }
+    return { name: safe, body: lines.join("\n") };
+  }
   for (const t of fixture.tests) {
     const name = `wpt ${sourceBasename}: ${t.kind} ${t.input}`;
     const escName = name.replace(/[^\x20-\x7e]/g, "?");
