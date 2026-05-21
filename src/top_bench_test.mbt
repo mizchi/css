@@ -110,3 +110,44 @@ test "bench compute_inline_style" (it : @bench.T) {
   let ctx = ComputeContext::new()
   it.bench(fn() { it.keep(compute_inline_style(css, ctx)) })
 }
+
+// ---------------------------------------------------------------------------
+// Profiling the parse pipeline. `parse_stylesheet medium` is the slowest
+// public bench, so isolate tokenizer cost from rule-parsing cost.
+// ---------------------------------------------------------------------------
+
+///|
+test "bench tokenize medium" (it : @bench.T) {
+  let css = build_bench_medium_css()
+  it.bench(fn() { it.keep(@token.tokenize(css)) })
+}
+
+///|
+test "bench tokenize small" (it : @bench.T) {
+  let css = bench_small_css
+  it.bench(fn() { it.keep(@token.tokenize(css)) })
+}
+
+///|
+test "bench tokenize inline" (it : @bench.T) {
+  let css =
+    "display: flex; padding: 8px 16px; color: #3498db; background-color: rgba(0,0,0,0.5); font-size: 14px;"
+  it.bench(fn() { it.keep(@token.tokenize(css)) })
+}
+
+///|
+test "bench parse_selector_text simple" (it : @bench.T) {
+  it.bench(fn() { it.keep(parse_selector("div.foo")) })
+}
+
+///|
+test "bench parse_selector_text compound" (it : @bench.T) {
+  it.bench(fn() {
+    it.keep(parse_selector("button.btn.primary.lg#submit[type=submit]"))
+  })
+}
+
+///|
+test "bench parse_selector_text descendant chain" (it : @bench.T) {
+  it.bench(fn() { it.keep(parse_selector("nav > ul li a:hover")) })
+}

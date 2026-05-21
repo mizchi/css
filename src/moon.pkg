@@ -10,6 +10,7 @@ import {
 
 import {
   "mizchi/css/values" @types,
+  "mizchi/css/token",
   "moonbitlang/core/bench",
 } for "test"
 

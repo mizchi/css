@@ -16,23 +16,39 @@ fn Tokenizer::new(input : String) -> Tokenizer {
 }
 
 ///|
+/// Sentinel char returned by `peek_char` / `consume_char` past the end
+/// of input. NUL is not produced by any reachable CSS token, so callers
+/// can compare against it as a non-allocating EOF check. The
+/// `Char?`-returning variants stay for paths that still pattern-match
+/// on the option.
+let nul_char : Char = '\u{0}'
+
+///|
+fn Tokenizer::peek_char(self : Tokenizer) -> Char {
+  if self.pos >= self.len {
+    nul_char
+  } else {
+    self.input[self.pos].to_int().unsafe_to_char()
+  }
+}
+
+///|
+fn Tokenizer::peek_char_at(self : Tokenizer, offset : Int) -> Char {
+  let idx = self.pos + offset
+  if idx >= self.len || idx < 0 {
+    nul_char
+  } else {
+    self.input[idx].to_int().unsafe_to_char()
+  }
+}
+
+///|
 /// Peek current character without consuming
 fn Tokenizer::peek(self : Tokenizer) -> Char? {
   if self.pos >= self.len {
     None
   } else {
     Some(self.input[self.pos].to_int().unsafe_to_char())
-  }
-}
-
-///|
-/// Peek character at offset from current position
-fn Tokenizer::peek_at(self : Tokenizer, offset : Int) -> Char? {
-  let idx = self.pos + offset
-  if idx >= self.len || idx < 0 {
-    None
-  } else {
-    Some(self.input[idx].to_int().unsafe_to_char())
   }
 }
 
@@ -107,12 +123,12 @@ fn hex_digit_to_int(c : Char) -> Int {
 ///|
 /// Consume whitespace
 fn Tokenizer::consume_whitespace(self : Tokenizer) -> Unit {
-  while !self.is_eof() {
-    match self.peek() {
-      Some(c) if is_whitespace(c) => {
-        let _ = self.consume()
-      }
-      _ => break
+  while self.pos < self.len {
+    let c = self.input[self.pos].to_int().unsafe_to_char()
+    if is_whitespace(c) {
+      self.pos += 1
+    } else {
+      break
     }
   }
 }
@@ -121,21 +137,23 @@ fn Tokenizer::consume_whitespace(self : Tokenizer) -> Unit {
 /// Consume an identifier/name
 fn Tokenizer::consume_name(self : Tokenizer) -> String {
   let buf = StringBuilder::new()
-  while !self.is_eof() {
-    match self.peek() {
-      Some(c) if is_name_char(c) => {
-        buf.write_char(c)
-        let _ = self.consume()
+  while self.pos < self.len {
+    let c = self.input[self.pos].to_int().unsafe_to_char()
+    if is_name_char(c) {
+      buf.write_char(c)
+      self.pos += 1
+    } else if c == '\\' {
+      // Escape sequence — simplified: skip the backslash and write the
+      // following raw char (CSS hex escapes aren't decoded here; callers
+      // that need them go through `consume_string`).
+      self.pos += 1
+      if self.pos < self.len {
+        let escaped = self.input[self.pos].to_int().unsafe_to_char()
+        buf.write_char(escaped)
+        self.pos += 1
       }
-      Some('\\') => {
-        // Escape sequence - simplified handling
-        let _ = self.consume()
-        match self.consume() {
-          Some(escaped) => buf.write_char(escaped)
-          None => ()
-        }
-      }
-      _ => break
+    } else {
+      break
     }
   }
   buf.to_string()
@@ -148,76 +166,62 @@ fn Tokenizer::consume_number(self : Tokenizer) -> (Double, NumType) {
   let mut is_integer = true
 
   // Optional sign
-  match self.peek() {
-    Some('+') | Some('-') =>
-      match self.consume() {
-        Some(c) => buf.write_char(c)
-        None => ()
-      }
-    _ => ()
+  let first = self.peek_char()
+  if first == '+' || first == '-' {
+    buf.write_char(first)
+    self.pos += 1
   }
 
   // Integer part
-  while !self.is_eof() {
-    match self.peek() {
-      Some(c) if is_digit(c) => {
-        buf.write_char(c)
-        let _ = self.consume()
-      }
-      _ => break
+  while self.pos < self.len {
+    let c = self.input[self.pos].to_int().unsafe_to_char()
+    if is_digit(c) {
+      buf.write_char(c)
+      self.pos += 1
+    } else {
+      break
     }
   }
 
   // Decimal part
-  match (self.peek(), self.peek_at(1)) {
-    (Some('.'), Some(c)) if is_digit(c) => {
-      is_integer = false
-      buf.write_char('.')
-      let _ = self.consume()
-      while !self.is_eof() {
-        match self.peek() {
-          Some(c) if is_digit(c) => {
-            buf.write_char(c)
-            let _ = self.consume()
-          }
-          _ => break
-        }
+  if self.peek_char() == '.' && is_digit(self.peek_char_at(1)) {
+    is_integer = false
+    buf.write_char('.')
+    self.pos += 1
+    while self.pos < self.len {
+      let c = self.input[self.pos].to_int().unsafe_to_char()
+      if is_digit(c) {
+        buf.write_char(c)
+        self.pos += 1
+      } else {
+        break
       }
     }
-    _ => ()
   }
 
   // Exponent part
-  match self.peek() {
-    Some('e') | Some('E') =>
-      match self.peek_at(1) {
-        Some(c) if is_digit(c) || c == '+' || c == '-' => {
-          is_integer = false
-          match self.consume() {
-            Some(e) => buf.write_char(e)
-            None => ()
-          }
-          match self.peek() {
-            Some('+') | Some('-') =>
-              match self.consume() {
-                Some(sign) => buf.write_char(sign)
-                None => ()
-              }
-            _ => ()
-          }
-          while !self.is_eof() {
-            match self.peek() {
-              Some(c) if is_digit(c) => {
-                buf.write_char(c)
-                let _ = self.consume()
-              }
-              _ => break
-            }
-          }
-        }
-        _ => ()
+  let e = self.peek_char()
+  if e == 'e' || e == 'E' {
+    let next = self.peek_char_at(1)
+    if is_digit(next) || next == '+' || next == '-' {
+      is_integer = false
+      buf.write_char(e)
+      self.pos += 1
+      let sign = self.peek_char()
+      if sign == '+' || sign == '-' {
+        buf.write_char(sign)
+        self.pos += 1
       }
-    _ => ()
+      while self.pos < self.len {
+        let c = self.input[self.pos].to_int().unsafe_to_char()
+        if is_digit(c) {
+          buf.write_char(c)
+          self.pos += 1
+        } else {
+          break
+        }
+      }
+    }
   }
   let num_str = buf.to_string()
   let value = @string.parse_double(num_str) catch { _ => 0.0 }
@@ -280,41 +284,34 @@ fn Tokenizer::consume_string(self : Tokenizer, quote : Char) -> Token {
 ///|
 /// Check if the next characters would start a number
 fn Tokenizer::would_start_number(self : Tokenizer) -> Bool {
-  match self.peek() {
-    Some('+') | Some('-') =>
-      match self.peek_at(1) {
-        Some(c) if is_digit(c) => true
-        Some('.') =>
-          match self.peek_at(2) {
-            Some(c) if is_digit(c) => true
-            _ => false
-          }
-        _ => false
-      }
-    Some('.') =>
-      match self.peek_at(1) {
-        Some(c) if is_digit(c) => true
-        _ => false
-      }
-    Some(c) if is_digit(c) => true
-    _ => false
+  let c0 = self.peek_char()
+  if c0 == '+' || c0 == '-' {
+    let c1 = self.peek_char_at(1)
+    if is_digit(c1) {
+      return true
+    }
+    if c1 == '.' {
+      return is_digit(self.peek_char_at(2))
+    }
+    false
+  } else if c0 == '.' {
+    is_digit(self.peek_char_at(1))
+  } else {
+    is_digit(c0)
   }
 }
 
 ///|
 /// Check if the next characters would start an identifier
 fn Tokenizer::would_start_ident(self : Tokenizer) -> Bool {
-  match self.peek() {
-    Some('-') =>
-      match self.peek_at(1) {
-        Some('-') => true
-        Some(c) if is_name_start(c) => true
-        Some('\\') => true
-        _ => false
-      }
-    Some(c) if is_name_start(c) => true
-    Some('\\') => true
-    _ => false
+  let c0 = self.peek_char()
+  if c0 == '-' {
+    let c1 = self.peek_char_at(1)
+    c1 == '-' || is_name_start(c1) || c1 == '\\'
+  } else if c0 == '\\' {
+    true
+  } else {
+    is_name_start(c0)
   }
 }
 
@@ -324,31 +321,26 @@ fn Tokenizer::next_token(self : Tokenizer) -> Token {
   if self.is_eof() {
     return EOF
   }
-  match self.peek() {
-    // Whitespace
-    Some(c) if is_whitespace(c) => {
-      self.consume_whitespace()
-      Whitespace
-    }
-
-    // Strings
-    Some('"') => {
-      let _ = self.consume()
+  // Hot dispatch on the first byte. `peek_char` returns NUL past the
+  // end without allocating an Option, so the common case stays in
+  // straight-line code.
+  let c = self.peek_char()
+  if is_whitespace(c) {
+    self.consume_whitespace()
+    return Whitespace
+  }
+  match c {
+    '"' => {
+      self.pos += 1
       self.consume_string('"')
     }
-    Some('\'') => {
-      let _ = self.consume()
+    '\'' => {
+      self.pos += 1
       self.consume_string('\'')
     }
-
-    // Hash
-    Some('#') => {
-      let _ = self.consume()
-      if self.would_start_ident() ||
-        (match self.peek() {
-          Some(c) => is_name_char(c)
-          None => false
-        }) {
+    '#' => {
+      self.pos += 1
+      if self.would_start_ident() || is_name_char(self.peek_char()) {
         let name = self.consume_name()
         let hash_type : HashType = if self.would_start_ident() {
           Id
@@ -360,95 +352,74 @@ fn Tokenizer::next_token(self : Tokenizer) -> Token {
         Delim('#')
       }
     }
-
-    // Parentheses and brackets
-    Some('(') => {
-      let _ = self.consume()
+    '(' => {
+      self.pos += 1
       LeftParen
     }
-    Some(')') => {
-      let _ = self.consume()
+    ')' => {
+      self.pos += 1
       RightParen
     }
-    Some('[') => {
-      let _ = self.consume()
+    '[' => {
+      self.pos += 1
       LeftBracket
     }
-    Some(']') => {
-      let _ = self.consume()
+    ']' => {
+      self.pos += 1
       RightBracket
     }
-    Some('{') => {
-      let _ = self.consume()
+    '{' => {
+      self.pos += 1
       LeftBrace
     }
-    Some('}') => {
-      let _ = self.consume()
+    '}' => {
+      self.pos += 1
       RightBrace
     }
-
-    // Punctuation
-    Some(':') => {
-      let _ = self.consume()
+    ':' => {
+      self.pos += 1
       Colon
     }
-    Some(';') => {
-      let _ = self.consume()
+    ';' => {
+      self.pos += 1
       Semicolon
     }
-    Some(',') => {
-      let _ = self.consume()
+    ',' => {
+      self.pos += 1
       Comma
     }
-
-    // Numbers and signs
-    Some('+') =>
+    '+' =>
       if self.would_start_number() {
         let (value, num_type) = self.consume_number()
         self.finish_numeric_token(value, num_type)
       } else {
-        let _ = self.consume()
+        self.pos += 1
         Delim('+')
       }
-    Some('-') =>
+    '-' =>
       if self.would_start_number() {
         let (value, num_type) = self.consume_number()
         self.finish_numeric_token(value, num_type)
       } else if self.would_start_ident() {
         let name = self.consume_name()
         self.finish_ident_token(name)
+      } else if self.peek_char_at(1) == '-' && self.peek_char_at(2) == '>' {
+        self.pos += 3
+        CDC
       } else {
-        match (self.peek_at(1), self.peek_at(2)) {
-          (Some('-'), Some('>')) => {
-            let _ = self.consume()
-            let _ = self.consume()
-            let _ = self.consume()
-            CDC
-          }
-          _ => {
-            let _ = self.consume()
-            Delim('-')
-          }
-        }
+        self.pos += 1
+        Delim('-')
       }
-    Some('.') =>
+    '.' =>
       if self.would_start_number() {
         let (value, num_type) = self.consume_number()
         self.finish_numeric_token(value, num_type)
       } else {
-        let _ = self.consume()
+        self.pos += 1
         Delim('.')
       }
-
-    // Numbers
-    Some(c) if is_digit(c) => {
-      let (value, num_type) = self.consume_number()
-      self.finish_numeric_token(value, num_type)
-    }
-
-    // At-keyword
-    Some('@') => {
-      let _ = self.consume()
+    '@' => {
+      self.pos += 1
       if self.would_start_ident() {
         let name = self.consume_name()
         AtKeyword(name)
@@ -456,76 +427,51 @@ fn Tokenizer::next_token(self : Tokenizer) -> Token {
         Delim('@')
       }
     }
-
-    // Identifiers and functions
-    Some(c) if is_name_start(c) => {
-      let name = self.consume_name()
-      self.finish_ident_token(name)
-    }
-
-    // Comments (simplified - skip them)
-    Some('/') =>
-      match self.peek_at(1) {
-        Some('*') => {
-          let _ = self.consume()
-          let _ = self.consume()
-          // Skip until */
-          while !self.is_eof() {
-            match (self.peek(), self.peek_at(1)) {
-              (Some('*'), Some('/')) => {
-                let _ = self.consume()
-                let _ = self.consume()
-                break
-              }
-              _ => {
-                let _ = self.consume()
-              }
-            }
+    '/' =>
+      if self.peek_char_at(1) == '*' {
+        self.pos += 2
+        // Skip until */
+        while !self.is_eof() {
+          if self.peek_char() == '*' && self.peek_char_at(1) == '/' {
+            self.pos += 2
+            break
           }
-          // Recursively get next token after comment
-          self.next_token()
+          self.pos += 1
         }
-        _ => {
-          let _ = self.consume()
-          Delim('/')
-        }
+        self.next_token()
+      } else {
+        self.pos += 1
+        Delim('/')
       }
-
-    // CDO <!--
-    Some('<') =>
-      match (self.peek_at(1), self.peek_at(2), self.peek_at(3)) {
-        (Some('!'), Some('-'), Some('-')) => {
-          let _ = self.consume()
-          let _ = self.consume()
-          let _ = self.consume()
-          let _ = self.consume()
-          CDO
-        }
-        _ => {
-          let _ = self.consume()
-          Delim('<')
-        }
+    '<' =>
+      if self.peek_char_at(1) == '!' &&
+        self.peek_char_at(2) == '-' &&
+        self.peek_char_at(3) == '-' {
+        self.pos += 4
+        CDO
+      } else {
+        self.pos += 1
+        Delim('<')
       }
-
-    // Backslash (escape or delim)
-    Some('\\') =>
-      match self.peek_at(1) {
-        Some('\n') => {
-          let _ = self.consume()
-          Delim('\\')
-        }
-        _ => {
-          let name = self.consume_name()
-          self.finish_ident_token(name)
-        }
+    '\\' =>
+      if self.peek_char_at(1) == '\n' {
+        self.pos += 1
+        Delim('\\')
+      } else {
+        let name = self.consume_name()
+        self.finish_ident_token(name)
       }
-
-    // Any other character
-    Some(c) => {
-      let _ = self.consume()
-      Delim(c)
-    }
-    None => EOF
+    _ =>
+      if is_digit(c) {
+        let (value, num_type) = self.consume_number()
+        self.finish_numeric_token(value, num_type)
+      } else if is_name_start(c) {
+        let name = self.consume_name()
+        self.finish_ident_token(name)
+      } else {
+        self.pos += 1
+        Delim(c)
+      }
   }
 }
 
@@ -536,28 +482,26 @@ fn Tokenizer::finish_numeric_token(
   value : Double,
   num_type : NumType,
 ) -> Token {
-  match self.peek() {
-    Some('%') => {
-      let _ = self.consume()
-      Percentage(value)
-    }
-    Some(c) if is_name_start(c) || c == '-' => {
-      let unit = self.consume_name()
-      Dimension(value, unit)
-    }
-    _ => Number(value, num_type)
+  let c = self.peek_char()
+  if c == '%' {
+    self.pos += 1
+    Percentage(value)
+  } else if is_name_start(c) || c == '-' {
+    let unit = self.consume_name()
+    Dimension(value, unit)
+  } else {
+    Number(value, num_type)
   }
 }
 
 ///|
 /// Finish an identifier token (check if it's a function)
 fn Tokenizer::finish_ident_token(self : Tokenizer, name : String) -> Token {
-  match self.peek() {
-    Some('(') => {
-      let _ = self.consume()
-      Function(name)
-    }
-    _ => Ident(name)
+  if self.peek_char() == '(' {
+    self.pos += 1
+    Function(name)
+  } else {
+    Ident(name)
   }
 }
 
