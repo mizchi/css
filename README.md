@@ -24,10 +24,8 @@ Originally extracted from [`mizchi/crater`](https://github.com/mizchi/crater) (a
 `wpt/` ships a runner that converts upstream WPT selector-parsing tests
 (`css/selectors/parsing/**`) into MoonBit test cases. After
 `node wpt/extract.mjs && node wpt/gen-mbt.mjs`, the suite is exercised
-with `moon test --package mizchi/css/wpt` — **208 / 215 tests passing
-(96.7%)** against upstream WPT. The remaining 7 cover CSS namespace
-selectors and one deep `:host(:not(complex))` validation rule, all
-tracked in `wpt/known-failures.json`. See `wpt/README.md`.
+with `moon test --package mizchi/css/wpt` — **215 / 215 tests passing
+(100%)** against upstream WPT. See `wpt/README.md`.
 
 ## License
 

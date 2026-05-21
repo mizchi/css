@@ -73,10 +73,10 @@ test "wpt parse-attribute.html: valid p[title*=\"hello\"]" {
 
 ///|
 test "wpt parse-attribute.html: valid [*|att]" {
-  wpt_assert_valid("wpt parse-attribute.html: valid [*|att]", "[*|att]", ["[*|att]"], true)
+  wpt_assert_valid("wpt parse-attribute.html: valid [*|att]", "[*|att]", ["[*|att]"], false)
 }
 
 ///|
 test "wpt parse-attribute.html: valid [|att]" {
-  wpt_assert_valid("wpt parse-attribute.html: valid [|att]", "[|att]", ["[att]"], true)
+  wpt_assert_valid("wpt parse-attribute.html: valid [|att]", "[|att]", ["[att]"], false)
 }

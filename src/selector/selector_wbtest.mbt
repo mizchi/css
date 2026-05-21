@@ -52,18 +52,21 @@ test "Show for AttributeSelector" {
     name: "href",
     match_type: AttributeMatch::Exists,
     case_insensitive: false,
+    any_namespace: false,
   }
   inspect(s, content="[href]")
   let s2 : AttributeSelector = {
     name: "type",
     match_type: AttributeMatch::Exact("text"),
     case_insensitive: false,
+    any_namespace: false,
   }
   inspect(s2, content="[type Exact(text)]")
   let s3 : AttributeSelector = {
     name: "lang",
     match_type: AttributeMatch::DashMatch("en"),
     case_insensitive: true,
+    any_namespace: false,
   }
   inspect(s3, content="[lang DashMatch(en) i]")
 }
@@ -238,6 +241,7 @@ test "SimpleSelector Show for Attribute variant" {
     name: "type",
     match_type: AttributeMatch::Exact("button"),
     case_insensitive: false,
+    any_namespace: false,
   }
   inspect(SimpleSelector::Attribute(attr), content="[type Exact(button)]")
 }

@@ -108,12 +108,12 @@ test "wpt parse-has.html: valid .a:has(.b):has(.c)" {
 
 ///|
 test "wpt parse-has.html: valid *|*:has(*)" {
-  wpt_assert_valid("wpt parse-has.html: valid *|*:has(*)", "*|*:has(*)", [":has(*)"], true)
+  wpt_assert_valid("wpt parse-has.html: valid *|*:has(*)", "*|*:has(*)", [":has(*)"], false)
 }
 
 ///|
 test "wpt parse-has.html: valid :has(*|*)" {
-  wpt_assert_valid("wpt parse-has.html: valid :has(*|*)", ":has(*|*)", [":has(*)"], true)
+  wpt_assert_valid("wpt parse-has.html: valid :has(*|*)", ":has(*|*)", [":has(*)"], false)
 }
 
 ///|
