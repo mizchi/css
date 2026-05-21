@@ -6,6 +6,13 @@
 /// Parser state
 priv struct SelectorParser {
   tokens : Array[@token.Token]
+  /// Parallel array marking which `Number` tokens had an explicit
+  /// leading `+`/`-` sign — needed to validate `<an+b>` micro-syntax
+  /// (CSS Syntax 3's "type flag" that the public `Token` enum drops).
+  /// `None` means the parser was constructed from a token-only stream
+  /// (the legacy/stylesheet path) and the An+B parser falls back to
+  /// the lenient pre-sign-info behavior.
+  signs : Array[Bool]?
   /// Exclusive upper bound on `pos`. When parsing a selector slice
   /// from a larger token stream (e.g. a stylesheet's rule body),
   /// `tokens_end` caps where the parser is allowed to read so callers
@@ -15,8 +22,11 @@ priv struct SelectorParser {
 }
 
 ///|
-fn SelectorParser::new(tokens : Array[@token.Token]) -> SelectorParser {
-  { tokens, tokens_end: tokens.length(), pos: 0 }
+fn SelectorParser::new_with_signs(
+  tokens : Array[@token.Token],
+  signs : Array[Bool],
+) -> SelectorParser {
+  { tokens, signs: Some(signs), tokens_end: tokens.length(), pos: 0 }
 }
 
 ///|
@@ -28,7 +38,19 @@ fn SelectorParser::from_slice(
   start : Int,
   end : Int,
 ) -> SelectorParser {
-  { tokens, tokens_end: end, pos: start }
+  { tokens, signs: None, tokens_end: end, pos: start }
+}
+
+///|
+/// True iff the token at `pos` is a `Number` that had an explicit
+/// leading `+`/`-` sign in source. Returns `false` for non-Number
+/// tokens, out-of-bounds positions, and parsers built without sign
+/// info (legacy callers).
+fn SelectorParser::is_signed_at(self : SelectorParser, pos : Int) -> Bool {
+  match self.signs {
+    None => false
+    Some(s) => if pos < 0 || pos >= s.length() { false } else { s[pos] }
+  }
 }
 
 ///|
@@ -71,26 +93,23 @@ fn SelectorParser::skip_whitespace(self : SelectorParser) -> Unit {
 }
 
 ///|
-/// Parse a selector list (comma-separated)
-fn parse_selector_list(tokens : Array[@token.Token]) -> SelectorList? {
-  let parser = SelectorParser::new(tokens)
-  parser.skip_whitespace()
+/// Parse a selector list (comma-separated) from a constructed parser.
+fn SelectorParser::parse_selector_list(
+  self : SelectorParser,
+) -> SelectorList? {
+  self.skip_whitespace()
   let selectors : Array[ComplexSelector] = []
-
-  // Parse first selector
-  match parser.parse_complex_selector() {
+  match self.parse_complex_selector() {
     Some(sel) => selectors.push(sel)
     None => return None
   }
-
-  // Parse remaining selectors
-  while !parser.is_at_end() {
-    parser.skip_whitespace()
-    match parser.peek() {
+  while !self.is_at_end() {
+    self.skip_whitespace()
+    match self.peek() {
       Comma => {
-        let _ = parser.advance()
-        parser.skip_whitespace()
-        match parser.parse_complex_selector() {
+        let _ = self.advance()
+        self.skip_whitespace()
+        match self.parse_complex_selector() {
           Some(sel) => selectors.push(sel)
           None => return None
         }
@@ -98,23 +117,24 @@ fn parse_selector_list(tokens : Array[@token.Token]) -> SelectorList? {
       _ => break
     }
   }
-  parser.skip_whitespace()
-  if !parser.is_at_end() {
+  self.skip_whitespace()
+  if !self.is_at_end() {
     return None
   }
   Some(SelectorList::{ selectors, })
 }
 
 ///|
-/// Parse a single selector (without commas)
-fn parse_selector(tokens : Array[@token.Token]) -> ComplexSelector? {
-  let parser = SelectorParser::new(tokens)
-  parser.skip_whitespace()
-  match parser.parse_complex_selector() {
+/// Parse a single selector (without commas) from a constructed parser.
+fn SelectorParser::parse_top_selector(
+  self : SelectorParser,
+) -> ComplexSelector? {
+  self.skip_whitespace()
+  match self.parse_complex_selector() {
     None => None
     Some(sel) => {
-      parser.skip_whitespace()
-      if parser.is_at_end() {
+      self.skip_whitespace()
+      if self.is_at_end() {
         Some(sel)
       } else {
         None
@@ -1151,6 +1171,8 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
       //   "-n"          a=-1, b=parse_nth_b()
       //   "n-<digits>"  a=1,  b=-<digits>    (CSS Selectors 4 ndashdigit-ident)
       //   "-n-<digits>" a=-1, b=-<digits>
+      // Bare `n-`/`-n-` followed by whitespace + integer is NOT
+      // a valid An+B form per spec.
       let kw_lower = kw.to_lower()
       if kw_lower == "odd" {
         let _ = self.advance()
@@ -1162,15 +1184,11 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
       }
       if kw_lower == "n" {
         let _ = self.advance()
-        self.skip_whitespace()
-        let b = self.parse_nth_b()
-        return Some({ a: 1, b })
+        return self.finish_nth_after_n(1)
       }
       if kw_lower == "-n" {
         let _ = self.advance()
-        self.skip_whitespace()
-        let b = self.parse_nth_b()
-        return Some({ a: -1, b })
+        return self.finish_nth_after_n(-1)
       }
       match ndashdigit_to_b(kw_lower, "n-") {
         Some(b) => {
@@ -1186,28 +1204,16 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
         }
         None => ()
       }
-      // ndash-ident: bare `n-` / `-n-` consumes a signless integer next.
+      // Bare `n-` / `-n-` ident: must be followed (after optional
+      // whitespace) by a **signless** integer. CSS Selectors 4 only
+      // accepts the `<ndash-ident> <signless-integer>` shape; a signed
+      // integer after `n-` is a parse error (the second sign comes
+      // from the integer token, not from the syntactic `+`/`-`).
       if kw_lower == "n-" {
-        let _ = self.advance()
-        self.skip_whitespace()
-        match self.peek() {
-          Number(n, _) => {
-            let _ = self.advance()
-            return Some({ a: 1, b: -n.to_int() })
-          }
-          _ => return None
-        }
+        return self.finish_ndash_int(1)
       }
       if kw_lower == "-n-" {
-        let _ = self.advance()
-        self.skip_whitespace()
-        match self.peek() {
-          Number(n, _) => {
-            let _ = self.advance()
-            return Some({ a: -1, b: -n.to_int() })
-          }
-          _ => return None
-        }
+        return self.finish_ndash_int(-1)
       }
       return None
     }
@@ -1215,24 +1221,7 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
       let unit_lower = unit.to_lower()
       if unit_lower == "n" {
         let _ = self.advance()
-        let a = num.to_int()
-        self.skip_whitespace()
-        let b = self.parse_nth_b()
-        return Some({ a, b })
-      }
-      // ndash-dimension: `5n-` followed (after optional whitespace) by a
-      // signless integer N — interpreted as `5n-N`.
-      if unit_lower == "n-" {
-        let _ = self.advance()
-        let a = num.to_int()
-        self.skip_whitespace()
-        match self.peek() {
-          Number(n, _) => {
-            let _ = self.advance()
-            return Some({ a, b: -n.to_int() })
-          }
-          _ => return None
-        }
+        return self.finish_nth_after_n(num.to_int())
       }
       // ndashdigit-dimension, e.g. `5n-3` lexes as Dimension(5, "n-3").
       match ndashdigit_to_b(unit_lower, "n-") {
@@ -1241,6 +1230,10 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
           return Some({ a: num.to_int(), b })
         }
         None => ()
+      }
+      // `<int>n-` dimension followed by signless integer (e.g. `5n- 3`).
+      if unit_lower == "n-" {
+        return self.finish_ndash_int(num.to_int())
       }
       // Fallback for `5n+3` lex shapes (unit_lower starts with "n+").
       if unit_lower.length() > 1 && unit_lower[0] == 'n' {
@@ -1267,28 +1260,19 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
       return Some({ a: 0, b: num.to_int() })
     }
     Delim('+') => {
-      // `+` must be immediately followed by `n`-form ident or a number;
-      // CSS Selectors 4 forbids whitespace between `+` and what follows.
+      // `+` must be immediately followed by `n`-form ident; CSS
+      // Selectors 4 forbids whitespace between `+` and what follows,
+      // and forbids `+ <signed-integer>` (which is just `<signed-integer>`).
       let _ = self.advance()
       match self.peek() {
         Ident(kw) => {
           let kw_lower = kw.to_lower()
           if kw_lower == "n" {
             let _ = self.advance()
-            self.skip_whitespace()
-            let b = self.parse_nth_b()
-            return Some({ a: 1, b })
+            return self.finish_nth_after_n(1)
           }
           if kw_lower == "n-" {
-            let _ = self.advance()
-            self.skip_whitespace()
-            match self.peek() {
-              Number(n, _) => {
-                let _ = self.advance()
-                return Some({ a: 1, b: -n.to_int() })
-              }
-              _ => return None
-            }
+            return self.finish_ndash_int(1)
           }
           match ndashdigit_to_b(kw_lower, "n-") {
             Some(b) => {
@@ -1298,35 +1282,95 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
             None => return None
           }
         }
-        Number(num, _) => {
+        _ => return None
+      }
+    }
+    _ => return None
+  }
+}
+
+///|
+/// After consuming a `<n-form>-` shape (`n-`, `-n-`, `<int>n-`),
+/// require a signless integer next. WPT cases like `5n- 5` are valid
+/// (canonicalize to `5n-5`); `5n- -5` / `5n- +5` are parse errors.
+fn SelectorParser::finish_ndash_int(
+  self : SelectorParser,
+  a : Int,
+) -> NthExpr? {
+  let _ = self.advance()
+  self.skip_whitespace()
+  match self.peek() {
+    Number(n, _) => {
+      // When sign info is available, enforce signless; legacy callers
+      // (parser built without signs) keep the lenient behavior.
+      match self.signs {
+        Some(_) => if self.is_signed_at(self.pos) { return None }
+        None => ()
+      }
+      let _ = self.advance()
+      Some({ a, b: -n.to_int() })
+    }
+    _ => None
+  }
+}
+
+///|
+/// After consuming an `<n-form>` (`n`, `-n`, `+n`, or `<int>n`) with
+/// coefficient `a`, optionally parse the trailing `b` part:
+///   <signed-integer>  → b = signed value (e.g. `5n -3`)
+///   '+' <signless>    → b = +value
+///   '-' <signless>    → b = -value
+///   (nothing)         → b = 0
+/// Returns None if any of the surrounding shapes are spec-invalid
+/// (e.g. `5n +3` with double sign, `5n 3` with no operator).
+fn SelectorParser::finish_nth_after_n(
+  self : SelectorParser,
+  a : Int,
+) -> NthExpr? {
+  // Snapshot position to peek the next non-whitespace token; we need
+  // to distinguish "no whitespace" from "whitespace + signed-integer".
+  self.skip_whitespace()
+  match self.peek() {
+    Delim('+') => {
+      let _ = self.advance()
+      self.skip_whitespace()
+      match self.peek() {
+        Number(n, _) => {
+          if self.is_signed_at(self.pos) {
+            return None
+          }
           let _ = self.advance()
-          return Some({ a: 0, b: num.to_int() })
+          return Some({ a, b: n.to_int() })
         }
         _ => return None
       }
     }
     Delim('-') => {
-      // Same: `-` immediately followed by `n` (or signless N).
       let _ = self.advance()
+      self.skip_whitespace()
       match self.peek() {
-        Ident(kw) => {
-          let kw_lower = kw.to_lower()
-          if kw_lower == "n" {
-            let _ = self.advance()
-            self.skip_whitespace()
-            let b = self.parse_nth_b()
-            return Some({ a: -1, b })
+        Number(n, _) => {
+          if self.is_signed_at(self.pos) {
+            return None
           }
-          return None
-        }
-        Number(num, _) => {
           let _ = self.advance()
-          return Some({ a: 0, b: -num.to_int() })
+          return Some({ a, b: -n.to_int() })
         }
         _ => return None
       }
     }
-    _ => return None
+    Number(n, _) => {
+      // <signed-integer> form. The number MUST have an explicit sign
+      // (else it'd be `<n-form> <signless-int>` which is invalid).
+      // Legacy callers without sign info accept this for back-compat.
+      match self.signs {
+        Some(_) => if !self.is_signed_at(self.pos) { return None }
+        None => ()
+      }
+      let _ = self.advance()
+      return Some({ a, b: n.to_int() })
+    }
+    _ => return Some({ a, b: 0 })
   }
 }
 
@@ -1351,40 +1395,6 @@ fn ndashdigit_to_b(name : String, prefix : String) -> Int? {
   }
   let n = @string.parse_int(digits) catch { _ => return None }
   Some(-n)
-}
-
-///|
-fn SelectorParser::parse_nth_b(self : SelectorParser) -> Int {
-  match self.peek() {
-    Delim('+') => {
-      let _ = self.advance()
-      self.skip_whitespace()
-      match self.peek() {
-        Number(num, _) => {
-          let _ = self.advance()
-          num.to_int()
-        }
-        _ => 0
-      }
-    }
-    Delim('-') => {
-      let _ = self.advance()
-      self.skip_whitespace()
-      match self.peek() {
-        Number(num, _) => {
-          let _ = self.advance()
-          -num.to_int()
-        }
-        _ => 0
-      }
-    }
-    Number(num, _) => {
-      // Number might include sign
-      let _ = self.advance()
-      num.to_int()
-    }
-    _ => 0
-  }
 }
 
 ///|
@@ -1476,15 +1486,15 @@ fn SelectorParser::parse_relative_selector_list_until_paren(
 ///|
 /// Convenience function to parse a selector from CSS text
 pub fn parse_selector_text(css : String) -> ComplexSelector? {
-  let tokens = @token.tokenize(css)
-  parse_selector(tokens)
+  let (tokens, signs) = @token.tokenize_with_signs(css)
+  SelectorParser::new_with_signs(tokens, signs).parse_top_selector()
 }
 
 ///|
 /// Convenience function to parse a selector list from CSS text
 pub fn parse_selector_list_text(css : String) -> SelectorList? {
-  let tokens = @token.tokenize(css)
-  parse_selector_list(tokens)
+  let (tokens, signs) = @token.tokenize_with_signs(css)
+  SelectorParser::new_with_signs(tokens, signs).parse_selector_list()
 }
 
 ///|
