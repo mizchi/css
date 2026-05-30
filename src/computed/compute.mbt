@@ -3262,7 +3262,7 @@ fn parse_calc_string(expr : String, ctx : ComputeContext) -> @types.Dimension? {
       } else if result_px.abs() < 0.0001 {
         Some(@types.Percent(result_percent))
       } else {
-        None
+        Some(@types.Calc(result_px, result_percent))
       }
     None => None
   }
@@ -3306,8 +3306,15 @@ fn resolve_dimension_with_calc_percent_fallback(
               } else {
                 percent_ratio
               }
-              let basis = mixed_calc_width_reference(ctx)
-              @types.Length(basis * percent_for_resolution + length_px)
+              if length_px.abs() >= 0.0001 {
+                // Preserve mixed calc() losslessly (px + percent) so layout
+                // can resolve it against the correct containing-block basis,
+                // e.g. table column widths. See mizchi/crater#67.
+                @types.Calc(length_px, percent_for_resolution)
+              } else {
+                let basis = mixed_calc_width_reference(ctx)
+                @types.Length(basis * percent_for_resolution + length_px)
+              }
             } else if length_px.abs() >= 0.0001 {
               @types.Length(length_px)
             } else {
@@ -3337,12 +3344,10 @@ fn resolve_dimension_with_mixed_calc_fallback(
         match parse_calc_terms(value, ctx) {
           Some((length_px, percent_ratio)) =>
             if length_px.abs() >= 0.0001 && percent_ratio.abs() >= 0.0001 {
-              match property {
-                "min-width" => @types.Length(length_px)
-                "min-height" =>
-                  @types.Length(ctx.viewport_width * percent_ratio)
-                _ => dim
-              }
+              // Preserve mixed calc() losslessly; resolved at layout time
+              // against the property's containing-block basis. crater#67.
+              ignore(property)
+              @types.Calc(length_px, percent_ratio)
             } else {
               dim
             }

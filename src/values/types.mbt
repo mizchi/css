@@ -177,6 +177,11 @@ pub(all) enum Dimension {
   MinContent // Intrinsic minimum content size
   MaxContent // Intrinsic maximum content size
   FitContent(Double) // fit-content(length) - clamp between min-content and max-content
+  // Mixed calc() carrying both a fixed length (px) and a percentage ratio,
+  // e.g. calc(100% - 20px) => Calc(px=-20.0, percent=1.0). Resolves to
+  // `px + percent * basis` once a containing-block basis is known at layout
+  // time. Pure-length / pure-percent calc() stay Length / Percent.
+  Calc(Double, Double) // Calc(px, percent_ratio)
 } derive(Eq)
 
 ///|
@@ -218,6 +223,13 @@ pub impl Show for Dimension with output(self, logger) {
       v.output(logger)
       logger.write_string(")")
     }
+    Calc(px, pct) => {
+      logger.write_string("Calc(")
+      px.output(logger)
+      logger.write_string(", ")
+      pct.output(logger)
+      logger.write_string(")")
+    }
   }
 }
 
@@ -229,6 +241,7 @@ pub fn Dimension::resolve(self : Dimension, context : Double) -> Double? {
   match self {
     Length(v) => Some(v)
     Percent(v) => Some(context * v)
+    Calc(px, pct) => Some(px + pct * context)
     Auto => None
     MinContent => None // Requires intrinsic size calculation
     MaxContent => None // Requires intrinsic size calculation
@@ -253,7 +266,7 @@ pub fn Dimension::resolve_or(
 /// Check if dimension is a definite value (Length or Percent)
 pub fn Dimension::is_definite(self : Dimension) -> Bool {
   match self {
-    Length(_) | Percent(_) => true
+    Length(_) | Percent(_) | Calc(_, _) => true
     _ => false
   }
 }
@@ -277,6 +290,7 @@ pub fn Dimension::resolve_or_intrinsic(
   match self {
     Length(v) => v
     Percent(p) => context * p
+    Calc(px, p) => px + context * p
     Auto => fallback
     MinContent => fallback // Intrinsic sizing handled by layout engine
     MaxContent => fallback
@@ -307,6 +321,7 @@ pub fn resolve_rect_intrinsic(rect : Rect[Dimension]) -> Rect[Double] {
     match dim {
       Length(v) => v
       Percent(_) => 0.0
+      Calc(px, _) => px // percent resolves to 0 in intrinsic context; keep px
       Auto => 0.0
       MinContent => 0.0 // Not applicable for margin/padding/border
       MaxContent => 0.0
