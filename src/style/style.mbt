@@ -501,6 +501,7 @@ pub fn Style::has_multicol(self : Style) -> Bool {
       match self.column_width {
         @types.Length(v) => v > 0.0
         @types.Percent(v) => v > 0.0
+        @types.Calc(px, pct) => px > 0.0 || pct > 0.0
         @types.Auto
         | @types.MinContent
         | @types.MaxContent
@@ -523,7 +524,7 @@ pub(all) enum VerticalAlign {
 } derive(Debug, Eq)
 
 ///|
-pub impl Show for BorderStyle with output(self, logger) {
+pub impl Show for BorderStyle with fn output(self, logger) {
   let name = match self {
     None => "None"
     Inset => "Inset"
@@ -540,7 +541,7 @@ pub impl Show for BorderStyle with output(self, logger) {
 }
 
 ///|
-pub impl Show for BorderCollapse with output(self, logger) {
+pub impl Show for BorderCollapse with fn output(self, logger) {
   let name = match self {
     Separate => "Separate"
     Collapse => "Collapse"
@@ -549,7 +550,7 @@ pub impl Show for BorderCollapse with output(self, logger) {
 }
 
 ///|
-pub impl Show for TableLayout with output(self, logger) {
+pub impl Show for TableLayout with fn output(self, logger) {
   let name = match self {
     Auto => "Auto"
     Fixed => "Fixed"
@@ -558,7 +559,7 @@ pub impl Show for TableLayout with output(self, logger) {
 }
 
 ///|
-pub impl Show for CaptionSide with output(self, logger) {
+pub impl Show for CaptionSide with fn output(self, logger) {
   let name = match self {
     Top => "Top"
     Bottom => "Bottom"
@@ -567,7 +568,7 @@ pub impl Show for CaptionSide with output(self, logger) {
 }
 
 ///|
-pub impl Show for WhiteSpace with output(self, logger) {
+pub impl Show for WhiteSpace with fn output(self, logger) {
   let name = match self {
     Normal => "Normal"
     Nowrap => "Nowrap"
@@ -579,7 +580,7 @@ pub impl Show for WhiteSpace with output(self, logger) {
 }
 
 ///|
-pub impl Show for TextOverflow with output(self, logger) {
+pub impl Show for TextOverflow with fn output(self, logger) {
   let name = match self {
     Clip => "Clip"
     Ellipsis => "Ellipsis"
@@ -588,7 +589,7 @@ pub impl Show for TextOverflow with output(self, logger) {
 }
 
 ///|
-pub impl Show for WritingMode with output(self, logger) {
+pub impl Show for WritingMode with fn output(self, logger) {
   let name = match self {
     HorizontalTb => "HorizontalTb"
     VerticalRl => "VerticalRl"
@@ -598,7 +599,7 @@ pub impl Show for WritingMode with output(self, logger) {
 }
 
 ///|
-pub impl Show for Direction with output(self, logger) {
+pub impl Show for Direction with fn output(self, logger) {
   let name = match self {
     Ltr => "Ltr"
     Rtl => "Rtl"
@@ -607,7 +608,7 @@ pub impl Show for Direction with output(self, logger) {
 }
 
 ///|
-pub impl Show for TextAlign with output(self, logger) {
+pub impl Show for TextAlign with fn output(self, logger) {
   let name = match self {
     Start => "Start"
     End => "End"
@@ -620,7 +621,7 @@ pub impl Show for TextAlign with output(self, logger) {
 }
 
 ///|
-pub impl Show for ScrollSnapAxis with output(self, logger) {
+pub impl Show for ScrollSnapAxis with fn output(self, logger) {
   let name = match self {
     None => "None"
     X => "X"
@@ -631,7 +632,7 @@ pub impl Show for ScrollSnapAxis with output(self, logger) {
 }
 
 ///|
-pub impl Show for ScrollSnapStrictness with output(self, logger) {
+pub impl Show for ScrollSnapStrictness with fn output(self, logger) {
   let name = match self {
     None => "None"
     Mandatory => "Mandatory"
@@ -641,7 +642,7 @@ pub impl Show for ScrollSnapStrictness with output(self, logger) {
 }
 
 ///|
-pub impl Show for ScrollSnapType with output(self, logger) {
+pub impl Show for ScrollSnapType with fn output(self, logger) {
   logger.write_string("{axis: ")
   logger.write_string(self.axis.to_string())
   logger.write_string(", strictness: ")
@@ -650,7 +651,7 @@ pub impl Show for ScrollSnapType with output(self, logger) {
 }
 
 ///|
-pub impl Show for ScrollSnapAlign with output(self, logger) {
+pub impl Show for ScrollSnapAlign with fn output(self, logger) {
   let name = match self {
     None => "None"
     Start => "Start"
@@ -661,7 +662,7 @@ pub impl Show for ScrollSnapAlign with output(self, logger) {
 }
 
 ///|
-pub impl Show for Visibility with output(self, logger) {
+pub impl Show for Visibility with fn output(self, logger) {
   let name = match self {
     Visible => "Visible"
     Hidden => "Hidden"
@@ -671,7 +672,7 @@ pub impl Show for Visibility with output(self, logger) {
 }
 
 ///|
-pub impl Show for PointerEvents with output(self, logger) {
+pub impl Show for PointerEvents with fn output(self, logger) {
   let name = match self {
     Auto => "Auto"
     None => "None"
@@ -680,7 +681,7 @@ pub impl Show for PointerEvents with output(self, logger) {
 }
 
 ///|
-pub impl Show for MarginTrim with output(self, logger) {
+pub impl Show for MarginTrim with fn output(self, logger) {
   let name = match self {
     None => "None"
     BlockStart => "BlockStart"
@@ -694,7 +695,7 @@ pub impl Show for MarginTrim with output(self, logger) {
 }
 
 ///|
-pub impl Show for ColumnFill with output(self, logger) {
+pub impl Show for ColumnFill with fn output(self, logger) {
   let name = match self {
     Balance => "Balance"
     Auto => "Auto"
@@ -703,7 +704,7 @@ pub impl Show for ColumnFill with output(self, logger) {
 }
 
 ///|
-pub impl Show for BreakBefore with output(self, logger) {
+pub impl Show for BreakBefore with fn output(self, logger) {
   let name = match self {
     Auto => "Auto"
     Column => "Column"
@@ -713,7 +714,7 @@ pub impl Show for BreakBefore with output(self, logger) {
 }
 
 ///|
-pub impl Show for BreakInside with output(self, logger) {
+pub impl Show for BreakInside with fn output(self, logger) {
   let name = match self {
     Auto => "Auto"
     Avoid => "Avoid"
@@ -722,7 +723,7 @@ pub impl Show for BreakInside with output(self, logger) {
 }
 
 ///|
-pub impl Show for ColumnSpan with output(self, logger) {
+pub impl Show for ColumnSpan with fn output(self, logger) {
   let name = match self {
     None => "None"
     All => "All"
@@ -731,7 +732,7 @@ pub impl Show for ColumnSpan with output(self, logger) {
 }
 
 ///|
-pub impl Show for ZIndex with output(self, logger) {
+pub impl Show for ZIndex with fn output(self, logger) {
   let text = match self {
     Auto => "Auto"
     Value(v) => "Value(\{v})"
@@ -740,7 +741,7 @@ pub impl Show for ZIndex with output(self, logger) {
 }
 
 ///|
-pub impl Show for TranslateValue with output(self, logger) {
+pub impl Show for TranslateValue with fn output(self, logger) {
   let text = match self {
     Length(v) => "Length(\{v})"
     Percent(v) => "Percent(\{v})"
@@ -749,7 +750,7 @@ pub impl Show for TranslateValue with output(self, logger) {
 }
 
 ///|
-pub impl Show for Transform with output(self, logger) {
+pub impl Show for Transform with fn output(self, logger) {
   logger.write_string("{translate_x: ")
   logger.write_string(self.translate_x.to_string())
   logger.write_string(", translate_y: ")
@@ -783,7 +784,7 @@ pub impl Show for Transform with output(self, logger) {
 }
 
 ///|
-pub impl Show for Contain with output(self, logger) {
+pub impl Show for Contain with fn output(self, logger) {
   logger.write_string("{size: ")
   logger.write_string(self.size.to_string())
   logger.write_string(", inline_size: ")
@@ -798,7 +799,7 @@ pub impl Show for Contain with output(self, logger) {
 }
 
 ///|
-pub impl Show for VerticalAlign with output(self, logger) {
+pub impl Show for VerticalAlign with fn output(self, logger) {
   let name = match self {
     Baseline => "Baseline"
     Top => "Top"

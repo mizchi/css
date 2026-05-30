@@ -203,6 +203,13 @@ test "compute_inline columns shorthand parses count and width" {
 }
 
 ///|
+test "compute_inline column-width preserves mixed calc" {
+  let ctx = @computed.ComputeContext::new()
+  let style = @computed.compute_inline("column-width: calc(50% - 10px)", ctx)
+  inspect(style.column_width, content="Calc(-10, 0.5)")
+}
+
+///|
 test "compute_inline break-before and column-span parse values" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
@@ -514,7 +521,7 @@ test "compute_inline calc dynamic viewport units" {
 }
 
 ///|
-test "compute_inline calc mixed width resolves with fallback basis" {
+test "compute_inline calc mixed width preserves layout-time basis" {
   let ctx : @computed.ComputeContext = {
     parent_style: None,
     root_font_size: 16.0,
@@ -524,7 +531,7 @@ test "compute_inline calc mixed width resolves with fallback basis" {
     custom_properties: {},
   }
   let style = @computed.compute_inline("width: calc(50% - 10px)", ctx)
-  inspect(style.width, content="Length(390)")
+  inspect(style.width, content="Calc(-10, 0.5)")
 }
 
 ///|
@@ -545,7 +552,7 @@ test "compute_inline gap shorthand two values" {
 }
 
 ///|
-test "compute_inline mixed calc gap resolves with fallback basis" {
+test "compute_inline mixed calc gap preserves layout-time basis" {
   let ctx : @computed.ComputeContext = {
     parent_style: None,
     root_font_size: 16.0,
@@ -555,8 +562,8 @@ test "compute_inline mixed calc gap resolves with fallback basis" {
     custom_properties: {},
   }
   let style = @computed.compute_inline("gap: calc(10% - 1rem / 2)", ctx)
-  inspect(style.row_gap, content="Length(72)")
-  inspect(style.column_gap, content="Length(72)")
+  inspect(style.row_gap, content="Calc(-8, 0.05)")
+  inspect(style.column_gap, content="Calc(-8, 0.05)")
 }
 
 ///|
@@ -2540,6 +2547,14 @@ test "Inherit - column-* values" {
   inspect(
     compute_inheriting("column-width", parent).column_width,
     content="Length(100)",
+  )
+  let parent_calc : @style.Style = {
+    ..@style.Style::default(),
+    column_width: @types.Calc(-10.0, 0.5),
+  }
+  inspect(
+    compute_inheriting("column-width", parent_calc).column_width,
+    content="Calc(-10, 0.5)",
   )
   inspect(compute_inheriting("column-fill", parent).column_fill, content="Auto")
   inspect(

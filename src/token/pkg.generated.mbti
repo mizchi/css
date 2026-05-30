@@ -4,6 +4,8 @@ package "mizchi/css/token"
 // Values
 pub fn tokenize(String) -> Array[Token]
 
+pub fn tokenize_with_signs(String) -> (Array[Token], Array[Bool])
+
 // Errors
 
 // Types and methods

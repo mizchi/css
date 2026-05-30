@@ -94,9 +94,7 @@ fn SelectorParser::skip_whitespace(self : SelectorParser) -> Unit {
 
 ///|
 /// Parse a selector list (comma-separated) from a constructed parser.
-fn SelectorParser::parse_selector_list(
-  self : SelectorParser,
-) -> SelectorList? {
+fn SelectorParser::parse_selector_list(self : SelectorParser) -> SelectorList? {
   self.skip_whitespace()
   let selectors : Array[ComplexSelector] = []
   match self.parse_complex_selector() {
@@ -1293,10 +1291,7 @@ fn SelectorParser::parse_nth_expr(self : SelectorParser) -> NthExpr? {
 /// After consuming a `<n-form>-` shape (`n-`, `-n-`, `<int>n-`),
 /// require a signless integer next. WPT cases like `5n- 5` are valid
 /// (canonicalize to `5n-5`); `5n- -5` / `5n- +5` are parse errors.
-fn SelectorParser::finish_ndash_int(
-  self : SelectorParser,
-  a : Int,
-) -> NthExpr? {
+fn SelectorParser::finish_ndash_int(self : SelectorParser, a : Int) -> NthExpr? {
   let _ = self.advance()
   self.skip_whitespace()
   match self.peek() {

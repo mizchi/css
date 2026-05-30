@@ -45,7 +45,7 @@ pub fn CssColorValue::or_default(
 }
 
 ///|
-pub impl Show for CssColorValue with output(self, logger) {
+pub impl Show for CssColorValue with fn output(self, logger) {
   match self {
     Resolved(c) => c.output(logger)
     CurrentColor => logger.write_string("currentColor")

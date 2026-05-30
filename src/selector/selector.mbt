@@ -21,7 +21,7 @@ pub enum AttributeMatch {
 }
 
 ///|
-pub impl Show for AttributeMatch with output(self, logger) {
+pub impl Show for AttributeMatch with fn output(self, logger) {
   match self {
     Exists => logger.write_string("Exists")
     Exact(v) => {
@@ -72,7 +72,7 @@ pub struct AttributeSelector {
 }
 
 ///|
-pub impl Show for AttributeSelector with output(self, logger) {
+pub impl Show for AttributeSelector with fn output(self, logger) {
   logger.write_string("[")
   if self.any_namespace {
     logger.write_string("*|")
@@ -99,7 +99,7 @@ pub struct NthExpr {
 }
 
 ///|
-pub impl Show for NthExpr with output(self, logger) {
+pub impl Show for NthExpr with fn output(self, logger) {
   if self.a == 0 {
     logger.write_string(self.b.to_string())
   } else if self.a == 1 {
@@ -193,7 +193,7 @@ pub enum PseudoClass {
 }
 
 ///|
-pub impl Show for PseudoClass with output(self, logger) {
+pub impl Show for PseudoClass with fn output(self, logger) {
   match self {
     FirstChild => logger.write_string(":first-child")
     LastChild => logger.write_string(":last-child")
@@ -310,7 +310,7 @@ pub enum PseudoElement {
 }
 
 ///|
-pub impl Show for PseudoElement with output(self, logger) {
+pub impl Show for PseudoElement with fn output(self, logger) {
   match self {
     Before => logger.write_string("::before")
     After => logger.write_string("::after")
@@ -360,7 +360,7 @@ pub enum SimpleSelector {
 }
 
 ///|
-pub impl Show for SimpleSelector with output(self, logger) {
+pub impl Show for SimpleSelector with fn output(self, logger) {
   match self {
     Type(name) => logger.write_string(name)
     Universal => logger.write_string("*")
@@ -393,7 +393,7 @@ pub struct CompoundSelector {
 }
 
 ///|
-pub impl Show for CompoundSelector with output(self, logger) {
+pub impl Show for CompoundSelector with fn output(self, logger) {
   match self.type_selector {
     Some(Universal) =>
       // Canonical form drops `*|*` when combined with other subclasses.
@@ -424,7 +424,7 @@ pub enum Combinator {
 }
 
 ///|
-pub impl Show for Combinator with output(self, logger) {
+pub impl Show for Combinator with fn output(self, logger) {
   match self {
     Descendant => logger.write_string(" ")
     Child => logger.write_string(" > ")
@@ -452,7 +452,7 @@ pub struct ComplexSelector {
 }
 
 ///|
-pub impl Show for ComplexSelector with output(self, logger) {
+pub impl Show for ComplexSelector with fn output(self, logger) {
   // Print from left to right (tail is reversed order)
   let parts : Array[String] = []
   for i = self.tail.length() - 1; i >= 0; i = i - 1 {
@@ -487,7 +487,7 @@ pub struct SelectorList {
 }
 
 ///|
-pub impl Show for SelectorList with output(self, logger) {
+pub impl Show for SelectorList with fn output(self, logger) {
   for i, sel in self.selectors {
     if i > 0 {
       logger.write_string(", ")
@@ -508,7 +508,7 @@ pub(all) struct Specificity {
 } derive(Eq, Compare)
 
 ///|
-pub impl Show for Specificity with output(self, logger) {
+pub impl Show for Specificity with fn output(self, logger) {
   logger.write_string("(")
   logger.write_string(self.a.to_string())
   logger.write_string(",")

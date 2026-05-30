@@ -37,7 +37,7 @@ pub fn[T] Size::new(width : T, height : T) -> Size[T] {
 }
 
 ///|
-pub impl[T : Show] Show for Size[T] with output(self, logger) {
+pub impl[T : Show] Show for Size[T] with fn output(self, logger) {
   logger.write_string("Size { width: ")
   self.width.output(logger)
   logger.write_string(", height: ")
@@ -68,7 +68,7 @@ pub fn[T] Point::new(x : T, y : T) -> Point[T] {
 }
 
 ///|
-pub impl[T : Show] Show for Point[T] with output(self, logger) {
+pub impl[T : Show] Show for Point[T] with fn output(self, logger) {
   logger.write_string("Point { x: ")
   self.x.output(logger)
   logger.write_string(", y: ")
@@ -102,7 +102,7 @@ pub fn[T] Rect::new(left : T, right : T, top : T, bottom : T) -> Rect[T] {
 }
 
 ///|
-pub impl[T : Show] Show for Rect[T] with output(self, logger) {
+pub impl[T : Show] Show for Rect[T] with fn output(self, logger) {
   logger.write_string("Rect { left: ")
   self.left.output(logger)
   logger.write_string(", right: ")
@@ -160,7 +160,7 @@ pub fn[T] Line::new(start : T, end : T) -> Line[T] {
 }
 
 ///|
-pub impl[T : Show] Show for Line[T] with output(self, logger) {
+pub impl[T : Show] Show for Line[T] with fn output(self, logger) {
   logger.write_string("Line { start: ")
   self.start.output(logger)
   logger.write_string(", end: ")
@@ -203,7 +203,7 @@ pub fn Dimension::eq_percent(self : Dimension, value : Double) -> Bool {
 }
 
 ///|
-pub impl Show for Dimension with output(self, logger) {
+pub impl Show for Dimension with fn output(self, logger) {
   match self {
     Length(v) => {
       logger.write_string("Length(")
@@ -358,7 +358,7 @@ pub fn BoundingRect::new(
 }
 
 ///|
-pub impl Show for BoundingRect with output(self, logger) {
+pub impl Show for BoundingRect with fn output(self, logger) {
   logger.write_string("BoundingRect { x: ")
   self.x.output(logger)
   logger.write_string(", y: ")
@@ -514,7 +514,7 @@ pub(all) enum ClipRect {
 } derive(Eq)
 
 ///|
-pub impl Show for ClipRect with output(self, logger) {
+pub impl Show for ClipRect with fn output(self, logger) {
   match self {
     Auto => logger.write_string("auto")
     Rect(top~, right~, bottom~, left~) => {

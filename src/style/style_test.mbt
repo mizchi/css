@@ -207,6 +207,16 @@ test "Style::has_multicol with column-width set" {
   assert_true(s.has_multicol())
   let s_zero : Style = { ..Style::default(), column_width: @types.Length(0.0) }
   assert_false(s_zero.has_multicol())
+  let s_calc : Style = {
+    ..Style::default(),
+    column_width: @types.Calc(-10.0, 0.5),
+  }
+  assert_true(s_calc.has_multicol())
+  let s_negative_calc : Style = {
+    ..Style::default(),
+    column_width: @types.Calc(-10.0, -0.5),
+  }
+  assert_false(s_negative_calc.has_multicol())
 }
 
 ///|

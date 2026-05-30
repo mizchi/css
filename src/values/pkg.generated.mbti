@@ -117,6 +117,7 @@ pub(all) enum Dimension {
   MinContent
   MaxContent
   FitContent(Double)
+  Calc(Double, Double)
 } derive(Eq)
 pub fn Dimension::eq_length(Self, Double) -> Bool
 pub fn Dimension::eq_percent(Self, Double) -> Bool

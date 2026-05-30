@@ -940,6 +940,14 @@ fn dimension_to_string(dim : @types.Dimension) -> String {
     @types.Dimension::MinContent => "min-content"
     @types.Dimension::MaxContent => "max-content"
     @types.Dimension::FitContent(n) => "fit-content(" + n.to_string() + "px)"
+    @types.Dimension::Calc(px, pct) => {
+      let pct_part = (pct * 100.0).to_string() + "%"
+      if px < 0.0 {
+        "calc(" + pct_part + " - " + (-px).to_string() + "px)"
+      } else {
+        "calc(" + pct_part + " + " + px.to_string() + "px)"
+      }
+    }
   }
 }
 
@@ -1837,6 +1845,10 @@ fn apply_property(
       match dim {
         @types.Length(v) => if v >= 0.0 { builder.flex_basis = dim }
         @types.Percent(v) => if v >= 0.0 { builder.flex_basis = dim }
+        @types.Calc(px, pct) =>
+          if px > 0.0 || pct > 0.0 {
+            builder.flex_basis = dim
+          }
         @types.Auto => builder.flex_basis = dim
         @types.MinContent => builder.flex_basis = dim
         @types.MaxContent => builder.flex_basis = dim
@@ -2935,6 +2947,7 @@ fn parse_css_value_to_px(value : String, ctx : ComputeContext) -> Double? {
   match dim {
     @types.Length(px) => Some(px)
     @types.Percent(_) => None // Cannot simplify percentages
+    @types.Calc(_, _) => None // Mixed calc needs a layout basis
     @types.Auto => None
     @types.MinContent => None
     @types.MaxContent => None
@@ -4332,6 +4345,7 @@ fn resolve_dimension_to_px(dim : @types.Dimension) -> Double {
   match dim {
     @types.Length(v) => v
     @types.Percent(_) => 0.0 // Percentages are resolved later
+    @types.Calc(px, _) => px // Percent component is resolved later
     @types.Auto => 0.0
     @types.MinContent => 0.0 // Intrinsic sizing resolved during layout
     @types.MaxContent => 0.0
@@ -4648,6 +4662,12 @@ fn parse_column_width(value : String, ctx : ComputeContext) -> @types.Dimension 
     @types.Dimension::Percent(v) =>
       if v > 0.0 {
         @types.Dimension::Percent(v)
+      } else {
+        @types.Dimension::Auto
+      }
+    @types.Dimension::Calc(px, pct) =>
+      if px > 0.0 || pct > 0.0 {
+        @types.Dimension::Calc(px, pct)
       } else {
         @types.Dimension::Auto
       }
