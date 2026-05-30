@@ -53,6 +53,250 @@ test "min and max helpers" {
 }
 
 ///|
+fn assert_close(actual : Double, expected : Double) -> Unit raise {
+  assert_true((actual - expected).abs() < 0.000000001)
+}
+
+///|
+fn assert_easing_sample(
+  easing : Easing?,
+  progress : Double,
+  expected : Double,
+) -> Unit raise {
+  match easing {
+    Some(easing) => assert_close(easing.sample(progress), expected)
+    None => fail("expected easing")
+  }
+}
+
+///|
+test "Easing::sample linear and cubic presets" {
+  inspect(Easing::Linear.sample(0.5), content="0.5")
+  assert_close(Easing::EaseIn.sample(0.5), 0.31535681250589304)
+  assert_close(Easing::EaseOut.sample(0.5), 0.6846431874941068)
+  assert_close(Easing::EaseInOut.sample(0.5), 0.5)
+}
+
+///|
+test "Easing::sample clamps progress" {
+  inspect(Easing::Linear.sample(-0.25), content="0")
+  inspect(Easing::Linear.sample(1.25), content="1")
+}
+
+///|
+test "Easing::sample cubic-bezier" {
+  let easing = Easing::cubic_bezier(0.25, 0.1, 0.25, 1.0)
+  inspect(easing, content="CubicBezier(0.25, 0.1, 0.25, 1)")
+  assert_close(easing.sample(0.5), 0.8024033876954126)
+}
+
+///|
+test "Easing::sample steps" {
+  let start = Easing::steps(4, StepPosition::Start)
+  let end = Easing::steps(4, StepPosition::End)
+  inspect(start.sample(0.0), content="0.25")
+  inspect(start.sample(0.24), content="0.25")
+  inspect(end.sample(0.24), content="0")
+  inspect(end.sample(0.25), content="0.25")
+  inspect(end.sample(1.0), content="1")
+}
+
+///|
+test "Easing::sample CSS step positions" {
+  let jump_none = Easing::steps(4, StepPosition::JumpNone)
+  let jump_both = Easing::steps(4, StepPosition::JumpBoth)
+  inspect(jump_none.sample(0.0), content="0")
+  assert_close(jump_none.sample(0.25), 1.0 / 3.0)
+  inspect(jump_none.sample(1.0), content="1")
+  inspect(jump_both.sample(0.0), content="0.2")
+  inspect(jump_both.sample(0.25), content="0.4")
+  inspect(jump_both.sample(1.0), content="1")
+}
+
+///|
+test "parse_easing CSS step aliases" {
+  debug_inspect(parse_easing("step-start"), content="Some(Steps(1, Start))")
+  debug_inspect(parse_easing("step-end"), content="Some(Steps(1, End))")
+  debug_inspect(
+    parse_easing("steps(4, jump-start)"),
+    content="Some(Steps(4, Start))",
+  )
+  debug_inspect(
+    parse_easing("steps(4, jump-end)"),
+    content="Some(Steps(4, End))",
+  )
+}
+
+///|
+test "Easing::sample CSS linear function" {
+  match
+    Easing::linear([
+      LinearEasingPoint::new(0.0, 0.0),
+      LinearEasingPoint::new(0.5, 0.25),
+      LinearEasingPoint::new(1.0, 1.0),
+    ]) {
+    Some(easing) => assert_close(easing.sample(0.75), 0.625)
+    None => fail("expected linear easing")
+  }
+  debug_inspect(
+    Easing::linear([LinearEasingPoint::new(0.0, 0.0)]),
+    content="None",
+  )
+  debug_inspect(
+    Easing::linear([
+      LinearEasingPoint::new(1.0, 1.0),
+      LinearEasingPoint::new(0.0, 0.0),
+    ]),
+    content="None",
+  )
+  assert_easing_sample(parse_easing("linear(0, 0.25, 1)"), 0.25, 0.125)
+  assert_easing_sample(parse_easing("linear(0, 0.25, 1)"), 0.5, 0.25)
+  assert_easing_sample(parse_easing("linear(0, 0.25, 1)"), 0.75, 0.625)
+  assert_easing_sample(parse_easing("linear(0, 0.25 25% 75%, 1)"), 0.5, 0.25)
+  assert_easing_sample(parse_easing("linear(0, 0.25 25% 75%, 1)"), 0.875, 0.625)
+  assert_easing_sample(parse_easing("linear(0 20%, 0.5 10%, 1)"), 0.2, 0.5)
+  assert_easing_sample(parse_easing("linear(0 0%, 1 100%)"), 0.5, 0.5)
+  assert_easing_sample(parse_easing("linear(0, 0 50%, 1)"), 0.25, 0.0)
+  assert_easing_sample(parse_easing("linear(0, 0 50%, 1)"), 0.75, 0.5)
+  assert_easing_sample(parse_easing("linear(-0.25, 1.25)"), 0.5, 0.5)
+  debug_inspect(parse_easing("linear(0)"), content="None")
+  debug_inspect(parse_easing("linear()"), content="None")
+  debug_inspect(parse_easing("linear(0%, 1)"), content="None")
+  debug_inspect(parse_easing("linear(0, 1 garbage)"), content="None")
+  debug_inspect(parse_easing("linear(0 0% 50% 75%, 1)"), content="None")
+}
+
+///|
+test "Easing::apply interpolates values" {
+  assert_close(Easing::EaseInQuad.apply(10.0, 20.0, 0.5), 12.5)
+  assert_close(Easing::EaseOutQuad.apply(20.0, 10.0, 0.5), 12.5)
+  inspect(Easing::Linear.apply(10.0, 20.0, -1.0), content="10")
+  inspect(Easing::Linear.apply(10.0, 20.0, 2.0), content="20")
+  assert_close(Easing::EaseOutBack.apply(0.0, 100.0, 0.5), 108.76975)
+}
+
+///|
+test "Easing::frames exposes intermediate values" {
+  let frames = Easing::EaseInQuad.frames(0.0, 100.0, 5)
+  inspect(frames.length(), content="5")
+  assert_close(frames[0].progress, 0.0)
+  assert_close(frames[0].eased_progress, 0.0)
+  assert_close(frames[0].value, 0.0)
+  assert_close(frames[1].progress, 0.25)
+  assert_close(frames[1].eased_progress, 0.0625)
+  assert_close(frames[1].value, 6.25)
+  assert_close(frames[2].progress, 0.5)
+  assert_close(frames[2].eased_progress, 0.25)
+  assert_close(frames[2].value, 25.0)
+  assert_close(frames[4].progress, 1.0)
+  assert_close(frames[4].eased_progress, 1.0)
+  assert_close(frames[4].value, 100.0)
+
+  inspect(Easing::Linear.frames(0.0, 10.0, 0).length(), content="0")
+  let single = Easing::EaseOutQuad.frames(0.0, 10.0, 1)
+  inspect(single.length(), content="1")
+  assert_close(single[0].progress, 0.0)
+  assert_close(single[0].value, 0.0)
+
+  let clamped = Easing::EaseInQuad.frame(0.0, 10.0, 2.0)
+  assert_close(clamped.progress, 1.0)
+  assert_close(clamped.eased_progress, 1.0)
+  assert_close(clamped.value, 10.0)
+
+  let overshoot = Easing::EaseOutBack.frame(0.0, 100.0, 0.5)
+  assert_true(overshoot.eased_progress > 1.0)
+  assert_true(overshoot.value > 100.0)
+}
+
+///|
+test "Easing::sample named polynomial and sine easings" {
+  assert_close(Easing::EaseInSine.sample(0.5), 0.2928932188134524)
+  assert_close(Easing::EaseOutSine.sample(0.5), 0.7071067811865475)
+  assert_close(Easing::EaseInOutSine.sample(0.25), 0.1464466094067262)
+  assert_close(Easing::EaseInQuad.sample(0.5), 0.25)
+  assert_close(Easing::EaseOutQuad.sample(0.5), 0.75)
+  assert_close(Easing::EaseInOutQuad.sample(0.25), 0.125)
+  assert_close(Easing::EaseInCubic.sample(0.5), 0.125)
+  assert_close(Easing::EaseOutCubic.sample(0.5), 0.875)
+  assert_close(Easing::EaseInOutCubic.sample(0.25), 0.0625)
+  assert_close(Easing::EaseInQuart.sample(0.5), 0.0625)
+  assert_close(Easing::EaseOutQuart.sample(0.5), 0.9375)
+  assert_close(Easing::EaseInOutQuart.sample(0.25), 0.03125)
+  assert_close(Easing::EaseInQuint.sample(0.5), 0.03125)
+  assert_close(Easing::EaseOutQuint.sample(0.5), 0.96875)
+  assert_close(Easing::EaseInOutQuint.sample(0.25), 0.015625)
+}
+
+///|
+test "Easing::sample named special easings" {
+  assert_close(Easing::EaseInExpo.sample(0.5), 0.03125)
+  assert_close(Easing::EaseOutExpo.sample(0.5), 0.96875)
+  assert_close(Easing::EaseInOutExpo.sample(0.25), 0.015625)
+  assert_close(Easing::EaseInCirc.sample(0.5), 0.1339745962155614)
+  assert_close(Easing::EaseOutCirc.sample(0.5), 0.8660254037844386)
+  assert_close(Easing::EaseInOutCirc.sample(0.25), 0.0669872981077807)
+  assert_close(Easing::EaseInBack.sample(0.5), -0.08769750000000004)
+  assert_close(Easing::EaseOutBack.sample(0.5), 1.0876975)
+  assert_close(Easing::EaseInOutBack.sample(0.25), -0.09968184375)
+  assert_close(Easing::EaseInElastic.sample(0.5), -0.015625000000000045)
+  assert_close(Easing::EaseOutElastic.sample(0.5), 1.015625)
+  assert_close(Easing::EaseInOutElastic.sample(0.25), 0.011969444423734044)
+  assert_close(Easing::EaseInBounce.sample(0.5), 0.234375)
+  assert_close(Easing::EaseOutBounce.sample(0.5), 0.765625)
+  assert_close(Easing::EaseInOutBounce.sample(0.25), 0.1171875)
+}
+
+///|
+test "parse_easing keywords and functions" {
+  debug_inspect(parse_easing("linear"), content="Some(Linear)")
+  debug_inspect(parse_easing("ease"), content="Some(Ease)")
+  debug_inspect(parse_easing("ease-in"), content="Some(EaseIn)")
+  debug_inspect(parse_easing("ease-out"), content="Some(EaseOut)")
+  debug_inspect(parse_easing("ease-in-out"), content="Some(EaseInOut)")
+  debug_inspect(
+    parse_easing("cubic-bezier(0.25, 0.1, 0.25, 1)"),
+    content="Some(CubicBezier(0.25, 0.1, 0.25, 1))",
+  )
+  debug_inspect(
+    parse_easing("steps(4, start)"),
+    content="Some(Steps(4, Start))",
+  )
+  debug_inspect(parse_easing("steps(4)"), content="Some(Steps(4, End))")
+  debug_inspect(
+    parse_easing("steps(4, jump-none)"),
+    content="Some(Steps(4, JumpNone))",
+  )
+  debug_inspect(
+    parse_easing("steps(4, jump-both)"),
+    content="Some(Steps(4, JumpBoth))",
+  )
+  debug_inspect(parse_easing("cubic-bezier(-1, 0, 1, 1)"), content="None")
+  debug_inspect(parse_easing("steps(0)"), content="None")
+  debug_inspect(parse_easing("steps(1, jump-none)"), content="None")
+}
+
+///|
+test "parse_easing named easings" {
+  for
+    name in [
+      "ease-in-sine", "ease-out-sine", "ease-in-out-sine", "ease-in-quad", "ease-out-quad",
+      "ease-in-out-quad", "ease-in-cubic", "ease-out-cubic", "ease-in-out-cubic",
+      "ease-in-quart", "ease-out-quart", "ease-in-out-quart", "ease-in-quint", "ease-out-quint",
+      "ease-in-out-quint", "ease-in-expo", "ease-out-expo", "ease-in-out-expo", "ease-in-circ",
+      "ease-out-circ", "ease-in-out-circ", "ease-in-back", "ease-out-back", "ease-in-out-back",
+      "ease-in-elastic", "ease-out-elastic", "ease-in-out-elastic", "ease-in-bounce",
+      "ease-out-bounce", "ease-in-out-bounce",
+    ] {
+    assert_true(parse_easing(name) is Some(_))
+  }
+  debug_inspect(parse_easing("easeInSine"), content="Some(EaseInSine)")
+  debug_inspect(
+    parse_easing("ease_in_out_bounce"),
+    content="Some(EaseInOutBounce)",
+  )
+}
+
+///|
 test "Dimension::resolve - MinContent/MaxContent/FitContent return None" {
   debug_inspect(Dimension::MinContent.resolve(100.0), content="None")
   debug_inspect(Dimension::MaxContent.resolve(100.0), content="None")

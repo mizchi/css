@@ -16,6 +16,8 @@ pub fn max(Double, Double) -> Double
 
 pub fn min(Double, Double) -> Double
 
+pub fn parse_easing(String) -> Easing?
+
 pub fn resolve_dimensions_with_aspect_ratio(Double?, Double?, Double?, Double, Double, Double, Double) -> (Double?, Double?)
 
 pub fn resolve_rect(Rect[Dimension], Double) -> Rect[Double]
@@ -152,6 +154,62 @@ pub(all) enum Display {
 } derive(Eq, @debug.Debug)
 pub impl Show for Display
 
+pub(all) enum Easing {
+  Linear
+  Ease
+  EaseIn
+  EaseOut
+  EaseInOut
+  EaseInSine
+  EaseOutSine
+  EaseInOutSine
+  EaseInQuad
+  EaseOutQuad
+  EaseInOutQuad
+  EaseInCubic
+  EaseOutCubic
+  EaseInOutCubic
+  EaseInQuart
+  EaseOutQuart
+  EaseInOutQuart
+  EaseInQuint
+  EaseOutQuint
+  EaseInOutQuint
+  EaseInExpo
+  EaseOutExpo
+  EaseInOutExpo
+  EaseInCirc
+  EaseOutCirc
+  EaseInOutCirc
+  EaseInBack
+  EaseOutBack
+  EaseInOutBack
+  EaseInElastic
+  EaseOutElastic
+  EaseInOutElastic
+  EaseInBounce
+  EaseOutBounce
+  EaseInOutBounce
+  LinearFunction(Array[LinearEasingPoint])
+  CubicBezier(Double, Double, Double, Double)
+  Steps(Int, StepPosition)
+} derive(Eq, @debug.Debug)
+pub fn Easing::apply(Self, Double, Double, Double) -> Double
+pub fn Easing::cubic_bezier(Double, Double, Double, Double) -> Self
+pub fn Easing::frame(Self, Double, Double, Double) -> EasingFrame
+pub fn Easing::frames(Self, Double, Double, Int) -> Array[EasingFrame]
+pub fn Easing::linear(Array[LinearEasingPoint]) -> Self?
+pub fn Easing::sample(Self, Double) -> Double
+pub fn Easing::steps(Int, StepPosition) -> Self
+pub impl Show for Easing
+
+pub(all) struct EasingFrame {
+  progress : Double
+  eased_progress : Double
+  value : Double
+}
+pub impl Show for EasingFrame
+
 pub(all) enum FlexDirection {
   Row
   RowReverse
@@ -208,6 +266,13 @@ pub struct Line[T] {
 }
 pub fn[T] Line::new(T, T) -> Self[T]
 pub impl[T : Show] Show for Line[T]
+
+pub(all) struct LinearEasingPoint {
+  input : Double
+  output : Double
+} derive(Eq, @debug.Debug)
+pub fn LinearEasingPoint::new(Double, Double) -> Self
+pub impl Show for LinearEasingPoint
 
 pub(all) struct LinearGradient {
   angle_deg : Double
@@ -302,6 +367,14 @@ pub fn[T, U] Size::map(Self[T], (T) -> U) -> Self[U]
 pub fn[T] Size::new(T, T) -> Self[T]
 pub fn Size::zero() -> Self[Double]
 pub impl[T : Show] Show for Size[T]
+
+pub(all) enum StepPosition {
+  Start
+  End
+  JumpNone
+  JumpBoth
+} derive(Eq, @debug.Debug)
+pub impl Show for StepPosition
 
 pub(all) enum TrackSizingFunction {
   Length(Double)

@@ -19,6 +19,23 @@ Originally extracted from [`mizchi/crater`](https://github.com/mizchi/crater) (a
 | `mizchi/css/computed` | Computed-style resolution (cascade output → `Style`) |
 | `mizchi/css` | Facade re-exporting the most-used types |
 
+## Easing Values
+
+`mizchi/css/values` includes easing primitives that are independent from a
+specific animation engine:
+
+- `parse_easing("ease-in-out")`, `parse_easing("cubic-bezier(...)")`,
+  `parse_easing("steps(...)")`, and CSS Easing Level 2 `linear(...)`.
+- `Easing::sample(progress)` returns the eased progress for normalized input.
+- `Easing::apply(from, to, progress)` returns an interpolated numeric value.
+- `Easing::frame(from, to, progress)` and `Easing::frames(from, to, count)`
+  expose intermediate `progress`, `eased_progress`, and `value` triples.
+
+The parser accepts CSS keywords plus common named Penner/easings.net aliases
+such as `ease-in-sine`, `easeOutBack`, and `ease_in_out_bounce`. `sample`
+clamps input progress to `[0, 1]`; overshooting curves such as back/elastic can
+still produce eased progress outside that range.
+
 ## Web Platform Tests
 
 `wpt/` ships a runner that converts upstream WPT selector-parsing tests
