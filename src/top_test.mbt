@@ -126,3 +126,14 @@ test "affects_layout re-exports diagnostics helper" {
   assert_true(affects_layout(UnsupportedLayout))
   assert_false(affects_layout(Supported))
 }
+
+///|
+test "css package re-exports animation timing helpers" {
+  let effect = NumericKeyframeEffect::new(
+    [NumericKeyframe::new(0.0, 0.0), NumericKeyframe::new(1.0, 100.0)],
+    { ..EffectTiming::new(1000.0), fill: FillMode::Both },
+  ).unwrap()
+  inspect(effect.sample(-1.0).unwrap(), content="0")
+  inspect(effect.sample(500.0).unwrap(), content="50")
+  inspect(effect.sample(1001.0).unwrap(), content="100")
+}

@@ -6,6 +6,19 @@
 // a single import so it can be consumed independently from crater integrations.
 
 ///|
+pub using @animation {
+  type AnimationPhase,
+  type CompositeOperation,
+  type ComputedEffectTiming,
+  type EffectTiming,
+  type FillMode,
+  type IterationCompositeOperation,
+  type NumericKeyframe,
+  type NumericKeyframeEffect,
+  type PlaybackDirection,
+}
+
+///|
 pub using @cascade {
   type CascadedValues,
   type CSSRule,

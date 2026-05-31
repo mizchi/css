@@ -1,4 +1,5 @@
 import {
+  "mizchi/css/animation",
   "mizchi/css/style",
   "mizchi/css/cascade",
   "mizchi/css/computed",

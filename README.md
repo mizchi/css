@@ -17,6 +17,7 @@ Originally extracted from [`mizchi/crater`](https://github.com/mizchi/crater) (a
 | `mizchi/css/diagnostics` | Parse / cascade diagnostics |
 | `mizchi/css/parser` | Stylesheet parser (declarations, at-rules, selectors) |
 | `mizchi/css/computed` | Computed-style resolution (cascade output → `Style`) |
+| `mizchi/css/animation` | Web Animations timing model and numeric keyframe sampling |
 | `mizchi/css` | Facade re-exporting the most-used types |
 
 ## Easing Values
@@ -35,6 +36,25 @@ The parser accepts CSS keywords plus common named Penner/easings.net aliases
 such as `ease-in-sine`, `easeOutBack`, and `ease_in_out_bounce`. `sample`
 clamps input progress to `[0, 1]`; overshooting curves such as back/elastic can
 still produce eased progress outside that range.
+
+## Web Animations
+
+`mizchi/css/animation` provides a small, DOM-independent subset of the Web
+Animations timing model. It models effect timing fields such as `delay`, `fill`,
+`iterations`, `duration`, `direction`, and `easing`, and can sample numeric
+keyframe effects:
+
+- `EffectTiming::new(duration).at(local_time)` returns phase, progress, current
+  iteration, directed progress, and transformed progress.
+- `NumericKeyframeEffect::new(keyframes, timing)` validates explicit offsets
+  from `0.0` to `1.0`.
+- `NumericKeyframeEffect::sample(local_time)` returns the interpolated numeric
+  value or `None` when the effect is outside its active interval without fill.
+- `NumericKeyframeEffect::sample_with_underlying(local_time, value)` applies
+  numeric `add` / `accumulate` composition against an underlying value.
+
+This is the timing/interpolation foundation only. DOM playback, CSS property
+specific interpolation, and timeline scheduling are left to higher layers.
 
 ## Web Platform Tests
 
