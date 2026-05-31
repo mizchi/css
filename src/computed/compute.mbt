@@ -1008,12 +1008,11 @@ pub fn compute(
   let font_ctx = seed_font_metrics(builder, cascaded, ctx)
 
   // Second pass: apply regular properties with var() resolution
-  cascaded.each(fn(prop, decl) {
-    if !prop.has_prefix("--") && !is_preseeded_font_property(prop) {
-      let value = resolve_keyword(prop, decl.value, font_ctx)
-      apply_property(builder, prop, value, font_ctx)
-    }
-  })
+  for item in regular_declarations_in_source_order(cascaded) {
+    let (prop, decl) = item
+    let value = resolve_keyword(prop, decl.value, font_ctx)
+    apply_property(builder, prop, value, font_ctx)
+  }
 
   // Handle inheritance for inherited properties
   apply_inheritance(builder, cascaded, ctx)
@@ -1044,12 +1043,11 @@ pub fn compute_with_vars(
   let font_ctx = seed_font_metrics(builder, cascaded, ctx)
 
   // Second pass: apply regular properties
-  cascaded.each(fn(prop, decl) {
-    if !prop.has_prefix("--") && !is_preseeded_font_property(prop) {
-      let value = resolve_keyword(prop, decl.value, font_ctx)
-      apply_property(builder, prop, value, font_ctx)
-    }
-  })
+  for item in regular_declarations_in_source_order(cascaded) {
+    let (prop, decl) = item
+    let value = resolve_keyword(prop, decl.value, font_ctx)
+    apply_property(builder, prop, value, font_ctx)
+  }
 
   // Handle inheritance
   apply_inheritance(builder, cascaded, ctx)
@@ -1146,6 +1144,22 @@ fn is_preseeded_font_property(property : String) -> Bool {
   property == "line-height" ||
   property == "font-weight" ||
   property == "font-family"
+}
+
+///|
+/// Return regular declarations in CSS source order. CascadedValues is a map,
+/// so applying it directly loses relative shorthand/longhand order.
+fn regular_declarations_in_source_order(
+  cascaded : @cascade.CascadedValues,
+) -> Array[(String, @cascade.Declaration)] {
+  let declarations : Array[(String, @cascade.Declaration)] = []
+  cascaded.each(fn(prop, decl) {
+    if !prop.has_prefix("--") && !is_preseeded_font_property(prop) {
+      declarations.push((prop, decl))
+    }
+  })
+  declarations.sort_by(fn(a, b) { a.1.source_order - b.1.source_order })
+  declarations
 }
 
 ///|

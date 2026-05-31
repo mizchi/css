@@ -9,4 +9,8 @@ import {
 }
 
 import {
+  "mizchi/css/selector",
+} for "test"
+
+import {
 } for "wbtest"

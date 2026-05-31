@@ -2050,6 +2050,79 @@ test "compute_inline border-width shorthand 4-value" {
 }
 
 ///|
+test "compute preserves border shorthand and longhand source order" {
+  let ctx = @computed.ComputeContext::new()
+  let border_decl = @cascade.Declaration::with_metadata(
+    "border",
+    @cascade.Value("10px solid transparent"),
+    @cascade.Author,
+    @cascade.Normal,
+    { a: 0, b: 1, c: 0 },
+    0,
+  )
+  let left_decl = @cascade.Declaration::with_metadata(
+    "border-left-width",
+    @cascade.Value("100px"),
+    @cascade.Author,
+    @cascade.Normal,
+    { a: 0, b: 1, c: 0 },
+    1,
+  )
+  let style = @computed.compute(@cascade.cascade([border_decl, left_decl]), ctx)
+  inspect(style.border.top, content="Length(10)")
+  inspect(style.border.right, content="Length(10)")
+  inspect(style.border.bottom, content="Length(10)")
+  inspect(style.border.left, content="Length(100)")
+
+  let left_first_decl = @cascade.Declaration::with_metadata(
+    "border-left-width",
+    @cascade.Value("100px"),
+    @cascade.Author,
+    @cascade.Normal,
+    { a: 0, b: 1, c: 0 },
+    0,
+  )
+  let border_second_decl = @cascade.Declaration::with_metadata(
+    "border",
+    @cascade.Value("10px solid transparent"),
+    @cascade.Author,
+    @cascade.Normal,
+    { a: 0, b: 1, c: 0 },
+    1,
+  )
+  let style2 = @computed.compute(
+    @cascade.cascade([border_second_decl, left_first_decl]),
+    ctx,
+  )
+  inspect(style2.border.left, content="Length(10)")
+}
+
+///|
+test "compute stylesheet preserves border shorthand and longhand source order" {
+  let element = @selector.Element::with_classes("div", ["box"])
+  let sheet = @parser.parse_stylesheet(
+    ".box { border: 10px solid transparent; border-left-width: 100px; }",
+  )
+  let style = @computed.compute(
+    @cascade.cascade_element(element, [sheet], []),
+    @computed.ComputeContext::new(),
+  )
+  inspect(style.border.top, content="Length(10)")
+  inspect(style.border.right, content="Length(10)")
+  inspect(style.border.bottom, content="Length(10)")
+  inspect(style.border.left, content="Length(100)")
+
+  let reverse_sheet = @parser.parse_stylesheet(
+    ".box { border-left-width: 100px; border: 10px solid transparent; }",
+  )
+  let reverse_style = @computed.compute(
+    @cascade.cascade_element(element, [reverse_sheet], []),
+    @computed.ComputeContext::new(),
+  )
+  inspect(reverse_style.border.left, content="Length(10)")
+}
+
+///|
 test "compute_inline overflow shorthand" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline("overflow: hidden", ctx)
