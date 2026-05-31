@@ -2770,6 +2770,15 @@ fn parse_rotate_degrees(value : String) -> Double {
     let turns = @string.parse_double(num_str.trim()) catch { _ => return 0.0 }
     return turns * 360.0
   }
+  // `grad` must be checked before `rad`: it also ends with "rad".
+  // 400grad = 360deg, so 1grad = 0.9deg.
+  if v.has_suffix("grad") {
+    let num_str = v.unsafe_substring(start=0, end=v.length() - 4)
+    let gradians = @string.parse_double(num_str.trim()) catch {
+      _ => return 0.0
+    }
+    return gradians * 0.9
+  }
   if v.has_suffix("rad") {
     let num_str = v.unsafe_substring(start=0, end=v.length() - 3)
     let radians = @string.parse_double(num_str.trim()) catch { _ => return 0.0 }

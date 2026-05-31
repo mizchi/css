@@ -19,6 +19,19 @@ test "parse_inline_style calc with unitless multiplier" {
 }
 
 ///|
+test "parse_inline_style transform grad angle unit" {
+  // 200grad = 180deg; `grad` previously mis-matched the `rad` suffix.
+  inspect(
+    parse_inline_style("transform: rotate(200grad)").transform.quarter_turns(),
+    content="2",
+  )
+  inspect(
+    parse_inline_style("transform: rotate(100grad)").transform.quarter_turns(),
+    content="1",
+  )
+}
+
+///|
 test "parse flex-flow shorthand" {
   let dir_only = parse_inline_style("flex-flow: column")
   inspect(dir_only.flex_direction, content="Column")

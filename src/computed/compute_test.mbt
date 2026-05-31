@@ -2295,6 +2295,41 @@ test "compute_inline calc with unitless multiplier" {
 }
 
 ///|
+test "compute_inline two-value logical shorthands" {
+  let ctx = @computed.ComputeContext::new()
+  // These resolved the whole "A B" string as one dimension and silently
+  // collapsed to Auto; only the single-value form worked.
+  let mi = @computed.compute_inline("margin-inline: 10px 20px", ctx)
+  inspect(mi.margin.left, content="Length(10)")
+  inspect(mi.margin.right, content="Length(20)")
+  let mb = @computed.compute_inline("margin-block: 5px 15px", ctx)
+  inspect(mb.margin.top, content="Length(5)")
+  inspect(mb.margin.bottom, content="Length(15)")
+  let pi = @computed.compute_inline("padding-inline: 1px 2px", ctx)
+  inspect(pi.padding.left, content="Length(1)")
+  inspect(pi.padding.right, content="Length(2)")
+  let ib = @computed.compute_inline("inset-block: 3px 4px", ctx)
+  inspect(ib.inset.top, content="Length(3)")
+  inspect(ib.inset.bottom, content="Length(4)")
+  // Single value still applies to both ends.
+  let one = @computed.compute_inline("margin-inline: 10px", ctx)
+  inspect(one.margin.left, content="Length(10)")
+  inspect(one.margin.right, content="Length(10)")
+}
+
+///|
+test "compute_inline two-value overflow shorthand" {
+  let ctx = @computed.ComputeContext::new()
+  let s = @computed.compute_inline("overflow: hidden scroll", ctx)
+  inspect(s.overflow_x, content="Hidden")
+  inspect(s.overflow_y, content="Scroll")
+  // Single value applies to both axes.
+  let one = @computed.compute_inline("overflow: auto", ctx)
+  inspect(one.overflow_x, content="Auto")
+  inspect(one.overflow_y, content="Auto")
+}
+
+///|
 test "compute_inline flex shorthand keyword forms" {
   let ctx = @computed.ComputeContext::new()
   // flex: none = 0 0 auto

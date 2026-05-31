@@ -1308,6 +1308,30 @@ fn seed_font_metrics(
 }
 
 ///|
+/// Resolve a 1-or-2 value logical shorthand (margin-inline, padding-block, …)
+/// into a (start, end) dimension pair. A single value applies to both ends.
+fn resolve_logical_pair(
+  value : String,
+  ctx : ComputeContext,
+) -> (@types.Dimension, @types.Dimension) {
+  let dims : Array[@types.Dimension] = []
+  for part in value.trim().to_owned().split(" ") {
+    let p = part.to_owned().trim().to_owned()
+    if !p.is_empty() {
+      dims.push(resolve_dimension(p, ctx))
+    }
+  }
+  match dims.length() {
+    0 => {
+      let d = resolve_dimension(value, ctx)
+      (d, d)
+    }
+    1 => (dims[0], dims[0])
+    _ => (dims[0], dims[1])
+  }
+}
+
+///|
 /// Apply a resolved property value to a style builder
 fn apply_property(
   builder : StyleBuilder,
@@ -1450,16 +1474,16 @@ fn apply_property(
     "margin-left" => builder.margin_left = resolve_dimension(value, ctx)
     // Logical margin properties (LTR horizontal-tb writing mode)
     "margin-inline" => {
-      let dim = resolve_dimension(value, ctx)
-      builder.margin_left = dim
-      builder.margin_right = dim
+      let (start, end) = resolve_logical_pair(value, ctx)
+      builder.margin_left = start
+      builder.margin_right = end
     }
     "margin-inline-start" => builder.margin_left = resolve_dimension(value, ctx)
     "margin-inline-end" => builder.margin_right = resolve_dimension(value, ctx)
     "margin-block" => {
-      let dim = resolve_dimension(value, ctx)
-      builder.margin_top = dim
-      builder.margin_bottom = dim
+      let (start, end) = resolve_logical_pair(value, ctx)
+      builder.margin_top = start
+      builder.margin_bottom = end
     }
     "margin-block-start" => builder.margin_top = resolve_dimension(value, ctx)
     "margin-block-end" => builder.margin_bottom = resolve_dimension(value, ctx)
@@ -1509,17 +1533,17 @@ fn apply_property(
     }
     // Logical padding properties (block/inline)
     "padding-block" => {
-      let dim = resolve_dimension(value, ctx)
-      builder.padding_top = dim
-      builder.padding_bottom = dim
+      let (start, end) = resolve_logical_pair(value, ctx)
+      builder.padding_top = start
+      builder.padding_bottom = end
     }
     "padding-block-start" => builder.padding_top = resolve_dimension(value, ctx)
     "padding-block-end" =>
       builder.padding_bottom = resolve_dimension(value, ctx)
     "padding-inline" => {
-      let dim = resolve_dimension(value, ctx)
-      builder.padding_left = dim
-      builder.padding_right = dim
+      let (start, end) = resolve_logical_pair(value, ctx)
+      builder.padding_left = start
+      builder.padding_right = end
     }
     "padding-inline-start" =>
       builder.padding_left = resolve_dimension(value, ctx)
@@ -2111,16 +2135,16 @@ fn apply_property(
     }
     // Logical inset properties (LTR horizontal-tb writing mode)
     "inset-inline" => {
-      let dim = resolve_dimension(value, ctx)
-      builder.inset_left = dim
-      builder.inset_right = dim
+      let (start, end) = resolve_logical_pair(value, ctx)
+      builder.inset_left = start
+      builder.inset_right = end
     }
     "inset-inline-start" => builder.inset_left = resolve_dimension(value, ctx)
     "inset-inline-end" => builder.inset_right = resolve_dimension(value, ctx)
     "inset-block" => {
-      let dim = resolve_dimension(value, ctx)
-      builder.inset_top = dim
-      builder.inset_bottom = dim
+      let (start, end) = resolve_logical_pair(value, ctx)
+      builder.inset_top = start
+      builder.inset_bottom = end
     }
     "inset-block-start" => builder.inset_top = resolve_dimension(value, ctx)
     "inset-block-end" => builder.inset_bottom = resolve_dimension(value, ctx)
@@ -2128,9 +2152,25 @@ fn apply_property(
     "aspect-ratio" => builder.aspect_ratio = parse_aspect_ratio(value)
     // Overflow
     "overflow" => {
-      let ov = parse_overflow(value)
-      builder.overflow_x = ov
-      builder.overflow_y = ov
+      // `overflow: <x> [<y>]` — one value applies to both axes.
+      let parts : Array[String] = []
+      for part in value.trim().to_owned().split(" ") {
+        let p = part.to_owned().trim().to_owned()
+        if !p.is_empty() {
+          parts.push(p)
+        }
+      }
+      match parts.length() {
+        0 | 1 => {
+          let ov = parse_overflow(value)
+          builder.overflow_x = ov
+          builder.overflow_y = ov
+        }
+        _ => {
+          builder.overflow_x = parse_overflow(parts[0])
+          builder.overflow_y = parse_overflow(parts[1])
+        }
+      }
     }
     "overflow-x" => builder.overflow_x = parse_overflow(value)
     "overflow-y" => builder.overflow_y = parse_overflow(value)
