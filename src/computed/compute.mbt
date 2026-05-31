@@ -243,6 +243,8 @@ priv struct StyleBuilder {
   mut grid_auto_flow : @types.GridAutoFlow
   mut grid_template_columns : Array[@types.TrackSizingFunction]
   mut grid_template_rows : Array[@types.TrackSizingFunction]
+  mut grid_auto_rows : Array[@types.TrackSizingFunction]
+  mut grid_auto_columns : Array[@types.TrackSizingFunction]
   // Grid template areas (container)
   mut grid_template_areas : Array[String]
   // Grid item placement
@@ -383,6 +385,8 @@ fn StyleBuilder::new() -> StyleBuilder {
     grid_auto_flow: @types.GridAutoFlow::Row,
     grid_template_columns: [],
     grid_template_rows: [],
+    grid_auto_rows: [],
+    grid_auto_columns: [],
     grid_template_areas: [],
     grid_column_start: @types.GridPlacement::Auto,
     grid_column_end: @types.GridPlacement::Auto,
@@ -507,6 +511,8 @@ fn StyleBuilder::from_style(style : @style.Style) -> StyleBuilder {
     grid_auto_flow: style.grid_auto_flow,
     grid_template_columns: style.grid_template_columns,
     grid_template_rows: style.grid_template_rows,
+    grid_auto_rows: style.grid_auto_rows,
+    grid_auto_columns: style.grid_auto_columns,
     grid_template_areas: style.grid_template_areas,
     grid_column_start: style.grid_column.start,
     grid_column_end: style.grid_column.end,
@@ -639,8 +645,8 @@ fn StyleBuilder::build(self : StyleBuilder) -> @style.Style {
     },
     grid_template_rows: self.grid_template_rows,
     grid_template_columns: self.grid_template_columns,
-    grid_auto_rows: [],
-    grid_auto_columns: [],
+    grid_auto_rows: self.grid_auto_rows,
+    grid_auto_columns: self.grid_auto_columns,
     grid_auto_flow: self.grid_auto_flow,
     grid_template_areas: self.grid_template_areas,
     grid_row: { start: self.grid_row_start, end: self.grid_row_end },
@@ -2137,6 +2143,14 @@ fn apply_property(
     }
     // Grid container
     "grid-auto-flow" => builder.grid_auto_flow = parse_grid_auto_flow(value)
+    "grid-auto-rows" =>
+      builder.grid_auto_rows = parse_grid_template_tracks(
+        grid_template_value(value),
+      )
+    "grid-auto-columns" =>
+      builder.grid_auto_columns = parse_grid_template_tracks(
+        grid_template_value(value),
+      )
     "grid-template-columns" =>
       builder.grid_template_columns = parse_grid_template_tracks(
         grid_template_value(value),
@@ -4040,6 +4054,15 @@ fn parse_rotate_degrees(value : String) -> Double {
     let num_str = view_to_string(v.view(end_offset=v.length() - 4))
     let turns = @string.parse_double(num_str.trim()) catch { _ => return 0.0 }
     return turns * 360.0
+  }
+  // `grad` must be checked before `rad`: it also ends with "rad".
+  // 400grad = 360deg, so 1grad = 0.9deg.
+  if v.has_suffix("grad") {
+    let num_str = view_to_string(v.view(end_offset=v.length() - 4))
+    let gradians = @string.parse_double(num_str.trim()) catch {
+      _ => return 0.0
+    }
+    return gradians * 0.9
   }
   if v.has_suffix("rad") {
     let num_str = view_to_string(v.view(end_offset=v.length() - 3))

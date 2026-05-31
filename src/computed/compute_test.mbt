@@ -2295,6 +2295,81 @@ test "compute_inline calc with unitless multiplier" {
 }
 
 ///|
+test "compute_inline flex shorthand keyword forms" {
+  let ctx = @computed.ComputeContext::new()
+  // flex: none = 0 0 auto
+  let none = @computed.compute_inline("flex: none", ctx)
+  inspect(none.flex_grow, content="0")
+  inspect(none.flex_shrink, content="0")
+  inspect(none.flex_basis, content="Auto")
+  // flex: auto = 1 1 auto
+  let auto = @computed.compute_inline("flex: auto", ctx)
+  inspect(auto.flex_grow, content="1")
+  inspect(auto.flex_shrink, content="1")
+  inspect(auto.flex_basis, content="Auto")
+  // flex: 1 = 1 1 0%
+  let one = @computed.compute_inline("flex: 1", ctx)
+  inspect(one.flex_grow, content="1")
+  inspect(one.flex_shrink, content="1")
+  inspect(one.flex_basis, content="Percent(0)")
+  // flex: 2 0 100px = explicit triple
+  let triple = @computed.compute_inline("flex: 2 0 100px", ctx)
+  inspect(triple.flex_grow, content="2")
+  inspect(triple.flex_shrink, content="0")
+  inspect(triple.flex_basis, content="Length(100)")
+}
+
+///|
+test "compute_inline var() nested fallback chain" {
+  let ctx = @computed.ComputeContext::new()
+  // Neither --a nor --b defined: falls through to the innermost literal.
+  inspect(
+    @computed.compute_inline("width: var(--a, var(--b, 10px))", ctx).width,
+    content="Length(10)",
+  )
+  // --b defined: the inner var() resolves before reaching the literal.
+  inspect(
+    @computed.compute_inline("--b: 20px; width: var(--a, var(--b, 10px))", ctx).width,
+    content="Length(20)",
+  )
+}
+
+///|
+test "compute_inline grid-auto-rows and grid-auto-columns" {
+  let ctx = @computed.ComputeContext::new()
+  // These were declared on Style but never applied: the StyleBuilder lacked the
+  // fields and build() hardcoded empty arrays.
+  let rows = @computed.compute_inline("grid-auto-rows: 100px 200px", ctx)
+  inspect(rows.grid_auto_rows.length(), content="2")
+  let cols = @computed.compute_inline("grid-auto-columns: 50px", ctx)
+  inspect(cols.grid_auto_columns.length(), content="1")
+  // grid-auto-flow keeps the dense keyword through the full compute path.
+  inspect(
+    @computed.compute_inline("grid-auto-flow: row dense", ctx).grid_auto_flow,
+    content="RowDense",
+  )
+  inspect(
+    @computed.compute_inline("grid-auto-flow: column dense", ctx).grid_auto_flow,
+    content="ColumnDense",
+  )
+}
+
+///|
+test "compute_inline transform grad angle unit" {
+  let ctx = @computed.ComputeContext::new()
+  // 200grad = 180deg. `grad` ends with `rad`, so it previously matched the
+  // `rad` suffix, failed to parse "200g", and collapsed to 0.
+  inspect(
+    @computed.compute_inline("transform: rotate(200grad)", ctx).transform.quarter_turns(),
+    content="2",
+  )
+  inspect(
+    @computed.compute_inline("transform: rotate(100grad)", ctx).transform.quarter_turns(),
+    content="1",
+  )
+}
+
+///|
 test "apply_property_direct mutates existing style" {
   let ctx = @computed.ComputeContext::new()
   let base = @computed.compute_inline("display: block", ctx)
