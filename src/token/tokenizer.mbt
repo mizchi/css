@@ -144,67 +144,68 @@ fn Tokenizer::consume_whitespace(self : Tokenizer) -> Unit {
 ///|
 /// Consume an identifier/name
 fn Tokenizer::consume_name(self : Tokenizer) -> String {
-  let buf = StringBuilder::new()
-  while self.pos < self.len {
-    let c = self.input[self.pos].to_int().unsafe_to_char()
-    if is_name_char(c) {
-      buf.write_char(c)
-      self.pos += 1
-    } else if c == '\\' {
-      // Escape sequence — simplified: skip the backslash and write the
-      // following raw char (CSS hex escapes aren't decoded here; callers
-      // that need them go through `consume_string`).
-      self.pos += 1
-      if self.pos < self.len {
-        let escaped = self.input[self.pos].to_int().unsafe_to_char()
-        buf.write_char(escaped)
-        self.pos += 1
-      }
-    } else {
-      break
-    }
+  let start = self.pos
+  // Fast path: scan a run of name chars and return it as one substring.
+  while self.pos < self.len &&
+        is_name_char(self.input[self.pos].to_int().unsafe_to_char()) {
+    self.pos += 1
   }
-  buf.to_string()
+  // Escapes are rare; only fall back to the char-by-char builder if we stopped
+  // on a backslash, seeding it with the run already scanned.
+  if self.pos < self.len &&
+    self.input[self.pos].to_int().unsafe_to_char() == '\\' {
+    let buf = StringBuilder::new()
+    buf.write_string(self.input.unsafe_substring(start~, end=self.pos))
+    while self.pos < self.len {
+      let c = self.input[self.pos].to_int().unsafe_to_char()
+      if is_name_char(c) {
+        buf.write_char(c)
+        self.pos += 1
+      } else if c == '\\' {
+        // Skip the backslash and write the following raw char (CSS hex escapes
+        // aren't decoded here; callers that need them use consume_string).
+        self.pos += 1
+        if self.pos < self.len {
+          buf.write_char(self.input[self.pos].to_int().unsafe_to_char())
+          self.pos += 1
+        }
+      } else {
+        break
+      }
+    }
+    return buf.to_string()
+  }
+  self.input.unsafe_substring(start~, end=self.pos)
 }
 
 ///|
 /// Consume a number
 fn Tokenizer::consume_number(self : Tokenizer) -> (Double, NumType) {
-  let buf = StringBuilder::new()
+  // Advance `pos` over the numeric run, then take a single substring instead of
+  // appending char-by-char to a StringBuilder.
+  let start = self.pos
   let mut is_integer = true
 
   // Optional sign
   let first = self.peek_char()
   self.last_num_signed = first == '+' || first == '-'
   if self.last_num_signed {
-    buf.write_char(first)
     self.pos += 1
   }
 
   // Integer part
-  while self.pos < self.len {
-    let c = self.input[self.pos].to_int().unsafe_to_char()
-    if is_digit(c) {
-      buf.write_char(c)
-      self.pos += 1
-    } else {
-      break
-    }
+  while self.pos < self.len &&
+        is_digit(self.input[self.pos].to_int().unsafe_to_char()) {
+    self.pos += 1
   }
 
   // Decimal part
   if self.peek_char() == '.' && is_digit(self.peek_char_at(1)) {
     is_integer = false
-    buf.write_char('.')
     self.pos += 1
-    while self.pos < self.len {
-      let c = self.input[self.pos].to_int().unsafe_to_char()
-      if is_digit(c) {
-        buf.write_char(c)
-        self.pos += 1
-      } else {
-        break
-      }
+    while self.pos < self.len &&
+          is_digit(self.input[self.pos].to_int().unsafe_to_char()) {
+      self.pos += 1
     }
   }
 
@@ -214,25 +215,18 @@ fn Tokenizer::consume_number(self : Tokenizer) -> (Double, NumType) {
     let next = self.peek_char_at(1)
     if is_digit(next) || next == '+' || next == '-' {
       is_integer = false
-      buf.write_char(e)
       self.pos += 1
       let sign = self.peek_char()
       if sign == '+' || sign == '-' {
-        buf.write_char(sign)
         self.pos += 1
       }
-      while self.pos < self.len {
-        let c = self.input[self.pos].to_int().unsafe_to_char()
-        if is_digit(c) {
-          buf.write_char(c)
-          self.pos += 1
-        } else {
-          break
-        }
+      while self.pos < self.len &&
+            is_digit(self.input[self.pos].to_int().unsafe_to_char()) {
+        self.pos += 1
       }
     }
   }
-  let num_str = buf.to_string()
+  let num_str = self.input.unsafe_substring(start~, end=self.pos)
   let value = @string.parse_double(num_str) catch { _ => 0.0 }
   let num_type : NumType = if is_integer { Integer } else { NumType::Number }
   (value, num_type)

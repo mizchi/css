@@ -30,93 +30,6 @@ fn view_to_string(v : StringView) -> String {
 }
 
 ///|
-fn parse_number_with_suffix(value : String, suffix : String) -> Double? {
-  match value.strip_suffix(suffix) {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return None
-      }
-      Some(n)
-    }
-    None => None
-  }
-}
-
-///|
-fn resolve_viewport_unit_px(value : String, ctx : ComputeContext) -> Double? {
-  match parse_number_with_suffix(value, "dvw") {
-    Some(n) => return Some(n * ctx.viewport_width / 100.0)
-    None => ()
-  }
-  match parse_number_with_suffix(value, "svw") {
-    Some(n) => return Some(n * ctx.viewport_width / 100.0)
-    None => ()
-  }
-  match parse_number_with_suffix(value, "lvw") {
-    Some(n) => return Some(n * ctx.viewport_width / 100.0)
-    None => ()
-  }
-  match parse_number_with_suffix(value, "vw") {
-    Some(n) => return Some(n * ctx.viewport_width / 100.0)
-    None => ()
-  }
-  match parse_number_with_suffix(value, "dvh") {
-    Some(n) => return Some(n * ctx.viewport_height / 100.0)
-    None => ()
-  }
-  match parse_number_with_suffix(value, "svh") {
-    Some(n) => return Some(n * ctx.viewport_height / 100.0)
-    None => ()
-  }
-  match parse_number_with_suffix(value, "lvh") {
-    Some(n) => return Some(n * ctx.viewport_height / 100.0)
-    None => ()
-  }
-  match parse_number_with_suffix(value, "vh") {
-    Some(n) => return Some(n * ctx.viewport_height / 100.0)
-    None => ()
-  }
-  match parse_number_with_suffix(value, "vmin") {
-    Some(n) => {
-      let min_dimension = if ctx.viewport_width < ctx.viewport_height {
-        ctx.viewport_width
-      } else {
-        ctx.viewport_height
-      }
-      return Some(n * min_dimension / 100.0)
-    }
-    None => ()
-  }
-  match parse_number_with_suffix(value, "vmax") {
-    Some(n) => {
-      let max_dimension = if ctx.viewport_width > ctx.viewport_height {
-        ctx.viewport_width
-      } else {
-        ctx.viewport_height
-      }
-      return Some(n * max_dimension / 100.0)
-    }
-    None => ()
-  }
-  // Logical viewport units. In the assumed horizontal-tb writing mode the
-  // inline axis is horizontal (→ width) and the block axis is vertical
-  // (→ height). Check longer suffixes first so e.g. "dvi" is not eaten by "vi".
-  for unit in ["dvi", "svi", "lvi", "vi"] {
-    match parse_number_with_suffix(value, unit) {
-      Some(n) => return Some(n * ctx.viewport_width / 100.0)
-      None => ()
-    }
-  }
-  for unit in ["dvb", "svb", "lvb", "vb"] {
-    match parse_number_with_suffix(value, unit) {
-      Some(n) => return Some(n * ctx.viewport_height / 100.0)
-      None => ()
-    }
-  }
-  None
-}
-
-///|
 pub fn ComputeContext::new() -> ComputeContext {
   {
     parent_style: None,
@@ -4029,6 +3942,65 @@ fn normalize_grid_template_math_functions(
 
 ///|
 /// Resolve dimension with relative unit conversion
+
+///|
+/// Split a "<number><unit>" string into its numeric value and unit. Returns
+/// None when there is no leading number. `e`/`E` only begins an exponent when
+/// followed by [+-]?digit, so unit strings like "em"/"ex" are not mis-scanned.
+fn split_dimension(v : String) -> (Double, String)? {
+  let n = v.length()
+  if n == 0 {
+    return None
+  }
+  let mut i = 0
+  let c0 = v[0].to_int().unsafe_to_char()
+  if c0 == '+' || c0 == '-' {
+    i = i + 1
+  }
+  let digits_start = i
+  while i < n {
+    let c = v[i].to_int().unsafe_to_char()
+    if (c >= '0' && c <= '9') || c == '.' {
+      i = i + 1
+    } else {
+      break
+    }
+  }
+  if i < n {
+    let e = v[i].to_int().unsafe_to_char()
+    if e == 'e' || e == 'E' {
+      let mut j = i + 1
+      if j < n {
+        let s = v[j].to_int().unsafe_to_char()
+        if s == '+' || s == '-' {
+          j = j + 1
+        }
+      }
+      if j < n &&
+        v[j].to_int().unsafe_to_char() >= '0' &&
+        v[j].to_int().unsafe_to_char() <= '9' {
+        i = j + 1
+        while i < n {
+          let d = v[i].to_int().unsafe_to_char()
+          if d >= '0' && d <= '9' {
+            i = i + 1
+          } else {
+            break
+          }
+        }
+      }
+    }
+  }
+  if i == digits_start {
+    return None
+  }
+  let num = @string.parse_double(v.unsafe_substring(start=0, end=i)) catch {
+    _ => return None
+  }
+  Some((num, v.unsafe_substring(start=i, end=n)))
+}
+
+///|
 fn resolve_dimension(value : String, ctx : ComputeContext) -> @types.Dimension {
   // First resolve any var() functions
   let raw_v = resolve_all_vars(value, ctx).trim()
@@ -4070,124 +4042,56 @@ fn resolve_dimension(value : String, ctx : ComputeContext) -> @types.Dimension {
     }
   }
 
-  // Handle rem units (check before em)
-  match v.strip_suffix("rem") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
+  // Extract the unit once and dispatch by equality. The string suffix tests
+  // this replaces cost ~190ns each; for the common px/% values the old cascade
+  // ran 20+ of them before falling through. ch/ex keep the historical 0.5em
+  // approximation for generic fonts.
+  match split_dimension(v) {
+    Some((n, unit)) => {
+      let resolved : @types.Dimension? = match unit {
+        "px" => Some(@types.Length(n))
+        "%" => Some(@types.Percent(n / 100.0))
+        "rem" => Some(@types.Length(n * ctx.root_font_size))
+        "em" => Some(@types.Length(n * ctx.font_size))
+        "vw" | "dvw" | "svw" | "lvw" | "vi" =>
+          Some(@types.Length(n * ctx.viewport_width / 100.0))
+        "vh" | "dvh" | "svh" | "lvh" | "vb" =>
+          Some(@types.Length(n * ctx.viewport_height / 100.0))
+        "vmin" => {
+          let base = if ctx.viewport_width < ctx.viewport_height {
+            ctx.viewport_width
+          } else {
+            ctx.viewport_height
+          }
+          Some(@types.Length(n * base / 100.0))
+        }
+        "vmax" => {
+          let base = if ctx.viewport_width > ctx.viewport_height {
+            ctx.viewport_width
+          } else {
+            ctx.viewport_height
+          }
+          Some(@types.Length(n * base / 100.0))
+        }
+        "ch" => Some(@types.Length(n * ctx.font_size * ch_unit_ratio(ctx)))
+        "ex" => Some(@types.Length(n * ctx.font_size * 0.5))
+        "pt" => Some(@types.Length(n * 96.0 / 72.0))
+        "pc" => Some(@types.Length(n * 16.0))
+        "in" => Some(@types.Length(n * 96.0))
+        "cm" => Some(@types.Length(n * 96.0 / 2.54))
+        "mm" => Some(@types.Length(n * 96.0 / 25.4))
+        "q" => Some(@types.Length(n * 96.0 / 101.6))
+        _ => None
       }
-      return @types.Dimension::Length(n * ctx.root_font_size)
+      match resolved {
+        Some(d) => return d
+        None => ()
+      }
     }
     None => ()
   }
 
-  // Handle em units
-  match v.strip_suffix("em") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
-      }
-      return @types.Dimension::Length(n * ctx.font_size)
-    }
-    None => ()
-  }
-
-  // Handle viewport units
-  match resolve_viewport_unit_px(v, ctx) {
-    Some(px) => return @types.Dimension::Length(px)
-    None => ()
-  }
-
-  // Handle ch units. Ahem is square (1ch ~= 1em); our default fallback keeps
-  // the historical 0.5em approximation for generic monospace rendering.
-  match v.strip_suffix("ch") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
-      }
-      return @types.Dimension::Length(n * ctx.font_size * ch_unit_ratio(ctx))
-    }
-    None => ()
-  }
-
-  // Handle ex units (x-height, approximated as 0.5em)
-  match v.strip_suffix("ex") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
-      }
-      return @types.Dimension::Length(n * ctx.font_size * 0.5)
-    }
-    None => ()
-  }
-
-  // Handle pt units (1pt = 1/72 inch = 96/72 px ≈ 1.333px)
-  match v.strip_suffix("pt") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
-      }
-      return @types.Dimension::Length(n * 96.0 / 72.0)
-    }
-    None => ()
-  }
-
-  // Handle pc units (1pc = 12pt = 16px)
-  match v.strip_suffix("pc") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
-      }
-      return @types.Dimension::Length(n * 16.0)
-    }
-    None => ()
-  }
-
-  // Handle in units (1in = 96px)
-  match v.strip_suffix("in") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
-      }
-      return @types.Dimension::Length(n * 96.0)
-    }
-    None => ()
-  }
-
-  // Handle cm units (1cm = 96/2.54 px ≈ 37.795px)
-  match v.strip_suffix("cm") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
-      }
-      return @types.Dimension::Length(n * 96.0 / 2.54)
-    }
-    None => ()
-  }
-
-  // Handle mm units (1mm = 96/25.4 px ≈ 3.7795px)
-  match v.strip_suffix("mm") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
-      }
-      return @types.Dimension::Length(n * 96.0 / 25.4)
-    }
-    None => ()
-  }
-
-  // Handle Q units (1Q = 1/4mm = 96/101.6 px). `v` is lowercased above.
-  match v.strip_suffix("q") {
-    Some(num_str) => {
-      let n = @string.parse_double(num_str.to_owned()) catch {
-        _ => return @types.Dimension::Auto
-      }
-      return @types.Dimension::Length(n * 96.0 / 101.6)
-    }
-    None => ()
-  }
-
-  // Fall back to simple dimension parsing (px, %)
+  // Fall back for unitless, fit-content(...) and unknown units.
   parse_dimension(v.to_string())
 }
 
