@@ -92,6 +92,7 @@ fn accumulate_cascaded_declaration(
 fn accumulate_inline_declaration(
   result : CascadedValues,
   decl : Declaration,
+  source_order_offset : Int,
 ) -> Unit {
   accumulate_cascaded_declaration(result, {
     property: decl.property,
@@ -99,7 +100,12 @@ fn accumulate_inline_declaration(
     origin: Author,
     importance: decl.importance,
     specificity: { a: 1000, b: 0, c: 0 },
-    source_order: decl.source_order,
+    // Inline styles are authored after every stylesheet, so their source order
+    // must sort above all stylesheet declarations. Otherwise an inline longhand
+    // (e.g. border-top-width) would be applied before a stylesheet shorthand
+    // (e.g. border), and the shorthand's four-side expansion would clobber it
+    // at compute time even though the inline declaration wins the cascade.
+    source_order: source_order_offset + decl.source_order,
   })
 }
 
@@ -399,7 +405,7 @@ pub fn cascade_element_with_media(
   }
 
   for decl in inline_style {
-    accumulate_inline_declaration(result, decl)
+    accumulate_inline_declaration(result, decl, source_order_offset)
   }
   result
 }

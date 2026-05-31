@@ -2123,6 +2123,35 @@ test "compute stylesheet preserves border shorthand and longhand source order" {
 }
 
 ///|
+/// Inline longhand must win over a stylesheet border shorthand even though the
+/// stylesheet declaration carries a much larger source order. Inline (1,0,0,0)
+/// specificity wins the cascade per property, but the shorthand expands to all
+/// four sides at apply time, so the inline longhand must also be applied last.
+test "compute inline border longhand overrides stylesheet shorthand" {
+  let element = @selector.Element::with_classes("div", ["box"])
+  // A leading rule pushes the `.box` rule's source order above 0 so the
+  // stylesheet `border` declaration sorts after a naive inline source order.
+  let sheet = @parser.parse_stylesheet(
+    "div { color: red; } .box { border: 10px solid transparent; }",
+  )
+  let inline : Array[@cascade.Declaration] = [
+    @cascade.Declaration::from_inline(
+      "border-top-width",
+      "100px",
+      @cascade.Normal,
+    ),
+  ]
+  let style = @computed.compute(
+    @cascade.cascade_element(element, [sheet], inline),
+    @computed.ComputeContext::new(),
+  )
+  inspect(style.border.top, content="Length(100)")
+  inspect(style.border.right, content="Length(10)")
+  inspect(style.border.bottom, content="Length(10)")
+  inspect(style.border.left, content="Length(10)")
+}
+
+///|
 test "compute_inline overflow shorthand" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline("overflow: hidden", ctx)

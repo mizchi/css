@@ -231,7 +231,7 @@ pub fn cascade_element_indexed(
     }
   }
   for decl in inline_style {
-    accumulate_inline_declaration(result, decl)
+    accumulate_inline_declaration(result, decl, source_order_offset)
   }
   result
 }
