@@ -30,6 +30,10 @@ fn parse_calc_expression(
   let mut result_px : Double = 0.0
   let mut result_pct : Double = 0.0
   let mut current_op : Char = '+'
+  // A unitless number before the first dimensioned term (e.g. `calc(2 * 10px)`)
+  // multiplies that term; stash it here until the first value lands.
+  let mut have_value = false
+  let mut leading_factor : Double = 1.0
   while remaining.length() > 0 {
     remaining = skip_whitespace(remaining)
     if remaining.length() == 0 {
@@ -53,14 +57,42 @@ fn parse_calc_expression(
       }
       @token.Token::Dimension(value, unit) => {
         if unit == "px" {
-          match current_op {
-            '+' => result_px = result_px + value
-            '-' => result_px = result_px - value
-            '*' => result_px = result_px * value
-            '/' => result_px = result_px / value
-            _ => ()
+          if !have_value {
+            result_px = value * leading_factor
+            have_value = true
+            leading_factor = 1.0
+          } else {
+            match current_op {
+              '+' => result_px = result_px + value
+              '-' => result_px = result_px - value
+              '*' => result_px = result_px * value
+              '/' => result_px = result_px / value
+              _ => ()
+            }
           }
         } else if unit == "%" {
+          if !have_value {
+            result_pct = value * leading_factor
+            have_value = true
+            leading_factor = 1.0
+          } else {
+            match current_op {
+              '+' => result_pct = result_pct + value
+              '-' => result_pct = result_pct - value
+              '*' => result_pct = result_pct * value
+              '/' => result_pct = result_pct / value
+              _ => ()
+            }
+          }
+        }
+        remaining = remaining[1:]
+      }
+      @token.Token::Percentage(value) => {
+        if !have_value {
+          result_pct = value * leading_factor
+          have_value = true
+          leading_factor = 1.0
+        } else {
           match current_op {
             '+' => result_pct = result_pct + value
             '-' => result_pct = result_pct - value
@@ -71,25 +103,31 @@ fn parse_calc_expression(
         }
         remaining = remaining[1:]
       }
-      @token.Token::Percentage(value) => {
-        match current_op {
-          '+' => result_pct = result_pct + value
-          '-' => result_pct = result_pct - value
-          '*' => result_pct = result_pct * value
-          '/' => result_pct = result_pct / value
-          _ => ()
+      @token.Token::Number(value, _) => {
+        // Unitless number. After a dimensioned term it scales the running
+        // result (`10px * 2`); before the first term it is a leading factor for
+        // the next term (`2 * 10px`). Zero has no effect.
+        if value != 0.0 {
+          match current_op {
+            '*' =>
+              if have_value {
+                result_px = result_px * value
+                result_pct = result_pct * value
+              } else {
+                leading_factor = leading_factor * value
+              }
+            '/' =>
+              if have_value {
+                result_px = result_px / value
+                result_pct = result_pct / value
+              } else {
+                leading_factor = leading_factor / value
+              }
+            _ => if !have_value { leading_factor = leading_factor * value }
+          }
         }
         remaining = remaining[1:]
       }
-      @token.Token::Number(value, _) =>
-        // Unitless number - treat as px if 0, otherwise ignore
-        if value == 0.0 {
-          // 0 has no effect
-          remaining = remaining[1:]
-        } else {
-          // Non-zero unitless number in calc - skip for now
-          remaining = remaining[1:]
-        }
       @token.Token::Delim(c) =>
         if c == '+' || c == '-' || c == '*' || c == '/' {
           current_op = c

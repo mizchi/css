@@ -10,7 +10,7 @@ pub(all) enum ColorScheme {
 } derive(Eq, Debug)
 
 ///|
-pub impl Show for ColorScheme with output(self, logger) {
+pub impl Show for ColorScheme with fn output(self, logger) {
   logger.write_string(
     match self {
       Light => "Light"
@@ -111,27 +111,27 @@ fn evaluate_feature(feature : MediaFeature, env : MediaEnvironment) -> Bool {
     // Width features
     MediaFeature::Width(value) =>
       match value {
-        Some(v) => compare_value(v, env.viewport_width, RangeOp::Eq)
+        Some(v) => compare_value(v, env.viewport_width, RangeOp::Eq, env)
         None => true // Boolean context: width exists
       }
     MediaFeature::MinWidth(value) =>
-      compare_value(value, env.viewport_width, RangeOp::Ge)
+      compare_value(value, env.viewport_width, RangeOp::Ge, env)
     MediaFeature::MaxWidth(value) =>
-      compare_value(value, env.viewport_width, RangeOp::Le)
+      compare_value(value, env.viewport_width, RangeOp::Le, env)
     MediaFeature::WidthRange(op, value) =>
-      compare_value_with_op(value, env.viewport_width, op)
+      compare_value_with_op(value, env.viewport_width, op, env)
     // Height features
     MediaFeature::Height(value) =>
       match value {
-        Some(v) => compare_value(v, env.viewport_height, RangeOp::Eq)
+        Some(v) => compare_value(v, env.viewport_height, RangeOp::Eq, env)
         None => true
       }
     MediaFeature::MinHeight(value) =>
-      compare_value(value, env.viewport_height, RangeOp::Ge)
+      compare_value(value, env.viewport_height, RangeOp::Ge, env)
     MediaFeature::MaxHeight(value) =>
-      compare_value(value, env.viewport_height, RangeOp::Le)
+      compare_value(value, env.viewport_height, RangeOp::Le, env)
     MediaFeature::HeightRange(op, value) =>
-      compare_value_with_op(value, env.viewport_height, op)
+      compare_value_with_op(value, env.viewport_height, op, env)
     // Aspect ratio
     MediaFeature::AspectRatio(value) =>
       match value {
@@ -200,15 +200,34 @@ fn evaluate_feature(feature : MediaFeature, env : MediaEnvironment) -> Bool {
 }
 
 ///|
-/// Convert media value to pixels
-fn to_pixels(value : MediaValue) -> Double {
+/// Convert media value to pixels. Viewport-relative units (vw/vh/vmin/vmax)
+/// resolve against `env`'s viewport, so `50vw` on a 1000px-wide viewport is
+/// 500px regardless of which dimension the feature compares against.
+fn to_pixels(value : MediaValue, env : MediaEnvironment) -> Double {
   match value {
     MediaValue::Number(n) => n
     MediaValue::Dimension(n, unit) =>
       match unit.to_lower() {
         "px" => n
         "em" | "rem" => n * 16.0 // Assume 16px base font size
-        "vw" | "vh" => n // Would need viewport for accurate conversion
+        "vw" | "dvw" | "svw" | "lvw" => n * env.viewport_width / 100.0
+        "vh" | "dvh" | "svh" | "lvh" => n * env.viewport_height / 100.0
+        "vmin" => {
+          let base = if env.viewport_width < env.viewport_height {
+            env.viewport_width
+          } else {
+            env.viewport_height
+          }
+          n * base / 100.0
+        }
+        "vmax" => {
+          let base = if env.viewport_width > env.viewport_height {
+            env.viewport_width
+          } else {
+            env.viewport_height
+          }
+          n * base / 100.0
+        }
         "pt" => n * 1.333333 // 1pt = 4/3 px
         "pc" => n * 16.0 // 1pc = 16px
         "in" => n * 96.0 // 1in = 96px
@@ -229,8 +248,9 @@ fn compare_value(
   query_value : MediaValue,
   actual : Double,
   op : RangeOp,
+  env : MediaEnvironment,
 ) -> Bool {
-  let query_pixels = to_pixels(query_value)
+  let query_pixels = to_pixels(query_value, env)
   match op {
     RangeOp::Eq => (actual - query_pixels).abs() < 0.01
     RangeOp::Lt => actual < query_pixels
@@ -248,8 +268,9 @@ fn compare_value_with_op(
   query_value : MediaValue,
   actual : Double,
   op : RangeOp,
+  env : MediaEnvironment,
 ) -> Bool {
-  compare_value(query_value, actual, op)
+  compare_value(query_value, actual, op, env)
 }
 
 ///|

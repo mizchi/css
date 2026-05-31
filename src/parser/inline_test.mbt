@@ -1,4 +1,24 @@
 ///|
+test "parse_inline_style calc with unitless multiplier" {
+  inspect(
+    parse_inline_style("width: calc(10px * 2)").width,
+    content="Length(20)",
+  )
+  inspect(
+    parse_inline_style("width: calc(2 * 10px)").width,
+    content="Length(20)",
+  )
+  inspect(
+    parse_inline_style("width: calc(10px / 2)").width,
+    content="Length(5)",
+  )
+  inspect(
+    parse_inline_style("width: calc(2 * 50%)").width,
+    content="Percent(1)",
+  )
+}
+
+///|
 test "parse flex-flow shorthand" {
   let dir_only = parse_inline_style("flex-flow: column")
   inspect(dir_only.flex_direction, content="Column")

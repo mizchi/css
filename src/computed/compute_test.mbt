@@ -2235,6 +2235,66 @@ test "compute_inline align-self and justify-self separately" {
 }
 
 ///|
+test "compute_inline place-items shorthand" {
+  let ctx = @computed.ComputeContext::new()
+  // Single value applies to both align-items and justify-items.
+  let single = @computed.compute_inline("place-items: center", ctx)
+  inspect(single.align_items, content="Center")
+  inspect(single.justify_items, content="Center")
+  // Two values: <align-items> <justify-items>.
+  let pair = @computed.compute_inline("place-items: center end", ctx)
+  inspect(pair.align_items, content="Center")
+  inspect(pair.justify_items, content="End")
+  // Multi-token segment (first baseline) for the align-items component.
+  let baseline = @computed.compute_inline(
+    "place-items: first baseline start", ctx,
+  )
+  inspect(baseline.align_items, content="Baseline")
+  inspect(baseline.justify_items, content="Start")
+}
+
+///|
+test "compute_inline place-self shorthand" {
+  let ctx = @computed.ComputeContext::new()
+  let single = @computed.compute_inline("place-self: center", ctx)
+  inspect(single.align_self, content="Center")
+  inspect(single.justify_self, content="Center")
+  let pair = @computed.compute_inline("place-self: end center", ctx)
+  inspect(pair.align_self, content="End")
+  inspect(pair.justify_self, content="Center")
+}
+
+///|
+test "compute_inline calc with unitless multiplier" {
+  let ctx = @computed.ComputeContext::new()
+  // Multiplier after the length.
+  inspect(
+    @computed.compute_inline("width: calc(10px * 2)", ctx).width,
+    content="Length(20)",
+  )
+  // Multiplier before the length (leading factor).
+  inspect(
+    @computed.compute_inline("width: calc(2 * 10px)", ctx).width,
+    content="Length(20)",
+  )
+  // Division by a unitless number.
+  inspect(
+    @computed.compute_inline("width: calc(10px / 2)", ctx).width,
+    content="Length(5)",
+  )
+  // Percentage scaled by a leading factor.
+  inspect(
+    @computed.compute_inline("width: calc(2 * 50%)", ctx).width,
+    content="Percent(1)",
+  )
+  // Mixed calc must still be preserved, not collapsed by the factor changes.
+  inspect(
+    @computed.compute_inline("width: calc(100% - 50px)", ctx).width,
+    content="Calc(-50, 1)",
+  )
+}
+
+///|
 test "apply_property_direct mutates existing style" {
   let ctx = @computed.ComputeContext::new()
   let base = @computed.compute_inline("display: block", ctx)

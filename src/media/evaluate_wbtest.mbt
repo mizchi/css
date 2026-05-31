@@ -399,11 +399,37 @@ test "media query - to_pixels for vw/vh, pt, pc" {
   // pc: 1pc = 16px, 6.25pc = 100px
   let mq2 = parse_media_query_list("(min-width: 6pc)")
   inspect(mq2.evaluate(env), content="true")
-  // vw/vh: not properly converted but tested
+  // vw/vh are resolved against the viewport: 50vw = 50px on a 100px viewport.
   let mq3 = parse_media_query_list("(min-width: 50vw)")
   inspect(mq3.evaluate(env), content="true")
   let mq4 = parse_media_query_list("(min-width: 50vh)")
   inspect(mq4.evaluate(env), content="true")
+}
+
+///|
+test "media query - vw/vh resolve against the viewport" {
+  // Asymmetric viewport so width- and height-relative units differ, and so a
+  // raw (unconverted) comparison would give a different boolean than the
+  // correct conversion.
+  let env = MediaEnvironment::new(1000.0, 200.0)
+  // min-width: k vw is satisfiable iff k <= 100 (k vw = k% of the width).
+  inspect(
+    parse_media_query_list("(min-width: 50vw)").evaluate(env),
+    content="true",
+  )
+  inspect(
+    parse_media_query_list("(min-width: 150vw)").evaluate(env),
+    content="false",
+  )
+  // vh resolves against the height even inside a width feature: 150vh = 300px.
+  inspect(
+    parse_media_query_list("(min-height: 150vh)").evaluate(env),
+    content="false",
+  )
+  inspect(
+    parse_media_query_list("(min-width: 10vh)").evaluate(env),
+    content="true",
+  )
 }
 
 ///|

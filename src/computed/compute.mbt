@@ -1839,8 +1839,24 @@ fn apply_property(
     // Flexbox/Grid item alignment
     "align-self" => builder.align_self = parse_align_self(value)
     "justify-self" => builder.justify_self = parse_align_self(value)
+    "place-self" =>
+      match parse_place_self(value) {
+        Some((align_self, justify_self)) => {
+          builder.align_self = align_self
+          builder.justify_self = justify_self
+        }
+        None => ()
+      }
     // Grid container alignment
     "justify-items" => builder.justify_items = parse_alignment(value)
+    "place-items" =>
+      match parse_place_items(value) {
+        Some((align_items, justify_items)) => {
+          builder.align_items = align_items
+          builder.justify_items = justify_items
+        }
+        None => ()
+      }
     "flex-grow" => {
       let v = parse_number(value)
       if v >= 0.0 {
@@ -3127,6 +3143,11 @@ fn parse_calc_terms(expr : String, ctx : ComputeContext) -> (Double, Double)? {
   let mut result_px : Double = 0.0
   let mut result_pct : Double = 0.0
   let mut current_op : Char = '+'
+  // Leading unitless factor support: a number that appears before the first
+  // dimensioned term (e.g. `calc(2 * 10px)`) multiplies that term. We stash it
+  // here and apply it to the first px/% value that lands.
+  let mut have_value = false
+  let mut leading_factor : Double = 1.0
   // Split by operators while preserving them
   let mut i = 0
   let mut token_start = 0
@@ -3153,12 +3174,18 @@ fn parse_calc_terms(expr : String, ctx : ComputeContext) -> (Double, Double)? {
               token.view(end_offset=token.length() - 1),
             )
             let n = @string.parse_double(num_str.to_string()) catch { _ => 0.0 }
-            match current_op {
-              '+' => result_pct = result_pct + n
-              '-' => result_pct = result_pct - n
-              '*' => result_pct = result_pct * n
-              '/' => result_pct = result_pct / n
-              _ => ()
+            if !have_value {
+              result_pct = n * leading_factor
+              have_value = true
+              leading_factor = 1.0
+            } else {
+              match current_op {
+                '+' => result_pct = result_pct + n
+                '-' => result_pct = result_pct - n
+                '*' => result_pct = result_pct * n
+                '/' => result_pct = result_pct / n
+                _ => ()
+              }
             }
           } else {
             // Try to resolve known length units to px for calc() simplification.
@@ -3205,12 +3232,18 @@ fn parse_calc_terms(expr : String, ctx : ComputeContext) -> (Double, Double)? {
             }
             match resolved_px {
               Some(n) =>
-                match current_op {
-                  '+' => result_px = result_px + n
-                  '-' => result_px = result_px - n
-                  '*' => result_px = result_px * n
-                  '/' => result_px = result_px / n
-                  _ => ()
+                if !have_value {
+                  result_px = n * leading_factor
+                  have_value = true
+                  leading_factor = 1.0
+                } else {
+                  match current_op {
+                    '+' => result_px = result_px + n
+                    '-' => result_px = result_px - n
+                    '*' => result_px = result_px * n
+                    '/' => result_px = result_px / n
+                    _ => ()
+                  }
                 }
               None => {
                 // Try as unitless number (treat as px if 0, otherwise skip)
@@ -3219,17 +3252,30 @@ fn parse_calc_terms(expr : String, ctx : ComputeContext) -> (Double, Double)? {
                   // 0 has no effect on the result
                   ()
                 } else {
-                  // Non-zero unitless - treat as multiplier for current values if *, /
+                  // Non-zero unitless number. After a dimensioned term it scales
+                  // the running result (`10px * 2`); before the first term it is
+                  // a leading factor for the next term (`2 * 10px`).
                   match current_op {
-                    '*' => {
-                      result_px = result_px * n
-                      result_pct = result_pct * n
-                    }
-                    '/' => {
-                      result_px = result_px / n
-                      result_pct = result_pct / n
-                    }
-                    _ => return None
+                    '*' =>
+                      if have_value {
+                        result_px = result_px * n
+                        result_pct = result_pct * n
+                      } else {
+                        leading_factor = leading_factor * n
+                      }
+                    '/' =>
+                      if have_value {
+                        result_px = result_px / n
+                        result_pct = result_pct / n
+                      } else {
+                        leading_factor = leading_factor / n
+                      }
+                    _ =>
+                      if !have_value {
+                        leading_factor = leading_factor * n
+                      } else {
+                        return None
+                      }
                   }
                 }
               }

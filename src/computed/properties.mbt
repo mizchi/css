@@ -582,6 +582,59 @@ pub fn parse_place_content(
 }
 
 ///|
+/// Parse place-items shorthand: `<'align-items'> <'justify-items'>?`.
+/// A single component is duplicated to both axes. Returns
+/// (align_items, justify_items).
+pub fn parse_place_items(
+  value : String,
+) -> (@types.Alignment, @types.Alignment)? {
+  let tokens = tokenize_alignment_value(value)
+  if tokens.is_empty() {
+    return None
+  }
+  match parse_alignment_segment(tokens, 0) {
+    Some((first, next_index)) => {
+      let align_items = parse_alignment_with_overflow(first).0
+      if next_index >= tokens.length() {
+        return Some((align_items, align_items))
+      }
+      match parse_alignment_segment(tokens, next_index) {
+        Some((second, _)) =>
+          Some((align_items, parse_alignment_with_overflow(second).0))
+        None => Some((align_items, align_items))
+      }
+    }
+    None => None
+  }
+}
+
+///|
+/// Parse place-self shorthand: `<'align-self'> <'justify-self'>?`.
+/// A single component is duplicated to both axes. Returns
+/// (align_self, justify_self).
+pub fn parse_place_self(
+  value : String,
+) -> (@types.AlignSelf, @types.AlignSelf)? {
+  let tokens = tokenize_alignment_value(value)
+  if tokens.is_empty() {
+    return None
+  }
+  match parse_alignment_segment(tokens, 0) {
+    Some((first, next_index)) => {
+      let align_self = parse_align_self(first)
+      if next_index >= tokens.length() {
+        return Some((align_self, align_self))
+      }
+      match parse_alignment_segment(tokens, next_index) {
+        Some((second, _)) => Some((align_self, parse_align_self(second)))
+        None => Some((align_self, align_self))
+      }
+    }
+    None => None
+  }
+}
+
+///|
 /// Parse align-self value
 pub fn parse_align_self(value : String) -> @types.AlignSelf {
   match value.trim().to_lower() {
