@@ -561,9 +561,12 @@ test "compute_inline mixed calc gap preserves layout-time basis" {
     viewport_height: 600.0,
     custom_properties: {},
   }
+  // 10% - 1rem/2 = 10% - 8px. The `/2` binds only to `1rem` (precedence), so
+  // the percentage stays 10% (0.1). The previous 0.05 was a precedence bug that
+  // divided the accumulated percentage too.
   let style = @computed.compute_inline("gap: calc(10% - 1rem / 2)", ctx)
-  inspect(style.row_gap, content="Calc(-8, 0.05)")
-  inspect(style.column_gap, content="Calc(-8, 0.05)")
+  inspect(style.row_gap, content="Calc(-8, 0.1)")
+  inspect(style.column_gap, content="Calc(-8, 0.1)")
 }
 
 ///|
@@ -2291,6 +2294,128 @@ test "compute_inline calc with unitless multiplier" {
   inspect(
     @computed.compute_inline("width: calc(100% - 50px)", ctx).width,
     content="Calc(-50, 1)",
+  )
+}
+
+///|
+test "compute_inline calc operator precedence, parens, nested math" {
+  let ctx = @computed.ComputeContext::new()
+  // Multiplication binds tighter than addition: 2 + (3*2) = 8, not (2+3)*2.
+  inspect(
+    @computed.compute_inline("width: calc(2px + 3px * 2)", ctx).width,
+    content="Length(8)",
+  )
+  // A unitless factor mid-expression.
+  inspect(
+    @computed.compute_inline("width: calc(10px + 2 * 3px)", ctx).width,
+    content="Length(16)",
+  )
+  // Parentheses override precedence.
+  inspect(
+    @computed.compute_inline("width: calc((10px + 2px) * 2)", ctx).width,
+    content="Length(24)",
+  )
+  // Nested math function inside calc().
+  inspect(
+    @computed.compute_inline("width: calc(min(10px, 20px) + 5px)", ctx).width,
+    content="Length(15)",
+  )
+  // Existing simple cases still hold.
+  inspect(
+    @computed.compute_inline("width: calc(10px + 5px + 2px)", ctx).width,
+    content="Length(17)",
+  )
+  inspect(
+    @computed.compute_inline("width: calc(100% / 3)", ctx).width,
+    content="Percent(0.33333333333333337)",
+  )
+  // Mixed px + percent preserved.
+  inspect(
+    @computed.compute_inline("width: calc(100% - 50px)", ctx).width,
+    content="Calc(-50, 1)",
+  )
+}
+
+///|
+test "compute_inline calc with em/ex operands and scientific notation" {
+  let ctx = @computed.ComputeContext::new()
+  // `em`/`ex` start with `e`; the tokenizer must not mistake it for an exponent.
+  inspect(
+    @computed.compute_inline("width: calc(20em * -1)", ctx).width,
+    content="Length(-320)",
+  )
+  inspect(
+    @computed.compute_inline("width: calc(2ex + 1ex)", ctx).width,
+    content="Length(24)",
+  )
+  // Genuine scientific notation still parses.
+  inspect(
+    @computed.compute_inline("width: calc(1e2px + 0px)", ctx).width,
+    content="Length(100)",
+  )
+}
+
+///|
+test "compute_inline invalid calc falls back to initial value" {
+  let ctx = @computed.ComputeContext::new()
+  // Bare number, length × length, and division by zero are all invalid and must
+  // not silently produce a wrong length.
+  inspect(
+    @computed.compute_inline("width: calc(2 + 3 * 4)", ctx).width,
+    content="Auto",
+  )
+  inspect(
+    @computed.compute_inline("width: calc(10px * 2px)", ctx).width,
+    content="Auto",
+  )
+  inspect(
+    @computed.compute_inline("width: calc(10px / 0)", ctx).width,
+    content="Auto",
+  )
+  inspect(
+    @computed.compute_inline("width: calc(10px +)", ctx).width,
+    content="Auto",
+  )
+}
+
+///|
+test "compute_inline units are case-insensitive" {
+  let ctx = @computed.ComputeContext::new()
+  // CSS units are ASCII case-insensitive.
+  inspect(
+    @computed.compute_inline("width: 10PX", ctx).width,
+    content="Length(10)",
+  )
+  inspect(
+    @computed.compute_inline("width: 1REM", ctx).width,
+    content="Length(16)",
+  )
+  inspect(
+    @computed.compute_inline("width: 2EM", ctx).width,
+    content="Length(32)",
+  )
+  // 5q and 5Q must agree (and not fall back to Auto).
+  assert_eq(
+    @computed.compute_inline("width: 5q", ctx).width,
+    @computed.compute_inline("width: 5Q", ctx).width,
+  )
+  assert_eq(
+    @computed.compute_inline("width: 10VW", ctx).width,
+    @types.Length(192.0),
+  )
+}
+
+///|
+test "compute_inline vi and vb viewport units" {
+  // vi/vb map to vw/vh in the assumed horizontal-tb writing mode.
+  let ctx = @computed.ComputeContext::new()
+  assert_eq(
+    @computed.compute_inline("width: 10vi", ctx).width,
+    @computed.compute_inline("width: 10vw", ctx).width,
+  )
+  assert_eq(
+    @computed.compute_inline("width: 10vb", ctx).width,
+    @computed.compute_inline("width: 10vh", ctx).width,
   )
 }
 

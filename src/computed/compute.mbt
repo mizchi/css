@@ -98,6 +98,21 @@ fn resolve_viewport_unit_px(value : String, ctx : ComputeContext) -> Double? {
     }
     None => ()
   }
+  // Logical viewport units. In the assumed horizontal-tb writing mode the
+  // inline axis is horizontal (→ width) and the block axis is vertical
+  // (→ height). Check longer suffixes first so e.g. "dvi" is not eaten by "vi".
+  for unit in ["dvi", "svi", "lvi", "vi"] {
+    match parse_number_with_suffix(value, unit) {
+      Some(n) => return Some(n * ctx.viewport_width / 100.0)
+      None => ()
+    }
+  }
+  for unit in ["dvb", "svb", "lvb", "vb"] {
+    match parse_number_with_suffix(value, unit) {
+      Some(n) => return Some(n * ctx.viewport_height / 100.0)
+      None => ()
+    }
+  }
   None
 }
 
@@ -3183,169 +3198,463 @@ fn parse_css_math_function(
 }
 
 ///|
-/// Parse calc() terms and return (length_px, percent_ratio)
-/// percent_ratio is 0.5 for 50%.
-fn parse_calc_terms(expr : String, ctx : ComputeContext) -> (Double, Double)? {
-  // Extract the expression inside calc(...)
-  let v = expr.trim()
-  if !v.has_prefix("calc(") || !v.has_suffix(")") {
-    return None
-  }
-  // Extract content: "calc(" has 5 chars, ")" has 1 char
-  let inner = view_to_string(v.view(start_offset=5, end_offset=v.length() - 1))
-  // Parse simple expressions: accumulate px and % values
-  let mut result_px : Double = 0.0
-  let mut result_pct : Double = 0.0
-  let mut current_op : Char = '+'
-  // Leading unitless factor support: a number that appears before the first
-  // dimensioned term (e.g. `calc(2 * 10px)`) multiplies that term. We stash it
-  // here and apply it to the first px/% value that lands.
-  let mut have_value = false
-  let mut leading_factor : Double = 1.0
-  // Split by operators while preserving them
+/// Internal calc() value: either a dimensionless number or a length/percentage
+/// linear form (`px` plus `pct` in percentage points, e.g. 50.0 for 50%).
+priv struct CalcVal {
+  px : Double
+  pct : Double
+  num : Double
+  is_num : Bool
+}
+
+///|
+fn calc_num(n : Double) -> CalcVal {
+  { px: 0.0, pct: 0.0, num: n, is_num: true }
+}
+
+///|
+fn calc_lp(px : Double, pct : Double) -> CalcVal {
+  { px, pct, num: 0.0, is_num: false }
+}
+
+///|
+/// Tokens for the calc() expression grammar.
+priv enum CalcTok {
+  CNum(Double, String)
+  COp(Char)
+  CLP
+  CRP
+  CFun(String)
+  CComma
+}
+
+///|
+fn calc_char_at(s : String, i : Int) -> Char {
+  s[i].to_int().unsafe_to_char()
+}
+
+///|
+/// Tokenize a calc() inner expression. `+`/`-` are treated as binary operators
+/// unless an operand is expected (start, after another operator, after `(` or
+/// `,`), in which case they are the sign of the following number.
+fn calc_tokenize(s : String) -> Array[CalcTok]? {
+  let toks : Array[CalcTok] = []
+  let n = s.length()
   let mut i = 0
-  let mut token_start = 0
-  while i <= inner.length() {
-    let c = if i < inner.length() {
-      inner[i].to_int().unsafe_to_char()
-    } else {
-      ' '
-    } // End of string
-    let signed_number_start = if i < inner.length() {
-      is_calc_signed_number_start(inner, i, token_start)
-    } else {
-      false
+  let mut expect_operand = true
+  while i < n {
+    let c = calc_char_at(s, i)
+    if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
+      i = i + 1
+      continue
     }
-    if (c == '+' || c == '-' || c == '*' || c == '/' || i == inner.length()) &&
-      !signed_number_start {
-      // Process token before operator
-      if i > token_start {
-        let token = inner.unsafe_substring(start=token_start, end=i).trim()
-        if !token.is_empty() {
-          // Parse the token
-          if token.has_suffix("%") {
-            let num_str = view_to_string(
-              token.view(end_offset=token.length() - 1),
-            )
-            let n = @string.parse_double(num_str.to_string()) catch { _ => 0.0 }
-            if !have_value {
-              result_pct = n * leading_factor
-              have_value = true
-              leading_factor = 1.0
-            } else {
-              match current_op {
-                '+' => result_pct = result_pct + n
-                '-' => result_pct = result_pct - n
-                '*' => result_pct = result_pct * n
-                '/' => result_pct = result_pct / n
-                _ => ()
-              }
+    if c == '(' {
+      toks.push(CLP)
+      expect_operand = true
+      i = i + 1
+      continue
+    }
+    if c == ')' {
+      toks.push(CRP)
+      expect_operand = false
+      i = i + 1
+      continue
+    }
+    if c == ',' {
+      toks.push(CComma)
+      expect_operand = true
+      i = i + 1
+      continue
+    }
+    if c == '*' || c == '/' {
+      toks.push(COp(c))
+      expect_operand = true
+      i = i + 1
+      continue
+    }
+    let is_sign = c == '+' || c == '-'
+    if is_sign && !expect_operand {
+      toks.push(COp(c))
+      expect_operand = true
+      i = i + 1
+      continue
+    }
+    let is_digit = c >= '0' && c <= '9'
+    if is_digit || c == '.' || (is_sign && expect_operand) {
+      let start = i
+      if is_sign {
+        i = i + 1
+      }
+      while i < n {
+        let d = calc_char_at(s, i)
+        if (d >= '0' && d <= '9') || d == '.' {
+          i = i + 1
+        } else {
+          break
+        }
+      }
+      if i < n {
+        let e = calc_char_at(s, i)
+        if e == 'e' || e == 'E' {
+          // Only an exponent if `e` is followed by [+-]?digit; otherwise the
+          // `e` begins a unit (e.g. the "em"/"ex" in "20em", "2ex").
+          let mut j = i + 1
+          if j < n {
+            let sgn = calc_char_at(s, j)
+            if sgn == '+' || sgn == '-' {
+              j = j + 1
             }
-          } else {
-            // Try to resolve known length units to px for calc() simplification.
-            let resolved_px : Double? = if token.has_suffix("px") {
-              let num_str = view_to_string(
-                token.view(end_offset=token.length() - 2),
-              )
-              let n = @string.parse_double(num_str.to_string()) catch {
-                _ => return None
-              }
-              Some(n)
-            } else {
-              match resolve_viewport_unit_px(view_to_string(token), ctx) {
-                Some(n) => Some(n)
-                None =>
-                  if token.has_suffix("rem") {
-                    let num_str = view_to_string(
-                      token.view(end_offset=token.length() - 3),
-                    )
-                    let n = @string.parse_double(num_str.to_string()) catch {
-                      _ => return None
-                    }
-                    Some(n * ctx.root_font_size)
-                  } else if token.has_suffix("em") {
-                    let num_str = view_to_string(
-                      token.view(end_offset=token.length() - 2),
-                    )
-                    let n = @string.parse_double(num_str.to_string()) catch {
-                      _ => return None
-                    }
-                    Some(n * ctx.font_size)
-                  } else if token.has_suffix("pt") {
-                    let num_str = view_to_string(
-                      token.view(end_offset=token.length() - 2),
-                    )
-                    let n = @string.parse_double(num_str.to_string()) catch {
-                      _ => return None
-                    }
-                    Some(n * 96.0 / 72.0)
-                  } else {
-                    None
-                  }
-              }
-            }
-            match resolved_px {
-              Some(n) =>
-                if !have_value {
-                  result_px = n * leading_factor
-                  have_value = true
-                  leading_factor = 1.0
-                } else {
-                  match current_op {
-                    '+' => result_px = result_px + n
-                    '-' => result_px = result_px - n
-                    '*' => result_px = result_px * n
-                    '/' => result_px = result_px / n
-                    _ => ()
-                  }
-                }
-              None => {
-                // Try as unitless number (treat as px if 0, otherwise skip)
-                let n = @string.parse_double(token) catch { _ => return None }
-                if n == 0.0 {
-                  // 0 has no effect on the result
-                  ()
-                } else {
-                  // Non-zero unitless number. After a dimensioned term it scales
-                  // the running result (`10px * 2`); before the first term it is
-                  // a leading factor for the next term (`2 * 10px`).
-                  match current_op {
-                    '*' =>
-                      if have_value {
-                        result_px = result_px * n
-                        result_pct = result_pct * n
-                      } else {
-                        leading_factor = leading_factor * n
-                      }
-                    '/' =>
-                      if have_value {
-                        result_px = result_px / n
-                        result_pct = result_pct / n
-                      } else {
-                        leading_factor = leading_factor / n
-                      }
-                    _ =>
-                      if !have_value {
-                        leading_factor = leading_factor * n
-                      } else {
-                        return None
-                      }
-                  }
-                }
+          }
+          if j < n && calc_char_at(s, j) >= '0' && calc_char_at(s, j) <= '9' {
+            i = j + 1
+            while i < n {
+              let d = calc_char_at(s, i)
+              if d >= '0' && d <= '9' {
+                i = i + 1
+              } else {
+                break
               }
             }
           }
         }
       }
-      // Save operator for next token
-      if i < inner.length() {
-        current_op = c
+      let num_str = s.unsafe_substring(start~, end=i)
+      let value = @string.parse_double(num_str) catch { _ => return None }
+      let ustart = i
+      while i < n {
+        let d = calc_char_at(s, i)
+        if (d >= 'a' && d <= 'z') || (d >= 'A' && d <= 'Z') || d == '%' {
+          i = i + 1
+        } else {
+          break
+        }
       }
-      token_start = i + 1
+      let unit = s.unsafe_substring(start=ustart, end=i).to_lower()
+      toks.push(CNum(value, unit))
+      expect_operand = false
+      continue
     }
-    i = i + 1
+    if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
+      let start = i
+      while i < n {
+        let d = calc_char_at(s, i)
+        if (d >= 'a' && d <= 'z') || (d >= 'A' && d <= 'Z') {
+          i = i + 1
+        } else {
+          break
+        }
+      }
+      let name = s.unsafe_substring(start~, end=i).to_lower()
+      toks.push(CFun(name))
+      expect_operand = true
+      continue
+    }
+    return None
   }
-  Some((result_px, result_pct / 100.0))
+  Some(toks)
+}
+
+///|
+/// Resolve a numeric token with its unit into a CalcVal.
+fn calc_unit_value(
+  value : Double,
+  unit : String,
+  ctx : ComputeContext,
+) -> CalcVal? {
+  if unit == "" {
+    return Some(calc_num(value))
+  }
+  if unit == "%" {
+    return Some(calc_lp(0.0, value))
+  }
+  match resolve_dimension("\{value}\{unit}", ctx) {
+    @types.Length(px) => Some(calc_lp(px, 0.0))
+    @types.Percent(p) => Some(calc_lp(0.0, p * 100.0))
+    _ => None
+  }
+}
+
+///|
+/// Resolve a CalcVal to pixels for min()/max()/clamp() comparisons, resolving
+/// percentages against a width reference.
+fn calc_to_px(cv : CalcVal, ctx : ComputeContext) -> Double {
+  if cv.is_num {
+    cv.num
+  } else {
+    cv.px + cv.pct / 100.0 * mixed_calc_width_reference(ctx)
+  }
+}
+
+///|
+fn calc_add(a : CalcVal, b : CalcVal, sign : Double) -> CalcVal? {
+  if a.is_num && b.is_num {
+    Some(calc_num(a.num + sign * b.num))
+  } else if !a.is_num && !b.is_num {
+    Some(calc_lp(a.px + sign * b.px, a.pct + sign * b.pct))
+  } else {
+    None
+  }
+}
+
+///|
+fn calc_mul(a : CalcVal, b : CalcVal) -> CalcVal? {
+  if a.is_num && b.is_num {
+    Some(calc_num(a.num * b.num))
+  } else if a.is_num {
+    Some(calc_lp(b.px * a.num, b.pct * a.num))
+  } else if b.is_num {
+    Some(calc_lp(a.px * b.num, a.pct * b.num))
+  } else {
+    None
+  }
+}
+
+///|
+fn calc_div(a : CalcVal, b : CalcVal) -> CalcVal? {
+  if !b.is_num || b.num == 0.0 {
+    return None
+  }
+  if a.is_num {
+    Some(calc_num(a.num / b.num))
+  } else {
+    Some(calc_lp(a.px / b.num, a.pct / b.num))
+  }
+}
+
+///|
+/// primary := number | '(' sum ')' | fn '(' sum (',' sum)* ')'
+fn calc_parse_primary(
+  toks : Array[CalcTok],
+  pos : Int,
+  ctx : ComputeContext,
+) -> (CalcVal, Int)? {
+  if pos >= toks.length() {
+    return None
+  }
+  match toks[pos] {
+    CNum(v, unit) =>
+      match calc_unit_value(v, unit, ctx) {
+        Some(cv) => Some((cv, pos + 1))
+        None => None
+      }
+    CLP =>
+      match calc_parse_sum(toks, pos + 1, ctx) {
+        Some((v, p2)) =>
+          if p2 < toks.length() &&
+            (match toks[p2] {
+              CRP => true
+              _ => false
+            }) {
+            Some((v, p2 + 1))
+          } else {
+            None
+          }
+        None => None
+      }
+    CFun(name) => {
+      if pos + 1 >= toks.length() {
+        return None
+      }
+      match toks[pos + 1] {
+        CLP => ()
+        _ => return None
+      }
+      let args : Array[CalcVal] = []
+      let mut p = pos + 2
+      let mut closed = false
+      while !closed {
+        match calc_parse_sum(toks, p, ctx) {
+          Some((a, np)) => {
+            args.push(a)
+            if np >= toks.length() {
+              return None
+            }
+            match toks[np] {
+              CComma => p = np + 1
+              CRP => {
+                p = np + 1
+                closed = true
+              }
+              _ => return None
+            }
+          }
+          None => return None
+        }
+      }
+      match name {
+        "calc" => if args.length() == 1 { Some((args[0], p)) } else { None }
+        "min" => {
+          if args.is_empty() {
+            return None
+          }
+          let mut m = calc_to_px(args[0], ctx)
+          for k = 1; k < args.length(); k = k + 1 {
+            let x = calc_to_px(args[k], ctx)
+            if x < m {
+              m = x
+            }
+          }
+          Some((calc_lp(m, 0.0), p))
+        }
+        "max" => {
+          if args.is_empty() {
+            return None
+          }
+          let mut m = calc_to_px(args[0], ctx)
+          for k = 1; k < args.length(); k = k + 1 {
+            let x = calc_to_px(args[k], ctx)
+            if x > m {
+              m = x
+            }
+          }
+          Some((calc_lp(m, 0.0), p))
+        }
+        "clamp" => {
+          if args.length() != 3 {
+            return None
+          }
+          let lo = calc_to_px(args[0], ctx)
+          let mid = calc_to_px(args[1], ctx)
+          let hi = calc_to_px(args[2], ctx)
+          let mut r = mid
+          if r < lo {
+            r = lo
+          }
+          if r > hi {
+            r = hi
+          }
+          Some((calc_lp(r, 0.0), p))
+        }
+        _ => None
+      }
+    }
+    _ => None
+  }
+}
+
+///|
+/// product := primary (('*' | '/') primary)*
+fn calc_parse_product(
+  toks : Array[CalcTok],
+  pos : Int,
+  ctx : ComputeContext,
+) -> (CalcVal, Int)? {
+  match calc_parse_primary(toks, pos, ctx) {
+    Some((first, p1)) => {
+      let mut acc = first
+      let mut p = p1
+      let mut stop = false
+      while !stop && p < toks.length() {
+        let op = match toks[p] {
+          COp('*') => '*'
+          COp('/') => '/'
+          _ => ' '
+        }
+        if op == ' ' {
+          stop = true
+        } else {
+          match calc_parse_primary(toks, p + 1, ctx) {
+            Some((rhs, p2)) => {
+              let combined = if op == '*' {
+                calc_mul(acc, rhs)
+              } else {
+                calc_div(acc, rhs)
+              }
+              match combined {
+                Some(v) => {
+                  acc = v
+                  p = p2
+                }
+                None => return None
+              }
+            }
+            None => return None
+          }
+        }
+      }
+      Some((acc, p))
+    }
+    None => None
+  }
+}
+
+///|
+/// sum := product (('+' | '-') product)*
+fn calc_parse_sum(
+  toks : Array[CalcTok],
+  pos : Int,
+  ctx : ComputeContext,
+) -> (CalcVal, Int)? {
+  match calc_parse_product(toks, pos, ctx) {
+    Some((first, p1)) => {
+      let mut acc = first
+      let mut p = p1
+      let mut stop = false
+      while !stop && p < toks.length() {
+        let sign = match toks[p] {
+          COp('+') => 1.0
+          COp('-') => -1.0
+          _ => 0.0
+        }
+        if sign == 0.0 {
+          stop = true
+        } else {
+          match calc_parse_product(toks, p + 1, ctx) {
+            Some((rhs, p2)) =>
+              match calc_add(acc, rhs, sign) {
+                Some(v) => {
+                  acc = v
+                  p = p2
+                }
+                None => return None
+              }
+            None => return None
+          }
+        }
+      }
+      Some((acc, p))
+    }
+    None => None
+  }
+}
+
+///|
+/// Precedence-aware calc() evaluator. Returns (px, percent_ratio) or None if
+/// the expression is malformed or not fully understood (callers then fall back
+/// to the legacy left-to-right evaluator).
+fn eval_calc(expr : String, ctx : ComputeContext) -> (Double, Double)? {
+  let v = expr.trim()
+  if !v.has_prefix("calc(") || !v.has_suffix(")") {
+    return None
+  }
+  let inner = view_to_string(v.view(start_offset=5, end_offset=v.length() - 1))
+  let toks = match calc_tokenize(inner) {
+    Some(t) => t
+    None => return None
+  }
+  if toks.is_empty() {
+    return None
+  }
+  match calc_parse_sum(toks, 0, ctx) {
+    Some((result, p)) =>
+      // Trailing tokens or a bare (dimensionless) result is a parse failure.
+      if p != toks.length() || result.is_num {
+        None
+      } else {
+        Some((result.px, result.pct / 100.0))
+      }
+    None => None
+  }
+}
+
+///|
+/// Parse calc() terms and return (length_px, percent_ratio); percent_ratio is
+/// 0.5 for 50%. Delegates to the precedence-aware recursive-descent evaluator.
+/// Returns None for malformed or semantically invalid calc() (e.g. a bare
+/// number, length × length, or division by zero), so the property falls back to
+/// its initial value rather than a silently wrong length.
+fn parse_calc_terms(expr : String, ctx : ComputeContext) -> (Double, Double)? {
+  eval_calc(expr, ctx)
 }
 
 ///|
@@ -3723,7 +4032,10 @@ fn normalize_grid_template_math_functions(
 fn resolve_dimension(value : String, ctx : ComputeContext) -> @types.Dimension {
   // First resolve any var() functions
   let raw_v = resolve_all_vars(value, ctx).trim()
-  let v = strip_css_ascii_whitespace(raw_v.to_owned())
+  // CSS units and keywords are ASCII case-insensitive. var() names are already
+  // resolved above, so lowercasing what remains (a number+unit or a keyword) is
+  // safe for the matching below.
+  let v = strip_css_ascii_whitespace(raw_v.to_owned()).to_lower()
   if v == "auto" || v == "none" {
     return @types.Dimension::Auto
   }
@@ -3864,8 +4176,8 @@ fn resolve_dimension(value : String, ctx : ComputeContext) -> @types.Dimension {
     None => ()
   }
 
-  // Handle Q units (1Q = 1/4mm = 96/101.6 px)
-  match v.strip_suffix("Q") {
+  // Handle Q units (1Q = 1/4mm = 96/101.6 px). `v` is lowercased above.
+  match v.strip_suffix("q") {
     Some(num_str) => {
       let n = @string.parse_double(num_str.to_owned()) catch {
         _ => return @types.Dimension::Auto

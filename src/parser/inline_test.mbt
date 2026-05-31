@@ -19,6 +19,23 @@ test "parse_inline_style calc with unitless multiplier" {
 }
 
 ///|
+test "parse_inline_style absolute and viewport units" {
+  // pt/pc/in/cm/mm/Q were previously treated as raw pixels.
+  inspect(
+    parse_inline_style("width: 10pt").width,
+    content="Length(13.333333333333334)",
+  )
+  inspect(parse_inline_style("width: 1pc").width, content="Length(16)")
+  inspect(parse_inline_style("width: 1in").width, content="Length(96)")
+  // vmin/vmax against the default 1000x1000 viewport.
+  inspect(parse_inline_style("width: 10vmin").width, content="Length(100)")
+  inspect(parse_inline_style("width: 10vmax").width, content="Length(100)")
+  // Units are case-insensitive.
+  inspect(parse_inline_style("width: 1REM").width, content="Length(16)")
+  inspect(parse_inline_style("width: 5VW").width, content="Length(50)")
+}
+
+///|
 test "parse_inline_style transform grad angle unit" {
   // 200grad = 180deg; `grad` previously mis-matched the `rad` suffix.
   inspect(

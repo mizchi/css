@@ -144,6 +144,48 @@ fn parse_calc_expression(
 ///|
 /// Parse a dimension value (length, percent, auto)
 /// viewport units are converted to Length using default viewport (1000x1000)
+
+///|
+/// Convert a length unit to pixels using the inline parser's context-free
+/// defaults (16px font, 1000×1000 viewport). Mirrors the unit coverage of the
+/// computed engine's resolve_dimension. Returns None for non-length units.
+fn dimension_unit_to_px(value : Double, unit : String) -> Double? {
+  match unit {
+    "px" => Some(value)
+    "em" | "rem" => Some(value * 16.0)
+    // ex/ch approximated as 0.5em, matching the computed engine's default.
+    "ex" | "ch" => Some(value * 16.0 * 0.5)
+    "vw" | "dvw" | "svw" | "lvw" | "vi" =>
+      Some(value * default_viewport_width / 100.0)
+    "vh" | "dvh" | "svh" | "lvh" | "vb" =>
+      Some(value * default_viewport_height / 100.0)
+    "vmin" => {
+      let base = if default_viewport_width < default_viewport_height {
+        default_viewport_width
+      } else {
+        default_viewport_height
+      }
+      Some(value * base / 100.0)
+    }
+    "vmax" => {
+      let base = if default_viewport_width > default_viewport_height {
+        default_viewport_width
+      } else {
+        default_viewport_height
+      }
+      Some(value * base / 100.0)
+    }
+    "pt" => Some(value * 96.0 / 72.0)
+    "pc" => Some(value * 16.0)
+    "in" => Some(value * 96.0)
+    "cm" => Some(value * 96.0 / 2.54)
+    "mm" => Some(value * 96.0 / 25.4)
+    "q" => Some(value * 96.0 / 101.6)
+    _ => None
+  }
+}
+
+///|
 fn parse_dimension(tokens : ArrayView[@token.Token]) -> @types.Dimension? {
   if tokens.length() == 0 {
     return None
@@ -159,24 +201,19 @@ fn parse_dimension(tokens : ArrayView[@token.Token]) -> @types.Dimension? {
       } else {
         None
       }
-    @token.Token::Dimension(value, unit) =>
-      if unit == "px" {
-        Some(@types.Length(value))
-      } else if unit == "%" {
+    @token.Token::Dimension(value, raw_unit) => {
+      // CSS units are case-insensitive.
+      let unit = raw_unit.to_lower()
+      if unit == "%" {
         Some(@types.Percent(value / 100.0))
-      } else if is_viewport_width_unit(unit) {
-        // Convert viewport width units to pixels using default viewport width
-        Some(@types.Length(value * default_viewport_width / 100.0))
-      } else if is_viewport_height_unit(unit) {
-        // Convert viewport height units to pixels using default viewport height
-        Some(@types.Length(value * default_viewport_height / 100.0))
-      } else if unit == "em" || unit == "rem" {
-        // em/rem treated as 16px multiplier for now
-        Some(@types.Length(value * 16.0))
       } else {
-        // Other units treated as px
-        Some(@types.Length(value))
+        match dimension_unit_to_px(value, unit) {
+          Some(px) => Some(@types.Length(px))
+          // Unknown unit: fall back to treating the number as pixels (legacy).
+          None => Some(@types.Length(value))
+        }
       }
+    }
     @token.Token::Percentage(value) => Some(@types.Percent(value / 100.0))
     @token.Token::Number(value, _) =>
       // Unitless 0 is valid
