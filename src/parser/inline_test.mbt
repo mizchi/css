@@ -341,6 +341,47 @@ test "parse width: calc() mixed px + %% falls back to Auto" {
 }
 
 ///|
+test "parse min()/max()/clamp() all-px arguments" {
+  inspect(parse_inline_style("width: min(100px, 200px)").width, content="Length(100)")
+  inspect(parse_inline_style("width: max(100px, 200px)").width, content="Length(200)")
+  inspect(
+    parse_inline_style("width: clamp(100px, 250px, 200px)").width,
+    content="Length(200)",
+  )
+}
+
+///|
+test "parse min()/max() single and all-percent arguments" {
+  // single argument resolves to that argument verbatim (crater#282)
+  inspect(parse_inline_style("height: max(100%)").width, content="Auto") // width unset
+  inspect(parse_inline_style("height: max(100%)").height, content="Percent(1)")
+  inspect(parse_inline_style("height: max(calc(100%))").height, content="Percent(1)")
+  // all-percent: ratio order matches resolved-length order
+  inspect(parse_inline_style("width: min(50%, 100%)").width, content="Percent(0.5)")
+  inspect(parse_inline_style("width: max(50%, 100%)").width, content="Percent(1)")
+}
+
+///|
+test "parse min()/max()/clamp() mixed length+percent become MathFn" {
+  let mn = parse_inline_style("width: min(50%, 200px)").width
+  inspect(mn, content="MathFn(Min, [(0, 0.5), (200, 0)])")
+  debug_inspect(mn.resolve(300.0), content="Some(150)") // 50% of 300 = 150 < 200
+  debug_inspect(mn.resolve(500.0), content="Some(200)") // 50% of 500 = 250 > 200
+  let cl = parse_inline_style("width: clamp(100px, 50%, 300px)").width
+  inspect(cl, content="MathFn(Clamp, [(100, 0), (0, 0.5), (300, 0)])")
+  debug_inspect(cl.resolve(1000.0), content="Some(300)") // 50%=500 > 300 -> 300
+}
+
+///|
+test "parse min() rejects invalid arguments to match compute layer" {
+  // non-zero unitless number and unknown units are invalid length args -> Auto
+  inspect(parse_inline_style("width: min(5, 100px)").width, content="Auto")
+  inspect(parse_inline_style("width: min(10foo, 100px)").width, content="Auto")
+  // unitless 0 stays valid
+  inspect(parse_inline_style("width: max(0, 100px)").width, content="Length(100)")
+}
+
+///|
 test "parse width: viewport units" {
   let s = parse_inline_style("width: 50vw; height: 25vh")
   // 50vw of 1000 default = 500, 25vh of 1000 = 250

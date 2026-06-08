@@ -20,12 +20,34 @@ fn is_viewport_height_unit(unit : String) -> Bool {
 
 ///|
 /// Parse a calc() expression and try to simplify it to a Dimension
-/// Returns Some(dimension) if simplification is possible, None otherwise
+/// Returns Some(dimension) if simplification is possible, None otherwise.
+/// Mixed length+percentage calc() returns None (the inline parser falls back to
+/// Auto); min()/max()/clamp() use parse_calc_linear directly to keep the mixed
+/// form.
 fn parse_calc_expression(
   tokens : ArrayView[@token.Token],
 ) -> (@types.Dimension, ArrayView[@token.Token])? {
-  // Skip the Function("calc") token - we're already past it
-  // Parse tokens until RightParen, collecting values and operators
+  match parse_calc_linear(tokens) {
+    Some(((px, pct), rest)) =>
+      if pct.abs() < 0.0001 {
+        Some((@types.Length(px), rest))
+      } else if px.abs() < 0.0001 {
+        Some((@types.Percent(pct), rest))
+      } else {
+        // Mixed - cannot simplify (fall back to Auto)
+        None
+      }
+    None => None
+  }
+}
+
+///|
+/// Parse a calc() body into a linear (px, percent_ratio) form. Starts right
+/// after the Function("calc") token and consumes through the matching
+/// RightParen, returning the remaining tokens. Returns None if no RightParen.
+fn parse_calc_linear(
+  tokens : ArrayView[@token.Token],
+) -> ((Double, Double), ArrayView[@token.Token])? {
   let mut remaining = tokens
   let mut result_px : Double = 0.0
   let mut result_pct : Double = 0.0
@@ -41,19 +63,8 @@ fn parse_calc_expression(
     }
     match remaining[0] {
       @token.Token::RightParen => {
-        // End of calc expression
-        let next_tokens = remaining[1:]
-        // Determine final dimension type
-        if result_pct.abs() < 0.0001 {
-          // Pure length
-          return Some((@types.Length(result_px), next_tokens))
-        } else if result_px.abs() < 0.0001 {
-          // Pure percentage
-          return Some((@types.Percent(result_pct / 100.0), next_tokens))
-        } else {
-          // Mixed - cannot simplify (return None to fall back to Auto)
-          return None
-        }
+        // End of calc expression: return the linear form (pct as a ratio).
+        return Some(((result_px, result_pct / 100.0), remaining[1:]))
       }
       @token.Token::Dimension(value, unit) => {
         if unit == "px" {
@@ -142,6 +153,168 @@ fn parse_calc_expression(
 }
 
 ///|
+/// Collapse a linear (px, percent_ratio) form to the most specific Dimension.
+/// Mirrors the computed engine's lp_to_dimension.
+fn lp_to_dim(px : Double, pct : Double) -> @types.Dimension {
+  if pct.abs() < 0.0001 {
+    @types.Length(px)
+  } else if px.abs() < 0.0001 {
+    @types.Percent(pct)
+  } else {
+    @types.Calc(px, pct)
+  }
+}
+
+///|
+/// Reduce a resolvable Dimension to a linear (px, percent_ratio) form. Returns
+/// None for forms that cannot be expressed as a single linear term (MathFn,
+/// intrinsic keywords, Auto) — matching the computed engine's math_arg_lp.
+fn dimension_to_lp(dim : @types.Dimension) -> (Double, Double)? {
+  match dim {
+    @types.Length(px) => Some((px, 0.0))
+    @types.Percent(p) => Some((0.0, p))
+    @types.Calc(px, pct) => Some((px, pct))
+    _ => None
+  }
+}
+
+///|
+/// Parse a single min()/max()/clamp() argument (one primary: a value token, a
+/// calc(), or a nested math function) into a linear (px, percent_ratio) form.
+/// Bare arithmetic without a calc() wrapper is not supported (parity with the
+/// computed engine). Returns the remaining tokens positioned at the following
+/// Comma or RightParen.
+fn parse_math_arg_lp(
+  tokens : ArrayView[@token.Token],
+) -> ((Double, Double), ArrayView[@token.Token])? {
+  let toks = skip_whitespace(tokens)
+  if toks.length() == 0 {
+    return None
+  }
+  match toks[0] {
+    @token.Token::Function(name) => {
+      let lname = name.to_lower()
+      if lname == "calc" {
+        parse_calc_linear(toks[1:])
+      } else if lname == "min" || lname == "max" || lname == "clamp" {
+        match parse_math_function(lname, toks[1:]) {
+          Some((dim, rest)) =>
+            match dimension_to_lp(dim) {
+              Some(lp) => Some((lp, rest))
+              None => None
+            }
+          None => None
+        }
+      } else {
+        None
+      }
+    }
+    @token.Token::Dimension(value, raw_unit) => {
+      let unit = raw_unit.to_lower()
+      if unit == "%" {
+        Some(((0.0, value / 100.0), toks[1:]))
+      } else {
+        match dimension_unit_to_px(value, unit) {
+          Some(px) => Some(((px, 0.0), toks[1:]))
+          // Unknown unit is an invalid length argument; reject it so the result
+          // matches the computed engine (rather than the legacy px fallback).
+          None => None
+        }
+      }
+    }
+    @token.Token::Percentage(value) => Some(((0.0, value / 100.0), toks[1:]))
+    @token.Token::Number(value, _) =>
+      if value == 0.0 {
+        Some(((0.0, 0.0), toks[1:]))
+      } else {
+        None
+      }
+    _ => None
+  }
+}
+
+///|
+/// Parse min()/max()/clamp() arguments starting right after the Function token,
+/// through the matching RightParen. Builds a collapsed Dimension when the
+/// arguments share a unit (or there is a single argument) and a MathFn when
+/// length and percentage are mixed and need a layout-time basis.
+fn parse_math_function(
+  op_name : String,
+  tokens : ArrayView[@token.Token],
+) -> (@types.Dimension, ArrayView[@token.Token])? {
+  let op = match op_name {
+    "min" => @types.MathOp::Min
+    "max" => @types.MathOp::Max
+    _ => @types.MathOp::Clamp
+  }
+  let lps : Array[(Double, Double)] = []
+  let mut remaining = tokens
+  let mut closed = false
+  while !closed {
+    remaining = skip_whitespace(remaining)
+    if remaining.length() == 0 {
+      return None // unterminated function
+    }
+    // Allow an empty argument list to terminate cleanly (e.g. malformed input).
+    match remaining[0] {
+      @token.Token::RightParen => {
+        remaining = remaining[1:]
+        closed = true
+        continue
+      }
+      _ => ()
+    }
+    match parse_math_arg_lp(remaining) {
+      Some((lp, rest)) => {
+        lps.push(lp)
+        remaining = skip_whitespace(rest)
+        if remaining.length() == 0 {
+          return None
+        }
+        match remaining[0] {
+          @token.Token::Comma => remaining = remaining[1:]
+          @token.Token::RightParen => {
+            remaining = remaining[1:]
+            closed = true
+          }
+          _ => return None // unexpected token
+        }
+      }
+      None => return None
+    }
+  }
+  if lps.is_empty() {
+    return None
+  }
+  if op == @types.MathOp::Clamp && lps.length() != 3 {
+    return None
+  }
+  // Single min()/max() argument resolves to that argument verbatim.
+  if lps.length() == 1 {
+    let (px, pct) = lps[0]
+    return Some((lp_to_dim(px, pct), remaining))
+  }
+  let mut all_px = true
+  let mut all_pct = true
+  for lp in lps {
+    if lp.1 != 0.0 {
+      all_px = false
+    }
+    if lp.0 != 0.0 {
+      all_pct = false
+    }
+  }
+  let dim = if all_px {
+    @types.Dimension::Length(@types.apply_math_op(op, lps.map(fn(lp) { lp.0 })))
+  } else if all_pct {
+    @types.Dimension::Percent(@types.apply_math_op(op, lps.map(fn(lp) { lp.1 })))
+  } else {
+    @types.Dimension::MathFn(op, lps)
+  }
+  Some((dim, remaining))
+}
+
+///|
 /// Parse a dimension value (length, percent, auto)
 /// viewport units are converted to Length using default viewport (1000x1000)
 
@@ -191,16 +364,23 @@ fn parse_dimension(tokens : ArrayView[@token.Token]) -> @types.Dimension? {
     return None
   }
   match tokens[0] {
-    @token.Token::Function(name) =>
-      if name == "calc" {
+    @token.Token::Function(name) => {
+      let lname = name.to_lower()
+      if lname == "calc" {
         // Try to parse and simplify calc expression
         match parse_calc_expression(tokens[1:]) {
           Some((dim, _)) => return Some(dim)
           None => return Some(@types.Auto) // Fallback for complex calc
         }
+      } else if lname == "min" || lname == "max" || lname == "clamp" {
+        match parse_math_function(lname, tokens[1:]) {
+          Some((dim, _)) => return Some(dim)
+          None => return Some(@types.Auto) // Fallback for complex/mixed-calc args
+        }
       } else {
         None
       }
+    }
     @token.Token::Dimension(value, raw_unit) => {
       // CSS units are case-insensitive.
       let unit = raw_unit.to_lower()
@@ -3755,6 +3935,13 @@ fn resolve_dimension_to_px(dim : @types.Dimension) -> Double {
     @types.Length(v) => v
     @types.Percent(_) => 0.0 // Percentages are resolved later
     @types.Calc(px, _) => px // Percent component is resolved later
+    @types.MathFn(op, args) =>
+      // Percent components resolve later; reduce using px parts only.
+      if args.is_empty() {
+        0.0
+      } else {
+        @types.apply_math_op(op, args.map(fn(a) { a.0 }))
+      }
     @types.Auto => 0.0
     @types.MinContent => 0.0 // Intrinsic sizing resolved during layout
     @types.MaxContent => 0.0

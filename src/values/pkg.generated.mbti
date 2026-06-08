@@ -10,6 +10,8 @@ pub fn apply_aspect_ratio_height(Double, Double?) -> Double?
 
 pub fn apply_aspect_ratio_width(Double, Double?) -> Double?
 
+pub fn apply_math_op(MathOp, Array[Double]) -> Double
+
 pub fn clamp(Double, Double, Double) -> Double
 
 pub fn max(Double, Double) -> Double
@@ -120,6 +122,7 @@ pub(all) enum Dimension {
   MaxContent
   FitContent(Double)
   Calc(Double, Double)
+  MathFn(MathOp, Array[(Double, Double)])
 } derive(Eq)
 pub fn Dimension::eq_length(Self, Double) -> Bool
 pub fn Dimension::eq_percent(Self, Double) -> Bool
@@ -279,6 +282,12 @@ pub(all) struct LinearGradient {
   stops : Array[GradientStop]
 }
 pub impl Show for LinearGradient
+
+pub(all) enum MathOp {
+  Min
+  Max
+  Clamp
+} derive(Eq, @debug.Debug)
 
 pub(all) enum MaxTrackSizing {
   Length(Double)

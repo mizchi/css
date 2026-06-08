@@ -90,6 +90,10 @@ pub fn parse_place_content(String) -> (@values.Alignment, @values.Alignment)?
 
 pub fn parse_place_content_with_overflow(String) -> ((@values.Alignment, Bool), (@values.Alignment, Bool))?
 
+pub fn parse_place_items(String) -> (@values.Alignment, @values.Alignment)?
+
+pub fn parse_place_self(String) -> (@values.AlignSelf, @values.AlignSelf)?
+
 pub fn parse_position(String) -> @values.Position
 
 pub fn parse_scroll_snap_align(String) -> (@style.ScrollSnapAlign, @style.ScrollSnapAlign)

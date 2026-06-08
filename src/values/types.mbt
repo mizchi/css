@@ -1033,6 +1033,54 @@ pub fn parse_easing(value : String) -> Easing? {
 }
 
 ///|
+/// CSS comparison/math function selector for min() / max() / clamp().
+pub(all) enum MathOp {
+  Min
+  Max
+  Clamp
+} derive(Eq, Debug)
+
+///|
+/// Apply a min()/max()/clamp() reduction over already-resolved scalar values.
+/// clamp expects exactly 3 values (lo, val, hi); other lengths fall back to the
+/// first value (or 0.0 when empty) so callers never panic on malformed input.
+pub fn apply_math_op(op : MathOp, vals : Array[Double]) -> Double {
+  match op {
+    Clamp =>
+      if vals.length() == 3 {
+        // CSS: clamp(MIN, VAL, MAX) == max(MIN, min(VAL, MAX)). This stays
+        // correct even when MIN > MAX (it returns MIN), unlike ordered ifs.
+        let lo = vals[0]
+        let mid = vals[1]
+        let hi = vals[2]
+        let inner = if mid < hi { mid } else { hi }
+        if lo > inner {
+          lo
+        } else {
+          inner
+        }
+      } else if vals.length() > 0 {
+        vals[0]
+      } else {
+        0.0
+      }
+    _ => {
+      if vals.is_empty() {
+        return 0.0
+      }
+      let mut acc = vals[0]
+      for k = 1; k < vals.length(); k = k + 1 {
+        match op {
+          Min => if vals[k] < acc { acc = vals[k] }
+          _ => if vals[k] > acc { acc = vals[k] }
+        }
+      }
+      acc
+    }
+  }
+}
+
+///|
 /// CSS dimension value: length, percentage, auto, or intrinsic sizing keywords
 pub(all) enum Dimension {
   Length(Double)
@@ -1046,6 +1094,10 @@ pub(all) enum Dimension {
   // `px + percent * basis` once a containing-block basis is known at layout
   // time. Pure-length / pure-percent calc() stay Length / Percent.
   Calc(Double, Double) // Calc(px, percent_ratio)
+  // min()/max()/clamp() whose arguments mix length and percentage and so cannot
+  // be ordered until a containing-block basis is known. Each argument is a
+  // linear (px, percent_ratio) form. Resolved at layout time like Calc.
+  MathFn(MathOp, Array[(Double, Double)])
 } derive(Eq)
 
 ///|
@@ -1094,6 +1146,29 @@ pub impl Show for Dimension with fn output(self, logger) {
       pct.output(logger)
       logger.write_string(")")
     }
+    MathFn(op, args) => {
+      logger.write_string("MathFn(")
+      logger.write_string(
+        match op {
+          Min => "Min"
+          Max => "Max"
+          Clamp => "Clamp"
+        },
+      )
+      logger.write_string(", [")
+      for i = 0; i < args.length(); i = i + 1 {
+        if i > 0 {
+          logger.write_string(", ")
+        }
+        let (px, pct) = args[i]
+        logger.write_string("(")
+        px.output(logger)
+        logger.write_string(", ")
+        pct.output(logger)
+        logger.write_string(")")
+      }
+      logger.write_string("])")
+    }
   }
 }
 
@@ -1106,6 +1181,12 @@ pub fn Dimension::resolve(self : Dimension, context : Double) -> Double? {
     Length(v) => Some(v)
     Percent(v) => Some(context * v)
     Calc(px, pct) => Some(px + pct * context)
+    MathFn(op, args) =>
+      if args.is_empty() {
+        None
+      } else {
+        Some(apply_math_op(op, args.map(fn(a) { a.0 + a.1 * context })))
+      }
     Auto => None
     MinContent => None // Requires intrinsic size calculation
     MaxContent => None // Requires intrinsic size calculation
@@ -1130,7 +1211,7 @@ pub fn Dimension::resolve_or(
 /// Check if dimension is a definite value (Length or Percent)
 pub fn Dimension::is_definite(self : Dimension) -> Bool {
   match self {
-    Length(_) | Percent(_) | Calc(_, _) => true
+    Length(_) | Percent(_) | Calc(_, _) | MathFn(_, _) => true
     _ => false
   }
 }
@@ -1155,6 +1236,12 @@ pub fn Dimension::resolve_or_intrinsic(
     Length(v) => v
     Percent(p) => context * p
     Calc(px, p) => px + context * p
+    MathFn(op, args) =>
+      if args.is_empty() {
+        fallback
+      } else {
+        apply_math_op(op, args.map(fn(a) { a.0 + a.1 * context }))
+      }
     Auto => fallback
     MinContent => fallback // Intrinsic sizing handled by layout engine
     MaxContent => fallback
@@ -1186,6 +1273,13 @@ pub fn resolve_rect_intrinsic(rect : Rect[Dimension]) -> Rect[Double] {
       Length(v) => v
       Percent(_) => 0.0
       Calc(px, _) => px // percent resolves to 0 in intrinsic context; keep px
+      MathFn(op, args) =>
+        // intrinsic context: percentages resolve to 0, so keep px parts only
+        if args.is_empty() {
+          0.0
+        } else {
+          apply_math_op(op, args.map(fn(a) { a.0 }))
+        }
       Auto => 0.0
       MinContent => 0.0 // Not applicable for margin/padding/border
       MaxContent => 0.0

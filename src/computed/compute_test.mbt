@@ -1026,6 +1026,82 @@ test "compute_inline clamp() function" {
 }
 
 ///|
+test "compute_inline max() with single percentage argument preserves percent" {
+  // crater#282 / WPT css/css-values/calc-in-max.html: `max(calc(100%))` must
+  // resolve to a 100% percentage (deferred to layout), not collapse to Auto.
+  let ctx = @computed.ComputeContext::new()
+  let style1 = @computed.compute_inline("height: max(calc(100%))", ctx)
+  assert_true(style1.height.eq_percent(1.0))
+  let style2 = @computed.compute_inline("height: max(100%)", ctx)
+  assert_true(style2.height.eq_percent(1.0))
+  let style3 = @computed.compute_inline("width: min(50%)", ctx)
+  assert_true(style3.width.eq_percent(0.5))
+}
+
+///|
+test "compute_inline min()/max() with all-percentage arguments" {
+  // For pure percentages the containing-block basis is positive, so ordering by
+  // ratio matches ordering by resolved length: min(50%,100%)=50%, max=100%.
+  let ctx = @computed.ComputeContext::new()
+  let style1 = @computed.compute_inline("width: min(50%, 100%)", ctx)
+  assert_true(style1.width.eq_percent(0.5))
+  let style2 = @computed.compute_inline("width: max(50%, 100%)", ctx)
+  assert_true(style2.width.eq_percent(1.0))
+  let style3 = @computed.compute_inline("width: clamp(20%, 60%, 80%)", ctx)
+  assert_true(style3.width.eq_percent(0.6))
+}
+
+///|
+test "compute_inline min()/max() with mixed length+percentage resolves against basis" {
+  // min(50%, 200px) / max(...) / clamp(...) mixing length and percentage cannot
+  // be ordered until the containing-block basis is known, so they are carried as
+  // a MathFn dimension and resolved at layout time (Dimension::resolve).
+  let ctx = @computed.ComputeContext::new()
+  let mn = @computed.compute_inline("width: min(50%, 200px)", ctx).width
+  debug_inspect(mn.resolve(300.0), content="Some(150)") // 50% of 300 = 150 < 200
+  debug_inspect(mn.resolve(500.0), content="Some(200)") // 50% of 500 = 250 > 200
+  let mx = @computed.compute_inline("width: max(50%, 200px)", ctx).width
+  debug_inspect(mx.resolve(300.0), content="Some(200)") // 150 < 200
+  debug_inspect(mx.resolve(500.0), content="Some(250)") // 250 > 200
+  let cl = @computed.compute_inline("width: clamp(100px, 50%, 300px)", ctx).width
+  debug_inspect(cl.resolve(100.0), content="Some(100)") // 50%=50 < 100 -> 100
+  debug_inspect(cl.resolve(400.0), content="Some(200)") // 50%=200 within -> 200
+  debug_inspect(cl.resolve(1000.0), content="Some(300)") // 50%=500 > 300 -> 300
+}
+
+///|
+test "compute_inline math functions reject invalid arguments to match parser" {
+  // Invalid CSS args inside min()/max()/clamp() must resolve to Auto in the
+  // compute layer just like the parser layer (parser/compute parity).
+  let ctx = @computed.ComputeContext::new()
+  // non-zero unitless number is not a valid length argument
+  inspect(@computed.compute_inline("width: min(5, 100px)", ctx).width, content="Auto")
+  // unknown unit is not a valid length argument
+  inspect(
+    @computed.compute_inline("width: min(10foo, 100px)", ctx).width,
+    content="Auto",
+  )
+  // unitless 0 stays valid
+  inspect(
+    @computed.compute_inline("width: max(0, 100px)", ctx).width,
+    content="Length(100)",
+  )
+}
+
+///|
+test "compute_inline clamp() with min greater than max follows spec" {
+  // CSS: clamp(MIN, VAL, MAX) == max(MIN, min(VAL, MAX)). When MIN > MAX the
+  // result is MIN regardless of VAL.
+  let ctx = @computed.ComputeContext::new()
+  // all-px: clamp(300, 500, 200) = max(300, min(500,200)) = 300
+  let px = @computed.compute_inline("width: clamp(300px, 500px, 200px)", ctx).width
+  assert_true(px.eq_length(300.0))
+  // all-percent: clamp(50%, 60%, 20%) = max(0.5, min(0.6,0.2)) = 0.5
+  let pct = @computed.compute_inline("width: clamp(50%, 60%, 20%)", ctx).width
+  assert_true(pct.eq_percent(0.5))
+}
+
+///|
 test "compute_inline nested math functions" {
   let ctx = @computed.ComputeContext::new()
 

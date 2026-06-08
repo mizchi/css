@@ -502,6 +502,7 @@ pub fn Style::has_multicol(self : Style) -> Bool {
         @types.Length(v) => v > 0.0
         @types.Percent(v) => v > 0.0
         @types.Calc(px, pct) => px > 0.0 || pct > 0.0
+        @types.MathFn(_, _) => true
         @types.Auto
         | @types.MinContent
         | @types.MaxContent

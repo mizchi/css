@@ -882,6 +882,37 @@ fn dimension_to_string(dim : @types.Dimension) -> String {
         "calc(" + pct_part + " + " + px.to_string() + "px)"
       }
     }
+    @types.Dimension::MathFn(op, args) => {
+      let name = match op {
+        @types.MathOp::Min => "min("
+        @types.MathOp::Max => "max("
+        @types.MathOp::Clamp => "clamp("
+      }
+      let parts = args.map(fn(a) { math_arg_to_string(a.0, a.1) })
+      name + parts.join(", ") + ")"
+    }
+  }
+}
+
+///|
+/// Serialize a single min()/max()/clamp() argument from its linear (px, pct)
+/// form back to CSS, mirroring dimension_to_string's length/percent/calc tiers.
+fn math_arg_to_string(px : Double, pct : Double) -> String {
+  if pct.abs() < 0.0001 {
+    if px == 0.0 {
+      "0"
+    } else {
+      px.to_string() + "px"
+    }
+  } else if px.abs() < 0.0001 {
+    (pct * 100.0).to_string() + "%"
+  } else {
+    let pct_part = (pct * 100.0).to_string() + "%"
+    if px < 0.0 {
+      "calc(" + pct_part + " - " + (-px).to_string() + "px)"
+    } else {
+      "calc(" + pct_part + " + " + px.to_string() + "px)"
+    }
   }
 }
 
@@ -1837,6 +1868,7 @@ fn apply_property(
           if px > 0.0 || pct > 0.0 {
             builder.flex_basis = dim
           }
+        @types.MathFn(_, _) => builder.flex_basis = dim
         @types.Auto => builder.flex_basis = dim
         @types.MinContent => builder.flex_basis = dim
         @types.MaxContent => builder.flex_basis = dim
@@ -2939,17 +2971,9 @@ fn parse_css_value_to_px(value : String, ctx : ComputeContext) -> Double? {
     let val_px = parse_css_value_to_px(args[1], ctx)
     let max_px = parse_css_value_to_px(args[2], ctx)
     match (min_px, val_px, max_px) {
-      (Some(min_v), Some(val_v), Some(max_v)) => {
-        // clamp(min, val, max) = max(min, min(val, max))
-        let clamped = if val_v < min_v {
-          min_v
-        } else if val_v > max_v {
-          max_v
-        } else {
-          val_v
-        }
-        return Some(clamped)
-      }
+      (Some(min_v), Some(val_v), Some(max_v)) =>
+        // clamp(min, val, max) == max(min, min(val, max))
+        return Some(@types.apply_math_op(@types.MathOp::Clamp, [min_v, val_v, max_v]))
       _ => return None
     }
   }
@@ -2960,6 +2984,7 @@ fn parse_css_value_to_px(value : String, ctx : ComputeContext) -> Double? {
     @types.Length(px) => Some(px)
     @types.Percent(_) => None // Cannot simplify percentages
     @types.Calc(_, _) => None // Mixed calc needs a layout basis
+    @types.MathFn(_, _) => None // min/max/clamp need a layout basis
     @types.Auto => None
     @types.MinContent => None
     @types.MaxContent => None
@@ -3077,37 +3102,106 @@ fn parse_simple_calc_expr(expr : String, ctx : ComputeContext) -> Double? {
 }
 
 ///|
-/// Parse min(), max(), clamp() CSS functions
+/// Reduce a single min()/max()/clamp() argument to a linear (px, percent_ratio)
+/// form. Returns None for intrinsic/auto values that cannot be reduced.
+fn math_arg_lp(arg : String, ctx : ComputeContext) -> (Double, Double)? {
+  // A bare unitless number is only a valid length argument when it is 0; reject
+  // non-zero unitless numbers so the result matches the parser layer.
+  let trimmed = arg.trim().to_owned()
+  if is_pure_number(trimmed) {
+    let n = @string.parse_double(trimmed) catch { _ => return None }
+    return if n == 0.0 { Some((0.0, 0.0)) } else { None }
+  }
+  match resolve_dimension(arg, ctx) {
+    @types.Length(px) => Some((px, 0.0))
+    @types.Percent(p) => Some((0.0, p))
+    @types.Calc(px, pct) => Some((px, pct))
+    _ => None
+  }
+}
+
+///|
+/// Collapse a linear (px, percent_ratio) form back to the most specific
+/// Dimension. Mirrors parse_calc_string's pure-vs-mixed classification.
+fn lp_to_dimension(px : Double, pct : Double) -> @types.Dimension {
+  if pct.abs() < 0.0001 {
+    @types.Length(px)
+  } else if px.abs() < 0.0001 {
+    @types.Percent(pct)
+  } else {
+    @types.Calc(px, pct)
+  }
+}
+
+///|
+/// Parse min(), max(), clamp() CSS functions.
+///
+/// Each argument is reduced to a linear (px, percent_ratio) form so that
+/// percentage arguments are preserved instead of collapsing to Auto
+/// (crater#282, WPT css/css-values/calc-in-max.html).
+/// - single argument: returned as-is (Length/Percent/Calc).
+/// - all pure-px arguments: compared by px -> Length.
+/// - all pure-percent arguments: the containing-block basis is positive, so
+///   ordering by ratio matches ordering by resolved length -> Percent.
+/// - mixed px + percent arguments cannot be ordered without a layout basis and
+///   are carried as a MathFn dimension, resolved at layout time.
 fn parse_css_math_function(
   expr : String,
   ctx : ComputeContext,
 ) -> @types.Dimension? {
   let v = expr.trim()
-
-  // Handle min()
-  if v.has_prefix("min(") && v.has_suffix(")") {
-    match parse_css_value_to_px(v.to_owned(), ctx) {
-      Some(px) => return Some(@types.Length(px))
+  let (op, prefix_len) = if v.has_prefix("min(") {
+    (@types.MathOp::Min, 4)
+  } else if v.has_prefix("max(") {
+    (@types.MathOp::Max, 4)
+  } else if v.has_prefix("clamp(") {
+    (@types.MathOp::Clamp, 6)
+  } else {
+    return None
+  }
+  if !v.has_suffix(")") {
+    return None
+  }
+  let inner = view_to_string(
+    v.view(start_offset=prefix_len, end_offset=v.length() - 1),
+  )
+  let raw_args = split_css_args(inner)
+  if raw_args.is_empty() {
+    return None
+  }
+  if op == @types.MathOp::Clamp && raw_args.length() != 3 {
+    return None
+  }
+  let lps : Array[(Double, Double)] = []
+  for arg in raw_args {
+    match math_arg_lp(arg, ctx) {
+      Some(lp) => lps.push(lp)
       None => return None
     }
   }
-
-  // Handle max()
-  if v.has_prefix("max(") && v.has_suffix(")") {
-    match parse_css_value_to_px(v.to_owned(), ctx) {
-      Some(px) => return Some(@types.Length(px))
-      None => return None
+  // Single min()/max() argument resolves to that argument verbatim.
+  if lps.length() == 1 {
+    let (px, pct) = lps[0]
+    return Some(lp_to_dimension(px, pct))
+  }
+  let mut all_px = true
+  let mut all_pct = true
+  for lp in lps {
+    if lp.1 != 0.0 {
+      all_px = false
+    }
+    if lp.0 != 0.0 {
+      all_pct = false
     }
   }
-
-  // Handle clamp()
-  if v.has_prefix("clamp(") && v.has_suffix(")") {
-    match parse_css_value_to_px(v.to_owned(), ctx) {
-      Some(px) => return Some(@types.Length(px))
-      None => return None
-    }
+  if all_px {
+    Some(@types.Length(@types.apply_math_op(op, lps.map(fn(lp) { lp.0 }))))
+  } else if all_pct {
+    Some(@types.Percent(@types.apply_math_op(op, lps.map(fn(lp) { lp.1 }))))
+  } else {
+    // Mixed length + percentage: defer to layout via MathFn.
+    Some(@types.MathFn(op, lps))
   }
-  None
 }
 
 ///|
@@ -4685,6 +4779,13 @@ fn resolve_dimension_to_px(dim : @types.Dimension) -> Double {
     @types.Length(v) => v
     @types.Percent(_) => 0.0 // Percentages are resolved later
     @types.Calc(px, _) => px // Percent component is resolved later
+    @types.MathFn(op, args) =>
+      // Percent components resolve later; reduce using px parts only.
+      if args.is_empty() {
+        0.0
+      } else {
+        @types.apply_math_op(op, args.map(fn(a) { a.0 }))
+      }
     @types.Auto => 0.0
     @types.MinContent => 0.0 // Intrinsic sizing resolved during layout
     @types.MaxContent => 0.0
@@ -5010,6 +5111,7 @@ fn parse_column_width(value : String, ctx : ComputeContext) -> @types.Dimension 
       } else {
         @types.Dimension::Auto
       }
+    @types.Dimension::MathFn(op, args) => @types.Dimension::MathFn(op, args)
     @types.Dimension::Auto
     | @types.Dimension::MinContent
     | @types.Dimension::MaxContent
