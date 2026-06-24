@@ -49,6 +49,25 @@ fn starts_with(s : String, prefix : String) -> Bool {
 }
 
 ///|
+/// StringView variant of `starts_with` for the `resolve_dimension` hot path,
+/// where the value is already a trimmed view. Avoids the per-call
+/// Boyer-Moore-Horspool skip-table allocation of `StringView::has_prefix`,
+/// which ran up to four times (calc/min/max/clamp) for every plain px/%
+/// dimension before reaching the unit dispatch.
+fn view_starts_with(s : StringView, prefix : String) -> Bool {
+  let pl = prefix.length()
+  if pl > s.length() {
+    return false
+  }
+  for i in 0..<pl {
+    if s[i] != prefix[i] {
+      return false
+    }
+  }
+  true
+}
+
+///|
 pub fn ComputeContext::new() -> ComputeContext {
   {
     parent_style: None,
@@ -4138,7 +4157,7 @@ fn resolve_dimension(value : String, ctx : ComputeContext) -> @types.Dimension {
   }
 
   // Handle calc() expressions
-  if raw_v.has_prefix("calc(") {
+  if view_starts_with(raw_v, "calc(") {
     match parse_calc_string(raw_v.to_owned(), ctx) {
       Some(dim) => return dim
       None => return @types.Dimension::Auto // Fallback for complex calc
@@ -4146,9 +4165,9 @@ fn resolve_dimension(value : String, ctx : ComputeContext) -> @types.Dimension {
   }
 
   // Handle min(), max(), clamp() CSS math functions
-  if raw_v.has_prefix("min(") ||
-    raw_v.has_prefix("max(") ||
-    raw_v.has_prefix("clamp(") {
+  if view_starts_with(raw_v, "min(") ||
+    view_starts_with(raw_v, "max(") ||
+    view_starts_with(raw_v, "clamp(") {
     match parse_css_math_function(raw_v.to_owned(), ctx) {
       Some(dim) => return dim
       None => return @types.Dimension::Auto // Fallback for complex expressions
