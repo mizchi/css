@@ -146,8 +146,14 @@ pub(all) struct ScrollSnapType {
 } derive(Debug, Eq)
 
 ///|
+let scroll_snap_type_none : ScrollSnapType = {
+  axis: ScrollSnapAxis::None,
+  strictness: ScrollSnapStrictness::None,
+}
+
+///|
 pub fn ScrollSnapType::none() -> ScrollSnapType {
-  { axis: ScrollSnapAxis::None, strictness: ScrollSnapStrictness::None }
+  scroll_snap_type_none
 }
 
 ///|
@@ -287,24 +293,30 @@ pub(all) struct Transform {
 } derive(Debug, Eq)
 
 ///|
+/// Shared immutable identity transform. `Transform` has no mutable fields, so a
+/// single shared instance is safe and avoids re-allocating the identity on every
+/// `Transform::none()` call (one per default style).
+let transform_identity : Transform = {
+  translate_x: TranslateValue::Length(0.0),
+  translate_y: TranslateValue::Length(0.0),
+  scale_x: 1.0,
+  scale_y: 1.0,
+  rotate_degrees: 0.0,
+  skew_x_degrees: 0.0,
+  skew_y_degrees: 0.0,
+  has_matrix: false,
+  matrix_a: 1.0,
+  matrix_b: 0.0,
+  matrix_c: 0.0,
+  matrix_d: 1.0,
+  matrix_e: 0.0,
+  matrix_f: 0.0,
+}
+
+///|
 /// Create a none/identity transform
 pub fn Transform::none() -> Transform {
-  {
-    translate_x: TranslateValue::Length(0.0),
-    translate_y: TranslateValue::Length(0.0),
-    scale_x: 1.0,
-    scale_y: 1.0,
-    rotate_degrees: 0.0,
-    skew_x_degrees: 0.0,
-    skew_y_degrees: 0.0,
-    has_matrix: false,
-    matrix_a: 1.0,
-    matrix_b: 0.0,
-    matrix_c: 0.0,
-    matrix_d: 1.0,
-    matrix_e: 0.0,
-    matrix_f: 0.0,
-  }
+  transform_identity
 }
 
 ///|
@@ -423,20 +435,50 @@ pub(all) struct Contain {
 } derive(Debug, Eq)
 
 ///|
+/// Shared immutable `Contain` sentinels. `Contain` has no mutable fields, so a
+/// single shared instance per keyword is safe and avoids re-allocating on every
+/// access (`Contain::none()` runs once per default style).
+let contain_none : Contain = {
+  size: false,
+  inline_size: false,
+  layout: false,
+  paint: false,
+  style: false,
+}
+
+///|
+let contain_strict : Contain = {
+  size: true,
+  inline_size: false,
+  layout: true,
+  paint: true,
+  style: true,
+}
+
+///|
+let contain_content : Contain = {
+  size: false,
+  inline_size: false,
+  layout: true,
+  paint: true,
+  style: true,
+}
+
+///|
 pub fn Contain::none() -> Contain {
-  { size: false, inline_size: false, layout: false, paint: false, style: false }
+  contain_none
 }
 
 ///|
 /// strict = size + layout + paint + style
 pub fn Contain::strict() -> Contain {
-  { size: true, inline_size: false, layout: true, paint: true, style: true }
+  contain_strict
 }
 
 ///|
 /// content = layout + paint + style (no size)
 pub fn Contain::content() -> Contain {
-  { size: false, inline_size: false, layout: true, paint: true, style: true }
+  contain_content
 }
 
 ///|

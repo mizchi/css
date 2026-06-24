@@ -183,18 +183,24 @@ fn matches_attribute(element : Element, selector : AttributeSelector) -> Bool {
 fn split_whitespace(s : String) -> Array[String] {
   let result : Array[String] = []
   let current = StringBuilder::new()
+  // Track the pending segment length with a counter instead of materializing
+  // `current.to_string()` on every whitespace char (and at the end) just to
+  // test emptiness — that allocated a throwaway String per character.
+  let mut current_len = 0
   for i = 0; i < s.length(); i = i + 1 {
     let c = s[i].to_int().unsafe_to_char()
     if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
-      if current.to_string().length() > 0 {
+      if current_len > 0 {
         result.push(current.to_string())
         current.reset()
+        current_len = 0
       }
     } else {
       current.write_char(c)
+      current_len = current_len + 1
     }
   }
-  if current.to_string().length() > 0 {
+  if current_len > 0 {
     result.push(current.to_string())
   }
   result

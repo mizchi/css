@@ -25,21 +25,35 @@ pub fn Color::rgba(r : Int, g : Int, b : Int, a : Double) -> Color {
 }
 
 ///|
+/// Shared immutable singletons for the most common color sentinels.
+/// `Color` has no mutable fields, so returning a shared instance is safe and
+/// avoids re-allocating these immutable values on every access (hot path in
+/// `Style::default` / `StyleBuilder`, where each default style references
+/// `transparent` five times).
+let color_transparent : Color = { r: 0, g: 0, b: 0, a: 0.0 }
+
+///|
+let color_black : Color = { r: 0, g: 0, b: 0, a: 1.0 }
+
+///|
+let color_white : Color = { r: 255, g: 255, b: 255, a: 1.0 }
+
+///|
 /// Transparent color (alpha = 0)
 pub fn Color::transparent() -> Color {
-  { r: 0, g: 0, b: 0, a: 0.0 }
+  color_transparent
 }
 
 ///|
 /// Black color
 pub fn Color::black() -> Color {
-  { r: 0, g: 0, b: 0, a: 1.0 }
+  color_black
 }
 
 ///|
 /// White color
 pub fn Color::white() -> Color {
-  { r: 255, g: 255, b: 255, a: 1.0 }
+  color_white
 }
 
 ///|

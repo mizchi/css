@@ -1196,14 +1196,30 @@ pub fn Dimension::resolve(self : Dimension, context : Double) -> Double? {
 
 ///|
 /// Resolve with fallback value for Auto
+///
+/// Matches `self` directly rather than going through `resolve`, which returns a
+/// `Double?` and so boxes a `Some(..)` on every call. This is on the hot layout
+/// path (every width/height/padding/margin per element, plus all four sides via
+/// `resolve_rect`), where the intermediate `Option` allocation dominated.
 pub fn Dimension::resolve_or(
   self : Dimension,
   context : Double,
   fallback : Double,
 ) -> Double {
-  match self.resolve(context) {
-    Some(v) => v
-    None => fallback
+  match self {
+    Length(v) => v
+    Percent(v) => context * v
+    Calc(px, pct) => px + pct * context
+    MathFn(op, args) =>
+      if args.is_empty() {
+        fallback
+      } else {
+        apply_math_op(op, args.map(fn(a) { a.0 + a.1 * context }))
+      }
+    Auto => fallback
+    MinContent => fallback // Requires intrinsic size calculation
+    MaxContent => fallback
+    FitContent(_) => fallback
   }
 }
 

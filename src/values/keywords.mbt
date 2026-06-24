@@ -194,8 +194,11 @@ pub(all) struct GridLine {
 } derive(Debug, Eq)
 
 ///|
+let grid_line_auto : GridLine = { start: Auto, end: Auto }
+
+///|
 pub fn GridLine::auto() -> GridLine {
-  { start: Auto, end: Auto }
+  grid_line_auto
 }
 
 ///|
