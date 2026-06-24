@@ -30,6 +30,25 @@ fn view_to_string(v : StringView) -> String {
 }
 
 ///|
+/// Allocation-free prefix test for the hot cascade/compute path.
+/// MoonBit's `String::has_prefix` runs a Boyer-Moore-Horspool search that
+/// allocates a skip table (~850 bytes) per call; comparing UTF-16 code units
+/// directly avoids that. This runs per declaration (the custom-property `--`
+/// test) for every element, so the per-call allocation showed up in profiling.
+fn starts_with(s : String, prefix : String) -> Bool {
+  let pl = prefix.length()
+  if pl > s.length() {
+    return false
+  }
+  for i in 0..<pl {
+    if s[i] != prefix[i] {
+      return false
+    }
+  }
+  true
+}
+
+///|
 pub fn ComputeContext::new() -> ComputeContext {
   {
     parent_style: None,
@@ -957,7 +976,7 @@ pub fn compute(
   // First pass: collect custom properties (--*)
   // Custom properties are stored in the context for var() resolution
   cascaded.each(fn(prop, decl) {
-    if prop.has_prefix("--") {
+    if starts_with(prop, "--") {
       let value = resolve_keyword(prop, decl.value, ctx)
       // Store custom property in context
       ctx.custom_properties[prop] = value
@@ -995,7 +1014,7 @@ pub fn compute_with_vars(
 
   // First pass: collect custom properties (--*)
   cascaded.each(fn(prop, decl) {
-    if prop.has_prefix("--") {
+    if starts_with(prop, "--") {
       let value = resolve_keyword(prop, decl.value, ctx)
       ctx.custom_properties[prop] = value
     }
@@ -1119,7 +1138,7 @@ fn regular_declarations_in_source_order(
 ) -> Array[(String, @cascade.Declaration)] {
   let declarations : Array[(String, @cascade.Declaration)] = []
   cascaded.each(fn(prop, decl) {
-    if !prop.has_prefix("--") && !is_preseeded_font_property(prop) {
+    if !starts_with(prop, "--") && !is_preseeded_font_property(prop) {
       declarations.push((prop, decl))
     }
   })
