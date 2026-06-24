@@ -75,6 +75,7 @@ pub using @selector {
   type PseudoElement,
   type RelativeSelector,
   type SelectorList,
+  type ShadowContext,
   type SimpleSelector,
   type Specificity,
 }
@@ -118,11 +119,31 @@ pub fn matches_selector(
 }
 
 ///|
+pub fn matches_selector_with_shadow_context(
+  element : @selector.Element,
+  selector : @selector.ComplexSelector,
+  context : @selector.ShadowContext?,
+) -> Bool {
+  @selector.matches_complex_with_shadow_context(element, selector, context)
+}
+
+///|
 pub fn matches_selector_list(
   element : @selector.Element,
   selector_list : @selector.SelectorList,
 ) -> Bool {
   @selector.matches_selector_list(element, selector_list)
+}
+
+///|
+pub fn matches_selector_list_with_shadow_context(
+  element : @selector.Element,
+  selector_list : @selector.SelectorList,
+  context : @selector.ShadowContext?,
+) -> Bool {
+  @selector.matches_selector_list_with_shadow_context(
+    element, selector_list, context,
+  )
 }
 
 ///|

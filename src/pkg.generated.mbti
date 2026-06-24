@@ -37,6 +37,10 @@ pub fn matches_selector(@selector.Element, @selector.ComplexSelector) -> Bool
 
 pub fn matches_selector_list(@selector.Element, @selector.SelectorList) -> Bool
 
+pub fn matches_selector_list_with_shadow_context(@selector.Element, @selector.SelectorList, @selector.ShadowContext?) -> Bool
+
+pub fn matches_selector_with_shadow_context(@selector.Element, @selector.ComplexSelector, @selector.ShadowContext?) -> Bool
+
 pub fn parse_color(String) -> @computed.CssColorValue
 
 pub fn parse_inline_style(String) -> @style.Style
@@ -149,6 +153,8 @@ pub using @cascade {type SelectorIndex}
 pub using @selector {type SelectorList}
 
 pub using @diagnostics {type Severity}
+
+pub using @selector {type ShadowContext}
 
 pub using @selector {type SimpleSelector}
 

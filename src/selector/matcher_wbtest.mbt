@@ -8,6 +8,19 @@ fn matches_selector_text(element : Element, css : String) -> Bool {
 }
 
 ///|
+fn matches_selector_text_with_shadow_context(
+  element : Element,
+  css : String,
+  context : ShadowContext,
+) -> Bool {
+  match parse_selector_text(css) {
+    Some(sel) =>
+      matches_complex_with_shadow_context(element, sel, Some(context))
+    None => false
+  }
+}
+
+///|
 test "match type selector" {
   let elem = Element::new("div")
   let result = matches_selector_text(elem, "div")
@@ -682,6 +695,93 @@ test "match :has selector list with attribute substring" {
   inspect(
     matches_selector_text(
       elem, ".code-example:has(.hidden, [class*=interactive-example])",
+    ),
+    content="true",
+  )
+}
+
+///|
+test "shadow matcher - :host matches only with shadow context" {
+  let host = Element::new("x-card").add_class("featured")
+  let context = ShadowContext::new(host)
+  inspect(matches_selector_text(host, ":host"), content="false")
+  inspect(
+    matches_selector_text_with_shadow_context(host, ":host", context),
+    content="true",
+  )
+  inspect(
+    matches_selector_text_with_shadow_context(
+      Element::new("div"),
+      ":host",
+      context,
+    ),
+    content="false",
+  )
+  inspect(
+    matches_selector_text_with_shadow_context(
+      Element::new("x-card").add_class("featured"),
+      ":host",
+      context,
+    ),
+    content="false",
+  )
+}
+
+///|
+test "shadow matcher - :host compound argument matches host" {
+  let host = Element::new("x-card").add_class("featured")
+  let context = ShadowContext::new(host)
+  inspect(
+    matches_selector_text_with_shadow_context(host, ":host(.featured)", context),
+    content="true",
+  )
+  inspect(
+    matches_selector_text_with_shadow_context(host, ":host(.plain)", context),
+    content="false",
+  )
+}
+
+///|
+test "shadow matcher - :host-context matches light-tree host ancestors" {
+  let body = Element::new("body").add_class("theme-dark")
+  let host = Element::new("x-card").set_parent(body)
+  let context = ShadowContext::new(host).set_host_ancestors([body])
+  inspect(
+    matches_selector_text_with_shadow_context(
+      host, ":host-context(.theme-dark)", context,
+    ),
+    content="true",
+  )
+  inspect(
+    matches_selector_text_with_shadow_context(
+      host, ":host-context(.theme-light)", context,
+    ),
+    content="false",
+  )
+}
+
+///|
+test "shadow matcher - ::slotted matches assigned element in slot scope" {
+  let slot = Element::new("slot").set_attribute("name", "title")
+  let slotted = Element::new("span").add_class("title")
+  let context = ShadowContext::new(Element::new("x-card")).set_assigned_slot(
+    slot,
+  )
+  inspect(
+    matches_selector_text_with_shadow_context(
+      slotted, "::slotted(span.title)", context,
+    ),
+    content="true",
+  )
+  inspect(
+    matches_selector_text_with_shadow_context(
+      slotted, "::slotted(.missing)", context,
+    ),
+    content="false",
+  )
+  inspect(
+    matches_selector_text_with_shadow_context(
+      slotted, "slot[name=title]::slotted(.title)", context,
     ),
     content="true",
   )

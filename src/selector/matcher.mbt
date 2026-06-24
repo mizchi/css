@@ -3,9 +3,54 @@
 /// Determines if an element matches a given selector
 
 ///|
+/// Shadow DOM scoping information for selector matching.
+///
+/// `host` is the shadow host for the current styling scope.
+/// `host_ancestors` is the light-tree ancestor chain used by
+/// `:host-context()`. If it is empty, the matcher falls back to walking
+/// `host.parent`.
+/// `assigned_slot` is the slot assigned to the element currently being matched
+/// by `::slotted()`.
+pub(all) struct ShadowContext {
+  host : Element
+  host_ancestors : Array[Element]
+  assigned_slot : Element?
+}
+
+///|
+pub fn ShadowContext::new(host : Element) -> ShadowContext {
+  { host, host_ancestors: [], assigned_slot: None }
+}
+
+///|
+pub fn ShadowContext::set_host_ancestors(
+  self : ShadowContext,
+  host_ancestors : Array[Element],
+) -> ShadowContext {
+  { ..self, host_ancestors, }
+}
+
+///|
+pub fn ShadowContext::set_assigned_slot(
+  self : ShadowContext,
+  assigned_slot : Element,
+) -> ShadowContext {
+  { ..self, assigned_slot: Some(assigned_slot) }
+}
+
+///|
 /// Check if an element matches a simple selector. Hot path — class lookup
 /// is inlined to skip the call into `Element::has_class`.
 fn matches_simple(element : Element, selector : SimpleSelector) -> Bool {
+  matches_simple_with_shadow_context(element, selector, None)
+}
+
+///|
+fn matches_simple_with_shadow_context(
+  element : Element,
+  selector : SimpleSelector,
+  context : ShadowContext?,
+) -> Bool {
   match selector {
     Type(name) => element.tag_name == name
     Universal => true
@@ -23,7 +68,10 @@ fn matches_simple(element : Element, selector : SimpleSelector) -> Bool {
       false
     }
     Attribute(attr_sel) => matches_attribute(element, attr_sel)
-    PseudoClass(pc) => matches_pseudo_class(element, pc)
+    PseudoClass(pc) =>
+      matches_pseudo_class_with_shadow_context(element, pc, context)
+    PseudoElement(Slotted(selectors)) =>
+      matches_slotted(element, selectors, context)
     // Pseudo-elements like ::before/::after attach virtual content that does
     // not exist in the DOM; selectors targeting them never match the
     // underlying element.
@@ -209,6 +257,15 @@ fn split_whitespace(s : String) -> Array[String] {
 ///|
 /// Check if an element matches a pseudo-class
 fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
+  matches_pseudo_class_with_shadow_context(element, pc, None)
+}
+
+///|
+fn matches_pseudo_class_with_shadow_context(
+  element : Element,
+  pc : PseudoClass,
+  context : ShadowContext?,
+) -> Bool {
   match pc {
     FirstChild => element.is_first_child()
     LastChild => element.is_last_child()
@@ -239,7 +296,7 @@ fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
     Empty => element.children.is_empty()
     Not(selectors) => {
       for sel in selectors {
-        if matches_complex(element, sel) {
+        if matches_complex_with_shadow_context(element, sel, context) {
           return false
         }
       }
@@ -247,7 +304,7 @@ fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
     }
     Is(selectors) => {
       for sel in selectors {
-        if matches_complex(element, sel) {
+        if matches_complex_with_shadow_context(element, sel, context) {
           return true
         }
       }
@@ -255,13 +312,14 @@ fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
     }
     Where(selectors) => {
       for sel in selectors {
-        if matches_complex(element, sel) {
+        if matches_complex_with_shadow_context(element, sel, context) {
           return true
         }
       }
       false
     }
-    Has(selectors) => matches_has(element, selectors)
+    Has(selectors) =>
+      matches_has_with_shadow_context(element, selectors, context)
     State(state) => {
       for token in element.custom_states {
         if token == state {
@@ -279,9 +337,13 @@ fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
     Link | AnyLink =>
       element.tag_name == "a" && element.get_attribute("href") is Some(_)
     Visited => false
-    // Shadow DOM scoping pseudo-classes — without a shadow tree
-    // representation we can't actually match these, so return false.
-    Host | HostFunc(_) | HostContextFunc(_) => false
+    Host => matches_shadow_host(element, context)
+    HostFunc(compound) =>
+      matches_shadow_host(element, context) &&
+      matches_compound_with_shadow_context(element, compound, context)
+    HostContextFunc(compound) =>
+      matches_shadow_host(element, context) &&
+      shadow_context_has_host_context(compound, context)
     // :dir(ltr|rtl) — depends on inherited direction. Static matching
     // without a direction property defaults to no match.
     Dir(_) => false
@@ -328,15 +390,57 @@ fn matches_pseudo_class(element : Element, pc : PseudoClass) -> Bool {
 }
 
 ///|
-fn descendant_matches_complex(
+fn matches_shadow_host(element : Element, context : ShadowContext?) -> Bool {
+  match context {
+    None => false
+    Some(ctx) => physical_equal(element, ctx.host)
+  }
+}
+
+///|
+fn shadow_context_has_host_context(
+  compound : CompoundSelector,
+  context : ShadowContext?,
+) -> Bool {
+  match context {
+    None => false
+    Some(ctx) => {
+      if !ctx.host_ancestors.is_empty() {
+        for ancestor in ctx.host_ancestors {
+          if matches_compound_with_shadow_context(ancestor, compound, context) {
+            return true
+          }
+        }
+        return false
+      }
+      let mut ancestor = ctx.host.parent
+      while true {
+        match ancestor {
+          None => break
+          Some(anc) => {
+            if matches_compound_with_shadow_context(anc, compound, context) {
+              return true
+            }
+            ancestor = anc.parent
+          }
+        }
+      }
+      false
+    }
+  }
+}
+
+///|
+fn descendant_matches_complex_with_shadow_context(
   element : Element,
   selector : ComplexSelector,
+  context : ShadowContext?,
 ) -> Bool {
   for child in element.children {
-    if matches_complex(child, selector) {
+    if matches_complex_with_shadow_context(child, selector, context) {
       return true
     }
-    if descendant_matches_complex(child, selector) {
+    if descendant_matches_complex_with_shadow_context(child, selector, context) {
       return true
     }
   }
@@ -344,12 +448,13 @@ fn descendant_matches_complex(
 }
 
 ///|
-fn direct_child_matches_complex(
+fn direct_child_matches_complex_with_shadow_context(
   element : Element,
   selector : ComplexSelector,
+  context : ShadowContext?,
 ) -> Bool {
   for child in element.children {
-    if matches_complex(child, selector) {
+    if matches_complex_with_shadow_context(child, selector, context) {
       return true
     }
   }
@@ -357,27 +462,29 @@ fn direct_child_matches_complex(
 }
 
 ///|
-fn next_sibling_matches_complex(
+fn next_sibling_matches_complex_with_shadow_context(
   element : Element,
   selector : ComplexSelector,
+  context : ShadowContext?,
 ) -> Bool {
   match element.next_sibling {
-    Some(next) => matches_complex(next, selector)
+    Some(next) => matches_complex_with_shadow_context(next, selector, context)
     None => false
   }
 }
 
 ///|
-fn subsequent_sibling_matches_complex(
+fn subsequent_sibling_matches_complex_with_shadow_context(
   element : Element,
   selector : ComplexSelector,
+  context : ShadowContext?,
 ) -> Bool {
   let mut sibling = element.next_sibling
   while true {
     match sibling {
       None => break
       Some(sib) => {
-        if matches_complex(sib, selector) {
+        if matches_complex_with_shadow_context(sib, selector, context) {
           return true
         }
         sibling = sib.next_sibling
@@ -388,25 +495,53 @@ fn subsequent_sibling_matches_complex(
 }
 
 ///|
-fn matches_relative_selector(
+fn matches_relative_selector_with_shadow_context(
   element : Element,
   relative : RelativeSelector,
+  context : ShadowContext?,
 ) -> Bool {
   match relative.combinator {
-    None => descendant_matches_complex(element, relative.selector)
-    Some(Descendant) => descendant_matches_complex(element, relative.selector)
-    Some(Child) => direct_child_matches_complex(element, relative.selector)
+    None =>
+      descendant_matches_complex_with_shadow_context(
+        element,
+        relative.selector,
+        context,
+      )
+    Some(Descendant) =>
+      descendant_matches_complex_with_shadow_context(
+        element,
+        relative.selector,
+        context,
+      )
+    Some(Child) =>
+      direct_child_matches_complex_with_shadow_context(
+        element,
+        relative.selector,
+        context,
+      )
     Some(NextSibling) =>
-      next_sibling_matches_complex(element, relative.selector)
+      next_sibling_matches_complex_with_shadow_context(
+        element,
+        relative.selector,
+        context,
+      )
     Some(SubsequentSibling) =>
-      subsequent_sibling_matches_complex(element, relative.selector)
+      subsequent_sibling_matches_complex_with_shadow_context(
+        element,
+        relative.selector,
+        context,
+      )
   }
 }
 
 ///|
-fn matches_has(element : Element, selectors : Array[RelativeSelector]) -> Bool {
+fn matches_has_with_shadow_context(
+  element : Element,
+  selectors : Array[RelativeSelector],
+  context : ShadowContext?,
+) -> Bool {
   for relative in selectors {
-    if matches_relative_selector(element, relative) {
+    if matches_relative_selector_with_shadow_context(element, relative, context) {
       return true
     }
   }
@@ -435,15 +570,106 @@ fn matches_nth(index : Int, expr : NthExpr) -> Bool {
 ///|
 /// Check if an element matches a compound selector
 fn matches_compound(element : Element, selector : CompoundSelector) -> Bool {
+  matches_compound_with_shadow_context(element, selector, None)
+}
+
+///|
+fn compound_has_slotted(selector : CompoundSelector) -> Bool {
+  for sub in selector.subclasses {
+    match sub {
+      PseudoElement(Slotted(_)) => return true
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
+fn matches_slotted(
+  element : Element,
+  selectors : Array[CompoundSelector],
+  context : ShadowContext?,
+) -> Bool {
+  match context {
+    None => false
+    Some(ctx) =>
+      match ctx.assigned_slot {
+        None => false
+        Some(_) => {
+          for selector in selectors {
+            if matches_compound_with_shadow_context(element, selector, context) {
+              return true
+            }
+          }
+          false
+        }
+      }
+  }
+}
+
+///|
+fn matches_slotted_compound(
+  element : Element,
+  selector : CompoundSelector,
+  context : ShadowContext?,
+) -> Bool {
+  match context {
+    None => false
+    Some(ctx) =>
+      match ctx.assigned_slot {
+        None => false
+        Some(slot) => {
+          match selector.type_selector {
+            Some(type_sel) =>
+              if !matches_simple_with_shadow_context(slot, type_sel, context) {
+                return false
+              }
+            None => ()
+          }
+
+          let mut found_slotted = false
+          for sub in selector.subclasses {
+            match sub {
+              PseudoElement(Slotted(selectors)) => {
+                found_slotted = true
+                if !matches_slotted(element, selectors, context) {
+                  return false
+                }
+              }
+              _ =>
+                if !matches_simple_with_shadow_context(slot, sub, context) {
+                  return false
+                }
+            }
+          }
+          found_slotted
+        }
+      }
+  }
+}
+
+///|
+fn matches_compound_with_shadow_context(
+  element : Element,
+  selector : CompoundSelector,
+  context : ShadowContext?,
+) -> Bool {
+  if compound_has_slotted(selector) {
+    return matches_slotted_compound(element, selector, context)
+  }
+
   // Check type selector
   match selector.type_selector {
-    Some(type_sel) => if !matches_simple(element, type_sel) { return false }
+    Some(type_sel) =>
+      if !matches_simple_with_shadow_context(element, type_sel, context) {
+        return false
+      }
     None => ()
   }
 
   // Check all subclass selectors
   for sub in selector.subclasses {
-    if !matches_simple(element, sub) {
+    if !matches_simple_with_shadow_context(element, sub, context) {
       return false
     }
   }
@@ -453,8 +679,17 @@ fn matches_compound(element : Element, selector : CompoundSelector) -> Bool {
 ///|
 /// Check if an element matches a complex selector
 pub fn matches_complex(element : Element, selector : ComplexSelector) -> Bool {
+  matches_complex_with_shadow_context(element, selector, None)
+}
+
+///|
+pub fn matches_complex_with_shadow_context(
+  element : Element,
+  selector : ComplexSelector,
+  context : ShadowContext?,
+) -> Bool {
   // First, check if the element matches the head (rightmost/subject)
-  if !matches_compound(element, selector.head) {
+  if !matches_compound_with_shadow_context(element, selector.head, context) {
     return false
   }
 
@@ -475,7 +710,11 @@ pub fn matches_complex(element : Element, selector : ComplexSelector) -> Bool {
           match ancestor {
             None => break
             Some(anc) => {
-              if matches_compound(anc, step.selector) {
+              if matches_compound_with_shadow_context(
+                  anc,
+                  step.selector,
+                  context,
+                ) {
                 current_element = anc
                 found = true
                 break
@@ -493,7 +732,11 @@ pub fn matches_complex(element : Element, selector : ComplexSelector) -> Bool {
         match current_element.parent {
           None => return false
           Some(parent) => {
-            if !matches_compound(parent, step.selector) {
+            if !matches_compound_with_shadow_context(
+                parent,
+                step.selector,
+                context,
+              ) {
               return false
             }
             current_element = parent
@@ -504,7 +747,11 @@ pub fn matches_complex(element : Element, selector : ComplexSelector) -> Bool {
         match current_element.prev_sibling {
           None => return false
           Some(prev) => {
-            if !matches_compound(prev, step.selector) {
+            if !matches_compound_with_shadow_context(
+                prev,
+                step.selector,
+                context,
+              ) {
               return false
             }
             current_element = prev
@@ -518,7 +765,11 @@ pub fn matches_complex(element : Element, selector : ComplexSelector) -> Bool {
           match sibling {
             None => break
             Some(sib) => {
-              if matches_compound(sib, step.selector) {
+              if matches_compound_with_shadow_context(
+                  sib,
+                  step.selector,
+                  context,
+                ) {
                 current_element = sib
                 found = true
                 break
@@ -539,8 +790,17 @@ pub fn matches_complex(element : Element, selector : ComplexSelector) -> Bool {
 ///|
 /// Check if an element matches any selector in a list
 pub fn matches_selector_list(element : Element, list : SelectorList) -> Bool {
+  matches_selector_list_with_shadow_context(element, list, None)
+}
+
+///|
+pub fn matches_selector_list_with_shadow_context(
+  element : Element,
+  list : SelectorList,
+  context : ShadowContext?,
+) -> Bool {
   for sel in list.selectors {
-    if matches_complex(element, sel) {
+    if matches_complex_with_shadow_context(element, sel, context) {
       return true
     }
   }

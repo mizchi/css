@@ -13,9 +13,13 @@ pub fn matches_complex(Element, ComplexSelector) -> Bool
 
 pub fn matches_complex_with_forced_states(Element, ComplexSelector, ForcedPseudoStates) -> Bool
 
+pub fn matches_complex_with_shadow_context(Element, ComplexSelector, ShadowContext?) -> Bool
+
 pub fn matches_pseudo_class_with_forced_states(Element, PseudoClass, ForcedPseudoStates) -> Bool
 
 pub fn matches_selector_list(Element, SelectorList) -> Bool
+
+pub fn matches_selector_list_with_shadow_context(Element, SelectorList, ShadowContext?) -> Bool
 
 pub fn parse_selector_list_from_tokens(Array[@token.Token], Int, Int) -> Array[ComplexSelector]
 
@@ -199,6 +203,15 @@ pub struct SelectorList {
   selectors : Array[ComplexSelector]
 }
 pub impl Show for SelectorList
+
+pub(all) struct ShadowContext {
+  host : Element
+  host_ancestors : Array[Element]
+  assigned_slot : Element?
+}
+pub fn ShadowContext::new(Element) -> Self
+pub fn ShadowContext::set_assigned_slot(Self, Element) -> Self
+pub fn ShadowContext::set_host_ancestors(Self, Array[Element]) -> Self
 
 pub enum SimpleSelector {
   Type(String)
