@@ -189,13 +189,18 @@ fn Tokenizer::consume_number(self : Tokenizer) -> (Double, NumType) {
   // Optional sign
   let first = self.peek_char()
   self.last_num_signed = first == '+' || first == '-'
+  let negative = first == '-'
   if self.last_num_signed {
     self.pos += 1
   }
 
-  // Integer part
+  // Integer part. Accumulate the value directly so the common integer case
+  // (e.g. `8`, `16`, line numbers) avoids both a substring and parse_double.
+  let mut int_value = 0.0
   while self.pos < self.len &&
         is_digit(self.input[self.pos].to_int().unsafe_to_char()) {
+    int_value = int_value * 10.0 +
+      (self.input[self.pos].to_int() - '0'.to_int()).to_double()
     self.pos += 1
   }
 
@@ -226,8 +231,18 @@ fn Tokenizer::consume_number(self : Tokenizer) -> (Double, NumType) {
       }
     }
   }
-  let num_str = self.input.unsafe_substring(start~, end=self.pos)
-  let value = @string.parse_double(num_str) catch { _ => 0.0 }
+  // Integers are accumulated exactly above; only decimals / exponents need the
+  // full (substring + parse_double) path to preserve correct rounding.
+  let value = if is_integer {
+    if negative {
+      -int_value
+    } else {
+      int_value
+    }
+  } else {
+    let num_str = self.input.unsafe_substring(start~, end=self.pos)
+    @string.parse_double(num_str) catch { _ => 0.0 }
+  }
   let num_type : NumType = if is_integer { Integer } else { NumType::Number }
   (value, num_type)
 }
@@ -235,7 +250,28 @@ fn Tokenizer::consume_number(self : Tokenizer) -> (Double, NumType) {
 ///|
 /// Consume a string token
 fn Tokenizer::consume_string(self : Tokenizer, quote : Char) -> Token {
+  // Fast path: scan to the closing quote and return one substring. Escapes and
+  // raw newlines (which need special handling) are rare, so only fall back to
+  // the char-by-char builder when one is encountered.
+  let start = self.pos
+  while self.pos < self.len {
+    let c = self.input[self.pos].to_int().unsafe_to_char()
+    if c == quote {
+      let s = self.input.unsafe_substring(start~, end=self.pos)
+      self.pos += 1
+      return Token::String(s)
+    } else if c == '\\' || c == '\n' || c == '\r' {
+      break
+    }
+    self.pos += 1
+  }
+  if self.is_eof() {
+    return Token::String(self.input.unsafe_substring(start~, end=self.pos))
+  }
+  // Slow path: seed the builder with the run scanned so far, then handle
+  // escapes / bad-string termination char-by-char.
   let buf = StringBuilder::new()
+  buf.write_string(self.input.unsafe_substring(start~, end=self.pos))
   while !self.is_eof() {
     match self.consume() {
       Some(c) if c == quote => return Token::String(buf.to_string())
