@@ -1148,10 +1148,13 @@ fn parse_min_track_sizing(
             tokens[1:],
           ),
         )
-      } else if unit == "em" || unit == "rem" {
-        Some((@types.MinTrackSizing::Length(value * 16.0), tokens[1:]))
       } else {
-        Some((@types.MinTrackSizing::Length(value), tokens[1:]))
+        // rem/em and physical units (pt/cm/in/...) are converted to px.
+        let px = match dimension_unit_to_px(value, unit.to_lower()) {
+          Some(p) => p
+          None => value
+        }
+        Some((@types.MinTrackSizing::Length(px), tokens[1:]))
       }
     @token.Token::Percentage(value) =>
       Some((@types.MinTrackSizing::Percent(value / 100.0), tokens[1:]))
@@ -1210,10 +1213,13 @@ fn parse_max_track_sizing(
             tokens[1:],
           ),
         )
-      } else if unit == "em" || unit == "rem" {
-        Some((@types.MaxTrackSizing::Length(value * 16.0), tokens[1:]))
       } else {
-        Some((@types.MaxTrackSizing::Length(value), tokens[1:]))
+        // rem/em and physical units (pt/cm/in/...) are converted to px.
+        let px = match dimension_unit_to_px(value, unit.to_lower()) {
+          Some(p) => p
+          None => value
+        }
+        Some((@types.MaxTrackSizing::Length(px), tokens[1:]))
       }
     @token.Token::Percentage(value) =>
       Some((@types.MaxTrackSizing::Percent(value / 100.0), tokens[1:]))
@@ -1255,7 +1261,12 @@ fn parse_single_track_sizing(
       } else if unit == "fr" {
         Some((@types.SingleTrackSizing::Fr(value), tokens[1:]))
       } else {
-        Some((@types.SingleTrackSizing::Length(value), tokens[1:]))
+        // rem/em and physical units (pt/cm/in/...) are converted to px.
+        let px = match dimension_unit_to_px(value, unit.to_lower()) {
+          Some(p) => p
+          None => value
+        }
+        Some((@types.SingleTrackSizing::Length(px), tokens[1:]))
       }
     @token.Token::Percentage(value) =>
       Some((@types.SingleTrackSizing::Percent(value / 100.0), tokens[1:]))
@@ -1411,7 +1422,12 @@ fn parse_track_sizing_function(
       } else if unit == "fr" {
         Some((@types.TrackSizingFunction::Fr(value), tokens[1:]))
       } else {
-        Some((@types.TrackSizingFunction::Length(value), tokens[1:]))
+        // rem/em and physical units (pt/cm/in/...) are converted to px.
+        let px = match dimension_unit_to_px(value, unit.to_lower()) {
+          Some(p) => p
+          None => value
+        }
+        Some((@types.TrackSizingFunction::Length(px), tokens[1:]))
       }
     @token.Token::Percentage(value) =>
       Some((@types.TrackSizingFunction::Percent(value / 100.0), tokens[1:]))

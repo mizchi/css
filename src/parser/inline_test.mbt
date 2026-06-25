@@ -973,6 +973,31 @@ test "grid-template-columns none" {
 }
 
 ///|
+test "grid-template-columns converts rem/em and physical units to px" {
+  let style = parse_inline_style(
+    "grid-template-columns: 10rem 2em 1fr 12pt 1in",
+  )
+  inspect(style.grid_template_columns.length(), content="5")
+  inspect(style.grid_template_columns[0], content="Length(160)")
+  inspect(style.grid_template_columns[1], content="Length(32)")
+  inspect(style.grid_template_columns[2], content="Fr(1)")
+  inspect(style.grid_template_columns[3], content="Length(16)")
+  inspect(style.grid_template_columns[4], content="Length(96)")
+}
+
+///|
+test "grid-template-columns minmax converts rem/physical units to px" {
+  let style = parse_inline_style(
+    "grid-template-columns: minmax(1rem, 2cm)",
+  )
+  inspect(style.grid_template_columns.length(), content="1")
+  inspect(
+    style.grid_template_columns[0],
+    content="MinMax(Length(16), Length(75.59055118110236))",
+  )
+}
+
+///|
 test "grid-template-columns minmax" {
   let style = parse_inline_style("grid-template-columns: minmax(100px, 1fr)")
   inspect(style.grid_template_columns.length(), content="1")
