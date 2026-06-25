@@ -1251,6 +1251,51 @@ fn parse_max_track_sizing(
 }
 
 ///|
+/// Parse the single `<length-percentage>` argument of `fit-content( ... )`,
+/// starting right after the `Function("fit-content")` token. Returns the value,
+/// whether it is a percentage (ratio) rather than a px length, and the tokens
+/// after the matching RightParen. Length units are converted to px.
+fn parse_fit_content_arg(
+  tokens : ArrayView[@token.Token],
+) -> (Double, Bool, ArrayView[@token.Token])? {
+  let rest = skip_whitespace(tokens)
+  if rest.length() == 0 {
+    return None
+  }
+  let (val, is_pct, rest2) : (Double, Bool, ArrayView[@token.Token]) = match
+    rest[0] {
+    @token.Token::Dimension(v, raw_unit) => {
+      let unit = raw_unit.to_lower()
+      if unit == "%" {
+        (v / 100.0, true, rest[1:])
+      } else {
+        let px = match dimension_unit_to_px(v, unit) {
+          Some(p) => p
+          None => v
+        }
+        (px, false, rest[1:])
+      }
+    }
+    @token.Token::Percentage(v) => (v / 100.0, true, rest[1:])
+    @token.Token::Number(v, _) =>
+      if v == 0.0 {
+        (0.0, false, rest[1:])
+      } else {
+        return None
+      }
+    _ => return None
+  }
+  let rest3 = skip_whitespace(rest2)
+  if rest3.length() == 0 {
+    return None
+  }
+  match rest3[0] {
+    @token.Token::RightParen => Some((val, is_pct, rest3[1:]))
+    _ => None
+  }
+}
+
+///|
 /// Parse a single track sizing value (without repeat)
 fn parse_single_track_sizing(
   tokens : ArrayView[@token.Token],
@@ -1334,6 +1379,40 @@ fn parse_single_track_sizing(
           }
           None => None
         }
+      } else if name == "fit-content" {
+        match parse_fit_content_arg(tokens[1:]) {
+          Some((v, true, rest)) =>
+            Some((@types.SingleTrackSizing::FitContentPercent(v), rest))
+          Some((v, false, rest)) =>
+            Some((@types.SingleTrackSizing::FitContentLength(v), rest))
+          None => None
+        }
+      } else if name == "calc" {
+        match parse_calc_linear(tokens[1:]) {
+          Some(((px, pct), rest)) =>
+            if pct.abs() < 0.0001 {
+              Some((@types.SingleTrackSizing::Length(px), rest))
+            } else if px.abs() < 0.0001 {
+              Some((@types.SingleTrackSizing::Percent(pct), rest))
+            } else {
+              // Mixed length+percentage calc cannot be represented as a single
+              // track breadth; fall back to auto but keep parsing the rest.
+              Some((@types.SingleTrackSizing::Auto, rest))
+            }
+          None => None
+        }
+      } else if name == "min" || name == "max" || name == "clamp" {
+        match parse_math_function(name, tokens[1:]) {
+          Some((dim, rest)) => {
+            let tf = match dim {
+              @types.Length(v) => @types.SingleTrackSizing::Length(v)
+              @types.Percent(v) => @types.SingleTrackSizing::Percent(v)
+              _ => @types.SingleTrackSizing::Auto
+            }
+            Some((tf, rest))
+          }
+          None => None
+        }
       } else {
         None
       }
@@ -1388,6 +1467,11 @@ fn parse_track_sizing_function(
         let mut remaining = rest4
         while remaining.length() > 0 {
           remaining = skip_whitespace(remaining)
+          // Skip (without preserving) any line names inside repeat(). The flat
+          // line-name model does not yet attach names to repeated tracks, but
+          // they must not abort parsing of the track list.
+          let (_, after_names) = capture_grid_line_names(remaining)
+          remaining = after_names
           if remaining.length() == 0 {
             break
           }
@@ -1417,6 +1501,40 @@ fn parse_track_sizing_function(
           Some((@types.SingleTrackSizing::MinMax(min_val, max_val), rest)) =>
             Some((@types.TrackSizingFunction::MinMax(min_val, max_val), rest))
           _ => None
+        }
+      } else if name == "fit-content" {
+        match parse_fit_content_arg(tokens[1:]) {
+          Some((v, true, rest)) =>
+            Some((@types.TrackSizingFunction::FitContentPercent(v), rest))
+          Some((v, false, rest)) =>
+            Some((@types.TrackSizingFunction::FitContentLength(v), rest))
+          None => None
+        }
+      } else if name == "calc" {
+        match parse_calc_linear(tokens[1:]) {
+          Some(((px, pct), rest)) =>
+            if pct.abs() < 0.0001 {
+              Some((@types.TrackSizingFunction::Length(px), rest))
+            } else if px.abs() < 0.0001 {
+              Some((@types.TrackSizingFunction::Percent(pct), rest))
+            } else {
+              // Mixed length+percentage calc cannot be represented as a single
+              // track breadth; fall back to auto but keep parsing the rest.
+              Some((@types.TrackSizingFunction::Auto, rest))
+            }
+          None => None
+        }
+      } else if name == "min" || name == "max" || name == "clamp" {
+        match parse_math_function(name, tokens[1:]) {
+          Some((dim, rest)) => {
+            let tf = match dim {
+              @types.Length(v) => @types.TrackSizingFunction::Length(v)
+              @types.Percent(v) => @types.TrackSizingFunction::Percent(v)
+              _ => @types.TrackSizingFunction::Auto
+            }
+            Some((tf, rest))
+          }
+          None => None
         }
       } else {
         None

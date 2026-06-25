@@ -1031,6 +1031,58 @@ test "grid-template-columns minmax" {
 }
 
 ///|
+test "grid-template-columns fit-content()" {
+  let style = parse_inline_style(
+    "grid-template-columns: fit-content(200px) fit-content(30%) 1fr",
+  )
+  inspect(style.grid_template_columns.length(), content="3")
+  inspect(style.grid_template_columns[0], content="FitContentLength(200)")
+  inspect(style.grid_template_columns[1], content="FitContentPercent(0.3)")
+  inspect(style.grid_template_columns[2], content="Fr(1)")
+  // fit-content with rem is converted to px
+  let s2 = parse_inline_style("grid-template-columns: fit-content(2rem)")
+  inspect(s2.grid_template_columns[0], content="FitContentLength(32)")
+}
+
+///|
+test "grid-template-columns fit-content() inside repeat" {
+  let style = parse_inline_style(
+    "grid-template-columns: repeat(2, fit-content(100px))",
+  )
+  inspect(style.grid_template_columns.length(), content="1")
+  inspect(
+    style.grid_template_columns[0],
+    content="Repeat(Count(2), [FitContentLength(100)])",
+  )
+}
+
+///|
+test "grid-template-columns calc() track keeps following tracks" {
+  // calc() in a track must not abort parsing of the remaining tracks.
+  let style = parse_inline_style(
+    "grid-template-columns: 100px calc(50% + 10px) 1fr",
+  )
+  inspect(style.grid_template_columns.length(), content="3")
+  inspect(style.grid_template_columns[0], content="Length(100)")
+  inspect(style.grid_template_columns[2], content="Fr(1)")
+  // Pure-px calc resolves to a length track.
+  let s2 = parse_inline_style("grid-template-columns: calc(100px + 20px) 1fr")
+  inspect(s2.grid_template_columns.length(), content="2")
+  inspect(s2.grid_template_columns[0], content="Length(120)")
+  inspect(s2.grid_template_columns[1], content="Fr(1)")
+}
+
+///|
+test "grid-template-columns repeat with inner line names does not abort" {
+  // Line names inside repeat() must not kill parsing of the track list.
+  let style = parse_inline_style(
+    "grid-template-columns: repeat(3, [a] 1fr [b])",
+  )
+  inspect(style.grid_template_columns.length(), content="1")
+  inspect(style.grid_template_columns[0], content="Repeat(Count(3), [Fr(1)])")
+}
+
+///|
 test "grid-template-columns minmax min-content auto" {
   let style = parse_inline_style(
     "grid-template-columns: minmax(min-content, 100px) auto",
