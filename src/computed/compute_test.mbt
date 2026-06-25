@@ -261,9 +261,9 @@ test "compute_inline font-size rem resolves against root font size" {
 }
 
 ///|
-test "parse_grid_placement custom ident defaults to second line" {
-  inspect(@computed.parse_grid_placement("foo"), content="Line(2)")
-  inspect(@computed.parse_grid_placement("bar-baz"), content="Line(2)")
+test "parse_grid_placement custom ident is preserved as a named line" {
+  inspect(@computed.parse_grid_placement("foo"), content="Named(foo)")
+  inspect(@computed.parse_grid_placement("bar-baz"), content="Named(bar-baz)")
 }
 
 ///|
@@ -277,13 +277,13 @@ test "compute_inline grid-area shorthand sets row and column lines" {
 }
 
 ///|
-test "compute_inline grid-area custom idents place to implicit second track" {
+test "compute_inline grid-area custom idents are preserved as named lines" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline("grid-area: a / a / b / b", ctx)
-  inspect(style.grid_row.start, content="Line(2)")
-  inspect(style.grid_column.start, content="Line(2)")
-  inspect(style.grid_row.end, content="Line(2)")
-  inspect(style.grid_column.end, content="Line(2)")
+  inspect(style.grid_row.start, content="Named(a)")
+  inspect(style.grid_column.start, content="Named(a)")
+  inspect(style.grid_row.end, content="Named(b)")
+  inspect(style.grid_column.end, content="Named(b)")
 }
 
 ///|
@@ -294,6 +294,34 @@ test "compute_inline grid-area named area sets grid_area field" {
   // Named area should not set grid line placements
   inspect(style.grid_row.start, content="Auto")
   inspect(style.grid_column.start, content="Auto")
+}
+
+///|
+test "compute_inline MDN page shell: named lines resolve grid-column" {
+  let ctx = @computed.ComputeContext::new()
+  // Container: .layout__2-sidebars-inline style page shell.
+  let container = @computed.compute_inline(
+    "display: grid; grid-template-columns: [left-sidebar-start] 240px [left-sidebar-end content-start] 689px [content-end]",
+    ctx,
+  )
+  let col_names = container.grid_template_column_line_names
+  inspect(col_names.length(), content="3")
+  // Item placed with `grid-column: left-sidebar` (named line / implicit area).
+  let sidebar = @computed.compute_inline("grid-column: left-sidebar", ctx)
+  inspect(sidebar.grid_column.start, content="Named(left-sidebar)")
+  inspect(sidebar.grid_column.end, content="Named(left-sidebar)")
+  let (s, e) = @computed.resolve_grid_line_placement(
+    sidebar.grid_column.start, sidebar.grid_column.end, col_names,
+  )
+  debug_inspect(s, content="Some(1)")
+  debug_inspect(e, content="Some(2)")
+  // Another item placed in the content column.
+  let content = @computed.compute_inline("grid-column: content", ctx)
+  let (cs, ce) = @computed.resolve_grid_line_placement(
+    content.grid_column.start, content.grid_column.end, col_names,
+  )
+  debug_inspect(cs, content="Some(2)")
+  debug_inspect(ce, content="Some(3)")
 }
 
 ///|
@@ -716,13 +744,13 @@ test "compute_inline grid-template resolves inherited custom property inside min
 }
 
 ///|
-test "compute_inline grid named end placement resolves to final line fallback" {
+test "compute_inline grid named placement is preserved as named lines" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(
     "grid-column: content; grid-column-end: extended-full-end", ctx,
   )
-  inspect(style.grid_column.start, content="Line(2)")
-  inspect(style.grid_column.end, content="Line(-1)")
+  inspect(style.grid_column.start, content="Named(content)")
+  inspect(style.grid_column.end, content="Named(extended-full-end)")
 }
 
 ///|

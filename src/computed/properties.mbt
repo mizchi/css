@@ -816,14 +816,11 @@ pub fn parse_grid_placement(value : String) -> @types.GridPlacement {
   if line != 0 {
     @types.GridPlacement::Line(line)
   } else if is_basic_custom_ident(v) {
-    // Browser-compatible fallback for unresolved named lines. Start-like names
-    // create an implicit track before the item, while *-end names map to the
-    // final explicit line.
-    if v.has_suffix("-end") {
-      @types.GridPlacement::Line(-1)
-    } else {
-      @types.GridPlacement::Line(2)
-    }
+    // Named line reference (e.g. `grid-column: left-sidebar`). Preserve the name
+    // so it can be resolved against the named lines declared in the grid
+    // template. Resolution happens in `resolve_grid_named_line` once the
+    // template's line names are known.
+    @types.GridPlacement::Named(view_to_string(v).to_string())
   } else {
     @types.GridPlacement::Auto
   }
@@ -843,10 +840,82 @@ pub fn parse_grid_line_shorthand(
     let end = parse_grid_placement(parts[1])
     (start, end)
   } else {
-    // Single value: applies to start, end is auto
+    // Single value. Per the grid-row/grid-column shorthand rules, a single
+    // <custom-ident> is copied to BOTH the start and end longhands (so a named
+    // line / implicit area like `grid-column: left-sidebar` spans
+    // left-sidebar-start..left-sidebar-end). Any other single value leaves the
+    // end as auto.
     let start = parse_grid_placement(v.to_owned())
-    (start, @types.GridPlacement::Auto)
+    match start {
+      @types.GridPlacement::Named(_) => (start, start)
+      _ => (start, @types.GridPlacement::Auto)
+    }
   }
+}
+
+///|
+/// Find the 1-based grid line number where `name` is first declared in the
+/// given line-name table (table index 0 = grid line 1). Returns None if the
+/// name is not present.
+pub fn find_grid_named_line(
+  name : String,
+  line_names : Array[Array[String]],
+) -> Int? {
+  for i = 0; i < line_names.length(); i = i + 1 {
+    let group = line_names[i]
+    for j = 0; j < group.length(); j = j + 1 {
+      if group[j] == name {
+        return Some(i + 1)
+      }
+    }
+  }
+  None
+}
+
+///|
+/// Resolve one side of a named grid placement to a concrete 1-based line number.
+/// Falls back to the implicit named area edge (`<name>-start` / `<name>-end`)
+/// when no explicit line carries the bare name. `is_start` selects the edge.
+fn resolve_named_grid_side(
+  name : String,
+  is_start : Bool,
+  line_names : Array[Array[String]],
+) -> Int? {
+  // 1. An explicit line declared with this exact name wins.
+  match find_grid_named_line(name, line_names) {
+    Some(n) => return Some(n)
+    None => ()
+  }
+  // 2. Implicit named area: `<name>-start` / `<name>-end`.
+  let edge = if is_start { name + "-start" } else { name + "-end" }
+  find_grid_named_line(edge, line_names)
+}
+
+///|
+/// Resolve a grid item's start/end placement against a grid template's named
+/// lines (as captured in `grid_template_column_line_names` /
+/// `grid_template_row_line_names`). Returns concrete 1-based line numbers where
+/// resolvable. `Line(n)` passes through; `Named` resolves against the table
+/// (with implicit-area expansion); `Auto` / `Span` and unresolved names yield
+/// None, leaving auto/span placement to the layout engine.
+pub fn resolve_grid_line_placement(
+  start : @types.GridPlacement,
+  end : @types.GridPlacement,
+  line_names : Array[Array[String]],
+) -> (Int?, Int?) {
+  let start_line = match start {
+    @types.GridPlacement::Line(n) => Some(n)
+    @types.GridPlacement::Named(name) =>
+      resolve_named_grid_side(name, true, line_names)
+    _ => None
+  }
+  let end_line = match end {
+    @types.GridPlacement::Line(n) => Some(n)
+    @types.GridPlacement::Named(name) =>
+      resolve_named_grid_side(name, false, line_names)
+    _ => None
+  }
+  (start_line, end_line)
 }
 
 ///|
@@ -953,6 +1022,16 @@ pub fn parse_grid_template_tracks(
 }
 
 ///|
+/// Parse grid-template-columns or grid-template-rows value, returning both the
+/// track sizing functions and the named lines (index = grid line, length =
+/// tracks + 1).
+pub fn parse_grid_template_track_list(
+  value : String,
+) -> (Array[@types.TrackSizingFunction], Array[Array[String]]) {
+  @parser.parse_grid_template_track_list_from_string(value)
+}
+
+///|
 /// Parse grid-template shorthand: `<rows> / <columns>`
 pub fn parse_grid_template_shorthand(
   value : String,
@@ -968,6 +1047,30 @@ pub fn parse_grid_template_shorthand(
   let rows = parse_grid_template_tracks(parts[0])
   let cols = parse_grid_template_tracks(parts[1])
   Some((rows, cols))
+}
+
+///|
+/// Parse grid-template shorthand `<rows> / <columns>`, preserving named lines.
+/// Returns (rows, row_line_names, cols, col_line_names).
+pub fn parse_grid_template_shorthand_with_names(
+  value : String,
+) -> (
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+)? {
+  let v = value.trim()
+  if !v.contains("/") {
+    return None
+  }
+  let parts = v.split("/").map(fn(s) { s.trim().to_owned() }).collect()
+  if parts.length() != 2 {
+    return None
+  }
+  let (rows, row_names) = parse_grid_template_track_list(parts[0])
+  let (cols, col_names) = parse_grid_template_track_list(parts[1])
+  Some((rows, row_names, cols, col_names))
 }
 
 ///|

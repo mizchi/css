@@ -942,6 +942,11 @@ pub(all) struct Style {
   mut grid_auto_rows : Array[@types.TrackSizingFunction]
   mut grid_auto_columns : Array[@types.TrackSizingFunction]
   mut grid_auto_flow : @types.GridAutoFlow
+  // Named lines declared in grid-template-columns/rows. Index i holds the names
+  // declared at grid line i (0-based), so the array length is tracks + 1.
+  // e.g. `[a] 1fr [b c] 2fr` => [["a"], ["b", "c"], []]
+  mut grid_template_column_line_names : Array[Array[String]]
+  mut grid_template_row_line_names : Array[Array[String]]
   // Grid template areas (each string is a row, e.g. ["header header", "sidebar main"])
   mut grid_template_areas : Array[String]
   // Grid item properties
@@ -1095,6 +1100,8 @@ pub fn Style::default() -> Style {
     grid_auto_rows: [],
     grid_auto_columns: [],
     grid_auto_flow: @types.Row,
+    grid_template_column_line_names: [],
+    grid_template_row_line_names: [],
     grid_template_areas: [],
     grid_row: @types.GridLine::auto(),
     grid_column: @types.GridLine::auto(),

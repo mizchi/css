@@ -905,11 +905,33 @@ test "grid-template-columns basic" {
 }
 
 ///|
-test "grid-template-columns skips named line brackets" {
+test "grid-template-columns captures named line brackets" {
   let style = parse_inline_style(
     "display: grid; grid-template-columns: [extended-full-start] minmax(1rem, 1fr) [full-start] minmax(0, 2rem) [content-start] minmax(0, 72rem) [content-end] minmax(0, 2rem) [full-end] minmax(1rem, 1fr) [extended-full-end]",
   )
   inspect(style.grid_template_columns.length(), content="5")
+  // Line names are now preserved: one entry per grid line (tracks + 1).
+  let names = style.grid_template_column_line_names
+  inspect(names.length(), content="6")
+  debug_inspect(names[0], content="[\"extended-full-start\"]")
+  debug_inspect(names[1], content="[\"full-start\"]")
+  debug_inspect(names[2], content="[\"content-start\"]")
+  debug_inspect(names[3], content="[\"content-end\"]")
+  debug_inspect(names[4], content="[\"full-end\"]")
+  debug_inspect(names[5], content="[\"extended-full-end\"]")
+}
+
+///|
+test "grid-template-columns captures multiple names at one line (MDN page shell)" {
+  let style = parse_inline_style(
+    "display: grid; grid-template-columns: [left-sidebar-start] 240px [left-sidebar-end content-start] 689px [content-end]",
+  )
+  inspect(style.grid_template_columns.length(), content="2")
+  let names = style.grid_template_column_line_names
+  inspect(names.length(), content="3")
+  debug_inspect(names[0], content="[\"left-sidebar-start\"]")
+  debug_inspect(names[1], content="[\"left-sidebar-end\", \"content-start\"]")
+  debug_inspect(names[2], content="[\"content-end\"]")
 }
 
 ///|

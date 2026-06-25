@@ -1439,10 +1439,14 @@ fn parse_track_sizing_function(
 }
 
 ///|
-/// Parse grid-template-columns or grid-template-rows value
-fn skip_grid_line_names(
+/// Capture the grid line names declared in `[name1 name2 ...]` bracket groups at
+/// the current position. Returns the collected names (lowercased, possibly
+/// empty) and the remaining tokens after the brackets. Consecutive bracket
+/// groups at the same line are merged.
+fn capture_grid_line_names(
   tokens : ArrayView[@token.Token],
-) -> ArrayView[@token.Token] {
+) -> (Array[String], ArrayView[@token.Token]) {
+  let names : Array[String] = []
   let mut remaining = skip_whitespace(tokens)
   while remaining.length() > 0 {
     match remaining[0] {
@@ -1454,62 +1458,84 @@ fn skip_grid_line_names(
               i = i + 1
               break
             }
+            @token.Token::Ident(s) => {
+              names.push(s.to_lower())
+              i = i + 1
+            }
             _ => i = i + 1
           }
         }
         remaining = skip_whitespace(remaining[i:])
       }
-      _ => return remaining
+      _ => return (names, remaining)
     }
   }
-  remaining
+  (names, remaining)
 }
 
 ///|
-/// Parse grid-template-columns or grid-template-rows value
+/// Parse grid-template-columns or grid-template-rows value, preserving named
+/// lines. Returns the track sizing functions and the line names (index = grid
+/// line, length = tracks + 1).
+fn parse_grid_template_track_list(
+  tokens : ArrayView[@token.Token],
+) -> (Array[@types.TrackSizingFunction], Array[Array[String]]) {
+  let result : Array[@types.TrackSizingFunction] = []
+  let line_names : Array[Array[String]] = []
+  let mut remaining = tokens
+  let mut done = false
+  while !done {
+    let (names, rest) = capture_grid_line_names(remaining)
+    remaining = rest
+    let stop = if remaining.length() == 0 {
+      true
+    } else {
+      match remaining[0] {
+        @token.Token::Semicolon | @token.Token::EOF => true
+        @token.Token::Ident("none") =>
+          // `none` means empty template: no tracks, no line names.
+          return ([], [])
+        _ =>
+          match parse_track_sizing_function(remaining) {
+            Some((track, rest2)) => {
+              result.push(track)
+              remaining = rest2
+              false
+            }
+            None => true
+          }
+      }
+    }
+    if stop {
+      // `names` belongs to the final grid line.
+      line_names.push(names)
+      done = true
+    } else {
+      // `names` belongs to the line before the track we just pushed.
+      line_names.push(names)
+    }
+  }
+  (result, line_names)
+}
+
+///|
+/// Parse grid-template-columns or grid-template-rows value (tracks only).
 fn parse_grid_template_tracks(
   tokens : ArrayView[@token.Token],
 ) -> Array[@types.TrackSizingFunction] {
-  let result : Array[@types.TrackSizingFunction] = []
-  let mut remaining = tokens
-  while remaining.length() > 0 {
-    remaining = skip_grid_line_names(remaining)
-    if remaining.length() == 0 {
-      break
-    }
-    match remaining[0] {
-      @token.Token::Semicolon | @token.Token::EOF => break
-      @token.Token::Ident(s) =>
-        if s == "none" {
-          // none means empty template
-          return []
-        } else {
-          match parse_track_sizing_function(remaining) {
-            Some((track, rest)) => {
-              result.push(track)
-              remaining = rest
-            }
-            None => break
-          }
-        }
-      _ =>
-        match parse_track_sizing_function(remaining) {
-          Some((track, rest)) => {
-            result.push(track)
-            remaining = rest
-          }
-          None => break
-        }
-    }
-  }
-  result
+  parse_grid_template_track_list(tokens).0
 }
 
 ///|
-/// Parse grid-template shorthand: `<rows> / <columns>`
+/// Parse grid-template shorthand: `<rows> / <columns>`, preserving named lines.
 fn parse_grid_template_shorthand(
   tokens : ArrayView[@token.Token],
-) -> (Array[@types.TrackSizingFunction], Array[@types.TrackSizingFunction])? {
+) -> (
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+)? {
   let mut slash_index = -1
   for i = 0; i < tokens.length(); i = i + 1 {
     match tokens[i] {
@@ -1523,9 +1549,9 @@ fn parse_grid_template_shorthand(
   if slash_index < 0 {
     return None
   }
-  let rows = parse_grid_template_tracks(tokens[:slash_index])
-  let cols = parse_grid_template_tracks(tokens[slash_index + 1:])
-  Some((rows, cols))
+  let (rows, row_names) = parse_grid_template_track_list(tokens[:slash_index])
+  let (cols, col_names) = parse_grid_template_track_list(tokens[slash_index + 1:])
+  Some((rows, row_names, cols, col_names))
 }
 
 ///|
@@ -1535,6 +1561,17 @@ pub fn parse_grid_template_tracks_from_string(
 ) -> Array[@types.TrackSizingFunction] {
   let tokens = @token.tokenize(value)
   parse_grid_template_tracks(tokens[:])
+}
+
+///|
+/// Parse grid-template-columns or grid-template-rows from a raw string,
+/// returning both the track sizing functions and the named lines (index = grid
+/// line, length = tracks + 1).
+pub fn parse_grid_template_track_list_from_string(
+  value : String,
+) -> (Array[@types.TrackSizingFunction], Array[Array[String]]) {
+  let tokens = @token.tokenize(value)
+  parse_grid_template_track_list(tokens[:])
 }
 
 ///|
@@ -3679,22 +3716,32 @@ fn apply_property(
   }
   // grid-template-columns
   if property == "grid-template-columns" {
-    let tracks = parse_grid_template_tracks(value_tokens)
-    return { ..style, grid_template_columns: tracks }
+    let (tracks, line_names) = parse_grid_template_track_list(value_tokens)
+    return {
+      ..style,
+      grid_template_columns: tracks,
+      grid_template_column_line_names: line_names,
+    }
   }
   // grid-template-rows
   if property == "grid-template-rows" {
-    let tracks = parse_grid_template_tracks(value_tokens)
-    return { ..style, grid_template_rows: tracks }
+    let (tracks, line_names) = parse_grid_template_track_list(value_tokens)
+    return {
+      ..style,
+      grid_template_rows: tracks,
+      grid_template_row_line_names: line_names,
+    }
   }
   // grid-template shorthand: <rows> / <columns>
   if property == "grid-template" {
     match parse_grid_template_shorthand(value_tokens) {
-      Some((rows, cols)) =>
+      Some((rows, row_names, cols, col_names)) =>
         return {
           ..style,
           grid_template_rows: rows,
+          grid_template_row_line_names: row_names,
           grid_template_columns: cols,
+          grid_template_column_line_names: col_names,
         }
       None => ()
     }
@@ -3702,11 +3749,13 @@ fn apply_property(
   // grid shorthand (partial): support template syntax `<rows> / <columns>`
   if property == "grid" {
     match parse_grid_template_shorthand(value_tokens) {
-      Some((rows, cols)) =>
+      Some((rows, row_names, cols, col_names)) =>
         return {
           ..style,
           grid_template_rows: rows,
+          grid_template_row_line_names: row_names,
           grid_template_columns: cols,
+          grid_template_column_line_names: col_names,
         }
       None => ()
     }

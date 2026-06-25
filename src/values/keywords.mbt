@@ -126,6 +126,9 @@ pub(all) enum GridPlacement {
   Auto
   Line(Int)
   Span(Int)
+  // Named line reference, e.g. `grid-column: left-sidebar`.
+  // Resolved against the named lines declared in grid-template-columns/rows.
+  Named(String)
 } derive(Debug, Eq)
 
 ///|
@@ -351,6 +354,7 @@ pub impl Show for GridPlacement with output(self, logger) {
     Auto => "Auto"
     Line(v) => "Line(\{v})"
     Span(v) => "Span(\{v})"
+    Named(name) => "Named(\{name})"
   }
   logger.write_string(text)
 }

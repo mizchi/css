@@ -96,6 +96,7 @@ test "Show for grid types" {
   inspect(GridPlacement::Auto, content="Auto")
   inspect(GridPlacement::Line(3), content="Line(3)")
   inspect(GridPlacement::Span(2), content="Span(2)")
+  inspect(GridPlacement::Named("left-sidebar"), content="Named(left-sidebar)")
   let gl = GridLine::auto()
   inspect(gl, content="{start: Auto, end: Auto}")
 }

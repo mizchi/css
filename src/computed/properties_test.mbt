@@ -577,6 +577,12 @@ test "parse_grid_placement - auto, integer, span" {
   inspect(@computed.parse_grid_placement("3"), content="Line(3)")
   inspect(@computed.parse_grid_placement("-2"), content="Line(-2)")
   inspect(@computed.parse_grid_placement("span 2"), content="Span(2)")
+  // Named line references are preserved instead of the old heuristic fallback.
+  inspect(@computed.parse_grid_placement("left-sidebar"), content="Named(left-sidebar)")
+  inspect(
+    @computed.parse_grid_placement("content-start"),
+    content="Named(content-start)",
+  )
 }
 
 ///|
@@ -587,6 +593,15 @@ test "parse_grid_line_shorthand" {
   let (s2, e2) = @computed.parse_grid_line_shorthand("span 2")
   inspect(s2, content="Span(2)")
   inspect(e2, content="Auto")
+  // Named line shorthand (single value, e.g. `grid-column: left-sidebar`):
+  // a single custom-ident is copied to both start and end (implicit area).
+  let (s3, e3) = @computed.parse_grid_line_shorthand("left-sidebar")
+  inspect(s3, content="Named(left-sidebar)")
+  inspect(e3, content="Named(left-sidebar)")
+  // Named start / named end
+  let (s4, e4) = @computed.parse_grid_line_shorthand("content-start / content-end")
+  inspect(s4, content="Named(content-start)")
+  inspect(e4, content="Named(content-end)")
 }
 
 ///|
@@ -596,6 +611,64 @@ test "parse_grid_area_shorthand" {
   inspect(s2, content="Line(2)")
   inspect(s3, content="Line(3)")
   inspect(s4, content="Line(4)")
+}
+
+///|
+test "find_grid_named_line returns 1-based line number" {
+  let names = [
+    ["left-sidebar-start"],
+    ["left-sidebar-end", "content-start"],
+    ["content-end"],
+  ]
+  debug_inspect(
+    @computed.find_grid_named_line("left-sidebar-start", names),
+    content="Some(1)",
+  )
+  debug_inspect(
+    @computed.find_grid_named_line("content-start", names),
+    content="Some(2)",
+  )
+  debug_inspect(
+    @computed.find_grid_named_line("content-end", names),
+    content="Some(3)",
+  )
+  debug_inspect(@computed.find_grid_named_line("nope", names), content="None")
+}
+
+///|
+test "resolve_grid_line_placement - MDN page shell implicit area" {
+  // grid-template-columns: [left-sidebar-start] 240px
+  //   [left-sidebar-end content-start] 689px [content-end]
+  let names = [
+    ["left-sidebar-start"],
+    ["left-sidebar-end", "content-start"],
+    ["content-end"],
+  ]
+  // grid-column: left-sidebar  =>  (Named, Named)  =>  lines 1..2
+  let (s, e) = @computed.parse_grid_line_shorthand("left-sidebar")
+  let (sl, el) = @computed.resolve_grid_line_placement(s, e, names)
+  debug_inspect(sl, content="Some(1)")
+  debug_inspect(el, content="Some(2)")
+  // grid-column: content  =>  lines 2..3
+  let (s2, e2) = @computed.parse_grid_line_shorthand("content")
+  let (sl2, el2) = @computed.resolve_grid_line_placement(s2, e2, names)
+  debug_inspect(sl2, content="Some(2)")
+  debug_inspect(el2, content="Some(3)")
+}
+
+///|
+test "resolve_grid_line_placement - explicit named lines and numeric lines" {
+  let names = [["a"], ["b"], ["c"]]
+  // Explicit named start / end lines
+  let (s, e) = @computed.parse_grid_line_shorthand("a / c")
+  let (sl, el) = @computed.resolve_grid_line_placement(s, e, names)
+  debug_inspect(sl, content="Some(1)")
+  debug_inspect(el, content="Some(3)")
+  // Numeric lines pass through; unknown names resolve to None
+  let (s2, e2) = @computed.parse_grid_line_shorthand("2 / nope")
+  let (sl2, el2) = @computed.resolve_grid_line_placement(s2, e2, names)
+  debug_inspect(sl2, content="Some(2)")
+  debug_inspect(el2, content="None")
 }
 
 ///|
