@@ -176,6 +176,13 @@ fn parse_color_value(v : String) -> CssColorValue {
   if v == "" {
     return Resolved(@types.Color::transparent())
   }
+  // color-mix()
+  if v.has_prefix("color-mix(") {
+    match parse_color_mix(v) {
+      Some(result) => return result
+      None => ()
+    }
+  }
   // Unsupported CSS functions - return transparent
   // (gradients, url(), etc. cannot be represented as solid colors)
   if v.has_prefix("linear-gradient") ||

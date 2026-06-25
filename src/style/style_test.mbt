@@ -283,6 +283,7 @@ test "Show for Transform exposes full matrix dump" {
     matrix_d: 1.0,
     matrix_e: 0.0,
     matrix_f: 0.0,
+    matrix3d: [],
   }
   let out = t.to_string()
   assert_true(out.contains("translate_x: Length(2)"))

@@ -304,3 +304,49 @@ test "AnimatableKeyframeEffect samples typed keyframes with easing and timing" {
   // after phase clamps to last
   inspect(effect.sample(2000.0).unwrap(), content="Length(100)")
 }
+
+///|
+test "oklab color interpolation midpoint" {
+  let mid = @animation.interpolate_color_oklab(
+    @values.Color::rgb(0, 0, 0),
+    @values.Color::rgb(255, 255, 255),
+    0.5,
+  )
+  inspect(mid, content="rgb(99, 99, 99)")
+  let redblue = @animation.interpolate_color_oklab(
+    @values.Color::rgb(255, 0, 0),
+    @values.Color::rgb(0, 0, 255),
+    0.5,
+  )
+  inspect(redblue, content="rgb(140, 83, 162)")
+}
+
+///|
+test "interpolate_color_in across color spaces" {
+  let black = @values.Color::rgb(0, 0, 0)
+  let white = @values.Color::rgb(255, 255, 255)
+  // black -> white midpoint differs per space (perceptual vs sRGB-linear gamma)
+  inspect(
+    @animation.interpolate_color_in(@animation.ColorSpace::Srgb, black, white, 0.5),
+    content="rgb(128, 128, 128)",
+  )
+  inspect(
+    @animation.interpolate_color_in(@animation.ColorSpace::Oklab, black, white, 0.5),
+    content="rgb(99, 99, 99)",
+  )
+  inspect(
+    @animation.interpolate_color_in(@animation.ColorSpace::Lab, black, white, 0.5),
+    content="rgb(119, 119, 119)",
+  )
+  let red = @values.Color::rgb(255, 0, 0)
+  let blue = @values.Color::rgb(0, 0, 255)
+  // polar spaces interpolate hue along the shortest arc
+  inspect(
+    @animation.interpolate_color_in(@animation.ColorSpace::Oklch, red, blue, 0.5),
+    content="rgb(186, 0, 194)",
+  )
+  inspect(
+    @animation.interpolate_color_in(@animation.ColorSpace::Lch, red, blue, 0.5),
+    content="rgb(250, 0, 128)",
+  )
+}

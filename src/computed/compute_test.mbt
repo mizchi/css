@@ -366,6 +366,83 @@ test "build_keyframe_track fills implicit endpoint from base and interpolates co
 }
 
 ///|
+test "transform keyframe track interpolates component-wise" {
+  let ctx = @computed.ComputeContext::new()
+  let css =
+    #|@keyframes move { from { transform: translateX(0px); } to { transform: translateX(100px) scale(2); } }
+  let sheet = @parser.parse_stylesheet(css)
+  let rule = sheet.find_keyframes("move").unwrap()
+  let track = @computed.build_keyframe_track(rule, "transform", "none", ctx)
+  let effect = @animation.AnimatableKeyframeEffect::new(
+    track,
+    @animation.EffectTiming::new(1000.0),
+  ).unwrap()
+  inspect(
+    effect.sample(500.0).unwrap(),
+    content="Transform({translate_x: Length(50), translate_y: Length(0), scale_x: 1.5, scale_y: 1.5, rotate_degrees: 0, skew_x_degrees: 0, skew_y_degrees: 0, has_matrix: false, matrix: [1, 0, 0, 1, 0, 0]})",
+  )
+}
+
+///|
+test "individual transform properties animate via @keyframes" {
+  let ctx = @computed.ComputeContext::new()
+  let css =
+    #|@keyframes sp { from { translate: 0px; } to { translate: 100px 40px; } }
+  let sheet = @parser.parse_stylesheet(css)
+  let rule = sheet.find_keyframes("sp").unwrap()
+  let track = @computed.build_keyframe_track(rule, "translate", "none", ctx)
+  let effect = @animation.AnimatableKeyframeEffect::new(
+    track,
+    @animation.EffectTiming::new(1000.0),
+  ).unwrap()
+  inspect(
+    effect.sample(500.0).unwrap(),
+    content="Transform({translate_x: Length(50), translate_y: Length(20), scale_x: 1, scale_y: 1, rotate_degrees: 0, skew_x_degrees: 0, skew_y_degrees: 0, has_matrix: false, matrix: [1, 0, 0, 1, 0, 0]})",
+  )
+}
+
+///|
+test "matrix3d interpolates via 3D decompose / slerp / recompose" {
+  let ctx = @computed.ComputeContext::new()
+  // translate3d(0,0,0) -> translate3d(100,0,0) expressed as matrix3d().
+  let css =
+    #|@keyframes m { from { transform: matrix3d(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1); } to { transform: matrix3d(1,0,0,0, 0,1,0,0, 0,0,1,0, 100,0,0,1); } }
+  let sheet = @parser.parse_stylesheet(css)
+  let rule = sheet.find_keyframes("m").unwrap()
+  let track = @computed.build_keyframe_track(rule, "transform", "none", ctx)
+  let effect = @animation.AnimatableKeyframeEffect::new(
+    track,
+    @animation.EffectTiming::new(1000.0),
+  ).unwrap()
+  let mid = effect.sample(500.0).unwrap()
+  // Midpoint translation is 50 (the 2D approximation exposes it at matrix e).
+  inspect(
+    mid,
+    content="Transform({translate_x: Length(0), translate_y: Length(0), scale_x: 1, scale_y: 1, rotate_degrees: 0, skew_x_degrees: 0, skew_y_degrees: 0, has_matrix: true, matrix: [1, 0, 0, 1, 50, 0], matrix3d: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 50, 0, 0, 1]})",
+  )
+}
+
+///|
+test "transform matrix is decomposed for interpolation" {
+  let ctx = @computed.ComputeContext::new()
+  // matrix(1,0,0,1,100,0) is a pure translateX(100); interpolating with the
+  // decomposed `none` must decompose the matrix and interpolate component-wise.
+  let css =
+    #|@keyframes m { from { transform: none; } to { transform: matrix(1, 0, 0, 1, 100, 0); } }
+  let sheet = @parser.parse_stylesheet(css)
+  let rule = sheet.find_keyframes("m").unwrap()
+  let track = @computed.build_keyframe_track(rule, "transform", "none", ctx)
+  let effect = @animation.AnimatableKeyframeEffect::new(
+    track,
+    @animation.EffectTiming::new(1000.0),
+  ).unwrap()
+  inspect(
+    effect.sample(500.0).unwrap(),
+    content="Transform({translate_x: Length(50), translate_y: Length(0), scale_x: 1, scale_y: 1, rotate_degrees: 0, skew_x_degrees: 0, skew_y_degrees: 0, has_matrix: false, matrix: [1, 0, 0, 1, 0, 0]})",
+  )
+}
+
+///|
 test "effect_timing_from_style bridges animation longhands" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(

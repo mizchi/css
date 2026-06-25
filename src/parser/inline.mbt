@@ -3516,6 +3516,7 @@ fn parse_transform_string(value : String) -> @style.Transform {
   let mut matrix_d = 1.0
   let mut matrix_e = 0.0
   let mut matrix_f = 0.0
+  let mut matrix3d : Array[Double] = []
   // Parse transform functions
   let chars = v.to_array()
   let len = chars.length()
@@ -3626,6 +3627,8 @@ fn parse_transform_string(value : String) -> @style.Transform {
       "matrix3d" => {
         let args = split_transform_args(args_str)
         if args.length() >= 16 {
+          // Keep a 2D affine approximation (a,b,c,d,e,f) for 2D consumers and
+          // the full 16-element column-major matrix for 3D interpolation.
           has_matrix = true
           matrix_a = parse_scale_value(args[0])
           matrix_b = parse_scale_value(args[1])
@@ -3633,9 +3636,13 @@ fn parse_transform_string(value : String) -> @style.Transform {
           matrix_d = parse_scale_value(args[5])
           matrix_e = parse_scale_value(args[12])
           matrix_f = parse_scale_value(args[13])
+          matrix3d = []
+          for k = 0; k < 16; k = k + 1 {
+            matrix3d.push(parse_scale_value(args[k]))
+          }
         }
       }
-      _ => () // Ignore unsupported functions like matrix/perspective.
+      _ => () // Ignore unsupported functions like perspective.
     }
   }
   {
@@ -3653,6 +3660,7 @@ fn parse_transform_string(value : String) -> @style.Transform {
     matrix_d,
     matrix_e,
     matrix_f,
+    matrix3d,
   }
 }
 
@@ -3732,6 +3740,62 @@ fn parse_translate_value(value : String) -> @style.TranslateValue {
     @token.Token::Number(n, _) => @style.TranslateValue::Length(n)
     _ => @style.TranslateValue::Length(0.0)
   }
+}
+
+///|
+/// Split a value string into whitespace-separated, non-empty parts.
+fn split_ws_parts(value : String) -> Array[String] {
+  let parts : Array[String] = []
+  for p in value.trim().split(" ") {
+    let t = p.trim()
+    if t.length() > 0 {
+      parts.push(t.to_owned())
+    }
+  }
+  parts
+}
+
+///|
+/// Parse the `translate` property (`<len-pct>{1,3}`) into a Transform with the
+/// translate components set (z is ignored; this engine is 2D).
+pub fn parse_translate_property_from_string(value : String) -> @style.Transform {
+  let parts = split_ws_parts(value)
+  if parts.length() == 0 || value.trim().to_lower() == "none" {
+    return @style.Transform::none()
+  }
+  let x = parse_translate_value(parts[0])
+  let y = if parts.length() > 1 {
+    parse_translate_value(parts[1])
+  } else {
+    @style.TranslateValue::Length(0.0)
+  }
+  { ..@style.Transform::none(), translate_x: x, translate_y: y }
+}
+
+///|
+/// Parse the `scale` property (`<number>{1,3}`) into a Transform with scale set.
+/// A single value applies to both axes.
+pub fn parse_scale_property_from_string(value : String) -> @style.Transform {
+  let parts = split_ws_parts(value)
+  if parts.length() == 0 || value.trim().to_lower() == "none" {
+    return @style.Transform::none()
+  }
+  let sx = parse_scale_value(parts[0])
+  let sy = if parts.length() > 1 { parse_scale_value(parts[1]) } else { sx }
+  { ..@style.Transform::none(), scale_x: sx, scale_y: sy }
+}
+
+///|
+/// Parse the `rotate` property (`<angle>` or `[x|y|z|<vector>] <angle>`) into a
+/// Transform with rotate set. Only the 2D z-rotation angle is kept.
+pub fn parse_rotate_property_from_string(value : String) -> @style.Transform {
+  let parts = split_ws_parts(value)
+  if parts.length() == 0 || value.trim().to_lower() == "none" {
+    return @style.Transform::none()
+  }
+  // The angle is the last part (an axis keyword / vector may precede it).
+  let angle = parse_rotate_degrees(parts[parts.length() - 1])
+  { ..@style.Transform::none(), rotate_degrees: angle }
 }
 
 ///|
@@ -4467,6 +4531,39 @@ fn apply_property(
           grid_column: { start: cs, end: ce },
         }
       }
+    }
+  }
+  // Individual transform properties (compose into individual_transform).
+  if property == "translate" {
+    let t = parse_translate_property_from_string(reconstruct_css(value_tokens))
+    return {
+      ..style,
+      individual_transform: {
+        ..style.individual_transform,
+        translate_x: t.translate_x,
+        translate_y: t.translate_y,
+      },
+    }
+  }
+  if property == "scale" {
+    let t = parse_scale_property_from_string(reconstruct_css(value_tokens))
+    return {
+      ..style,
+      individual_transform: {
+        ..style.individual_transform,
+        scale_x: t.scale_x,
+        scale_y: t.scale_y,
+      },
+    }
+  }
+  if property == "rotate" {
+    let t = parse_rotate_property_from_string(reconstruct_css(value_tokens))
+    return {
+      ..style,
+      individual_transform: {
+        ..style.individual_transform,
+        rotate_degrees: t.rotate_degrees,
+      },
     }
   }
   // Animation longhands

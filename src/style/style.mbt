@@ -290,7 +290,16 @@ pub(all) struct Transform {
   matrix_d : Double // 2D affine matrix d
   matrix_e : Double // 2D affine matrix e
   matrix_f : Double // 2D affine matrix f
+  // matrix3d(): a 16-element column-major 4x4 matrix, or [] when not a 3D
+  // matrix. Layout consumers that are 2D-only can ignore this.
+  matrix3d : Array[Double]
 } derive(Debug, Eq)
+
+///|
+/// Whether this transform carries an explicit `matrix3d()`.
+pub fn Transform::has_matrix3d(self : Transform) -> Bool {
+  self.matrix3d.length() == 16
+}
 
 ///|
 /// Shared immutable identity transform. `Transform` has no mutable fields, so a
@@ -311,6 +320,7 @@ let transform_identity : Transform = {
   matrix_d: 1.0,
   matrix_e: 0.0,
   matrix_f: 0.0,
+  matrix3d: [],
 }
 
 ///|
@@ -823,6 +833,16 @@ pub impl Show for Transform with fn output(self, logger) {
   logger.write_string(", ")
   logger.write_string(self.matrix_f.to_string())
   logger.write_string("]")
+  if self.matrix3d.length() == 16 {
+    logger.write_string(", matrix3d: [")
+    for i = 0; i < 16; i = i + 1 {
+      if i > 0 {
+        logger.write_string(", ")
+      }
+      logger.write_string(self.matrix3d[i].to_string())
+    }
+    logger.write_string("]")
+  }
   logger.write_string("}")
 }
 
@@ -999,6 +1019,9 @@ pub(all) struct Style {
   mut contain_intrinsic_block_size : Double?
   // CSS transform (visual offset, applied in paint phase)
   mut transform : Transform
+  // Individual transform properties (`translate` / `scale` / `rotate`),
+  // composed into one Transform. Distinct from the `transform` shorthand.
+  individual_transform : Transform
   // Animation properties (parallel longhand lists; index = animation in the
   // comma-separated list). Set by the `animation` shorthand or the longhands.
   animation_name : Array[String]
@@ -1156,6 +1179,7 @@ pub fn Style::default() -> Style {
     contain_intrinsic_inline_size: None,
     contain_intrinsic_block_size: None,
     transform: Transform::none(),
+    individual_transform: Transform::none(),
     animation_name: [],
     animation_duration: [],
     animation_timing_function: [],

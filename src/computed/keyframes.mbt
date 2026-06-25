@@ -37,6 +37,34 @@ pub fn keyframe_value_to_animatable(
 }
 
 ///|
+/// Resolve a keyframe value for a specific property. The `transform` property is
+/// parsed into a `Transform` (component-wise interpolable); everything else uses
+/// the generic computed-value classifier.
+fn keyframe_value_for_property(
+  property : String,
+  value : String,
+  ctx : ComputeContext,
+) -> @animation.AnimatableValue {
+  if property == "transform" {
+    @animation.AnimatableValue::Transform(parse_transform(value))
+  } else if property == "translate" {
+    @animation.AnimatableValue::Transform(
+      @parser.parse_translate_property_from_string(value),
+    )
+  } else if property == "scale" {
+    @animation.AnimatableValue::Transform(
+      @parser.parse_scale_property_from_string(value),
+    )
+  } else if property == "rotate" {
+    @animation.AnimatableValue::Transform(
+      @parser.parse_rotate_property_from_string(value),
+    )
+  } else {
+    keyframe_value_to_animatable(value, ctx)
+  }
+}
+
+///|
 /// Resolve a color, shape-gated so `parse_color`'s lenient transparent fallback
 /// does not turn non-color keywords (`auto`, `flex-start`) into colors. Function
 /// / hex forms are accepted outright; a bare ident is accepted as a named color
@@ -86,6 +114,7 @@ fn animatable_kind(v : @animation.AnimatableValue) -> TrackKind {
     @animation.AnimatableValue::Length(_) => KindLength
     @animation.AnimatableValue::Percent(_) => KindPercent
     @animation.AnimatableValue::Color(_) => KindColor
+    @animation.AnimatableValue::Transform(_) => KindNone
     @animation.AnimatableValue::Discrete(_) => KindNone
   }
 }
@@ -157,7 +186,7 @@ pub fn build_keyframe_track(
     }
     match value_str {
       Some(s) => {
-        let v = keyframe_value_to_animatable(s, ctx)
+        let v = keyframe_value_for_property(property, s, ctx)
         for off in block.offsets {
           raw.push({ offset: off, value: v, easing })
         }
@@ -165,7 +194,7 @@ pub fn build_keyframe_track(
       None => ()
     }
   }
-  let base = keyframe_value_to_animatable(base_value, ctx)
+  let base = keyframe_value_for_property(property, base_value, ctx)
   // Ensure 0.0 and 1.0 endpoints exist (CSS fills them with the base value).
   let mut has_start = false
   let mut has_end = false

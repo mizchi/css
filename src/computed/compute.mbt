@@ -263,6 +263,7 @@ priv struct StyleBuilder {
   mut contain_intrinsic_block_size : Double?
   // Transform
   mut transform : @style.Transform
+  mut individual_transform : @style.Transform
   // Animation / transition properties (parallel longhand lists).
   mut animation_name : Array[String]
   mut animation_duration : Array[Double]
@@ -410,6 +411,7 @@ fn StyleBuilder::new() -> StyleBuilder {
     contain_intrinsic_inline_size: None,
     contain_intrinsic_block_size: None,
     transform: @style.Transform::none(),
+    individual_transform: @style.Transform::none(),
     animation_name: [],
     animation_duration: [],
     animation_timing_function: [],
@@ -552,6 +554,7 @@ fn StyleBuilder::from_style(style : @style.Style) -> StyleBuilder {
     contain_intrinsic_inline_size: style.contain_intrinsic_inline_size,
     contain_intrinsic_block_size: style.contain_intrinsic_block_size,
     transform: style.transform,
+    individual_transform: style.individual_transform,
     animation_name: style.animation_name,
     animation_duration: style.animation_duration,
     animation_timing_function: style.animation_timing_function,
@@ -703,6 +706,7 @@ fn StyleBuilder::build(self : StyleBuilder) -> @style.Style {
     contain_intrinsic_inline_size: self.contain_intrinsic_inline_size,
     contain_intrinsic_block_size: self.contain_intrinsic_block_size,
     transform: self.transform,
+    individual_transform: self.individual_transform,
     animation_name: self.animation_name,
     animation_duration: self.animation_duration,
     animation_timing_function: self.animation_timing_function,
@@ -2530,6 +2534,30 @@ fn apply_property(
     "font-family" => builder.font_family = parse_font_family(value)
     // Transform (visual position offset)
     "transform" => builder.transform = parse_transform(value)
+    // Individual transform properties compose into one Transform.
+    "translate" => {
+      let t = @parser.parse_translate_property_from_string(value)
+      builder.individual_transform = {
+        ..builder.individual_transform,
+        translate_x: t.translate_x,
+        translate_y: t.translate_y,
+      }
+    }
+    "scale" => {
+      let t = @parser.parse_scale_property_from_string(value)
+      builder.individual_transform = {
+        ..builder.individual_transform,
+        scale_x: t.scale_x,
+        scale_y: t.scale_y,
+      }
+    }
+    "rotate" => {
+      let t = @parser.parse_rotate_property_from_string(value)
+      builder.individual_transform = {
+        ..builder.individual_transform,
+        rotate_degrees: t.rotate_degrees,
+      }
+    }
     // filter / backdrop-filter only need to be tracked as "present" for the
     // containing-block rule in absolute positioning. The actual filter
     // functions are paint-side and not modelled here.
@@ -4441,6 +4469,7 @@ fn parse_transform(value : String) -> @style.Transform {
   let mut matrix_d = 1.0
   let mut matrix_e = 0.0
   let mut matrix_f = 0.0
+  let mut matrix3d : Array[Double] = []
   // Parse transform functions
   // We handle each function in sequence
   let chars = v.to_array()
@@ -4565,9 +4594,13 @@ fn parse_transform(value : String) -> @style.Transform {
           matrix_d = parse_scale_value(args[5])
           matrix_e = parse_scale_value(args[12])
           matrix_f = parse_scale_value(args[13])
+          matrix3d = []
+          for k = 0; k < 16; k = k + 1 {
+            matrix3d.push(parse_scale_value(args[k]))
+          }
         }
       }
-      _ => () // Ignore unsupported functions like matrix/perspective.
+      _ => () // Ignore unsupported functions like perspective.
     }
   }
   {
@@ -4585,6 +4618,7 @@ fn parse_transform(value : String) -> @style.Transform {
     matrix_d,
     matrix_e,
     matrix_f,
+    matrix3d,
   }
 }
 

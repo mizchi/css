@@ -83,6 +83,17 @@ test "inline parser transition shorthand" {
 }
 
 ///|
+test "inline parser individual transform properties compose" {
+  let s = parse_inline_style("translate: 10px 20px; scale: 2; rotate: 45deg")
+  let it = s.individual_transform
+  inspect(it.translate_x, content="Length(10)")
+  inspect(it.translate_y, content="Length(20)")
+  inspect(it.scale_x, content="2")
+  inspect(it.scale_y, content="2")
+  inspect(it.rotate_degrees, content="45")
+}
+
+///|
 test "parse_inline_style calc with unitless multiplier" {
   inspect(
     parse_inline_style("width: calc(10px * 2)").width,
