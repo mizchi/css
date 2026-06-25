@@ -179,7 +179,10 @@ pub(all) enum TrackSizingFunction {
   MinContent
   MaxContent
   MinMax(MinTrackSizing, MaxTrackSizing)
-  Repeat(RepeatCount, Array[SingleTrackSizing])
+  // Repeat(count, tracks, line_names). `line_names` holds the named lines
+  // declared inside one repetition (index = line within the repetition, length
+  // = tracks + 1), e.g. `repeat(3, [a] 1fr [b])` => [["a"], ["b"]].
+  Repeat(RepeatCount, Array[SingleTrackSizing], Array[Array[String]])
   FitContentLength(Double)
   FitContentPercent(Double)
 } derive(Debug, Eq)
@@ -423,7 +426,22 @@ pub impl Show for TrackSizingFunction with output(self, logger) {
     MinContent => "MinContent"
     MaxContent => "MaxContent"
     MinMax(min, max) => "MinMax(\{min}, \{max})"
-    Repeat(count, tracks) => "Repeat(\{count}, \{to_repr(tracks)})"
+    Repeat(count, tracks, line_names) => {
+      // Only render the line-name component when at least one line is named, so
+      // plain repeats keep the compact two-argument form.
+      let mut has_names = false
+      for g in line_names {
+        if g.length() > 0 {
+          has_names = true
+          break
+        }
+      }
+      if has_names {
+        "Repeat(\{count}, \{to_repr(tracks)}, \{to_repr(line_names)})"
+      } else {
+        "Repeat(\{count}, \{to_repr(tracks)})"
+      }
+    }
     FitContentLength(v) => "FitContentLength(\{v})"
     FitContentPercent(v) => "FitContentPercent(\{v})"
   }

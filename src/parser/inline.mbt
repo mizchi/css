@@ -1462,36 +1462,47 @@ fn parse_track_sizing_function(
           @token.Token::Comma => rest3[1:]
           _ => rest3
         }
-        // Parse track list until closing paren
+        // Parse track list until closing paren, preserving the line names
+        // declared within one repetition (index = line, length = tracks + 1).
         let tracks : Array[@types.SingleTrackSizing] = []
+        let line_names : Array[Array[String]] = []
         let mut remaining = rest4
-        while remaining.length() > 0 {
-          remaining = skip_whitespace(remaining)
-          // Skip (without preserving) any line names inside repeat(). The flat
-          // line-name model does not yet attach names to repeated tracks, but
-          // they must not abort parsing of the track list.
-          let (_, after_names) = capture_grid_line_names(remaining)
+        let mut done = false
+        while !done {
+          let (names, after_names) = capture_grid_line_names(remaining)
           remaining = after_names
           if remaining.length() == 0 {
-            break
-          }
-          match remaining[0] {
-            @token.Token::RightParen => {
-              remaining = remaining[1:]
-              break
-            }
-            _ =>
-              match parse_single_track_sizing(remaining) {
-                Some((track, rest)) => {
-                  tracks.push(track)
-                  remaining = rest
-                }
-                None => break
+            line_names.push(names)
+            done = true
+          } else {
+            match remaining[0] {
+              @token.Token::RightParen => {
+                line_names.push(names)
+                remaining = remaining[1:]
+                done = true
               }
+              _ =>
+                match parse_single_track_sizing(remaining) {
+                  Some((track, rest)) => {
+                    line_names.push(names)
+                    tracks.push(track)
+                    remaining = rest
+                  }
+                  None => {
+                    line_names.push(names)
+                    done = true
+                  }
+                }
+            }
           }
         }
         if tracks.length() > 0 {
-          Some((@types.TrackSizingFunction::Repeat(count, tracks), remaining))
+          Some(
+            (
+              @types.TrackSizingFunction::Repeat(count, tracks, line_names),
+              remaining,
+            ),
+          )
         } else {
           None
         }

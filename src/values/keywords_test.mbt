@@ -150,11 +150,19 @@ test "Show for TrackSizingFunction" {
   inspect(RepeatCount::Count(3), content="Count(3)")
   inspect(RepeatCount::AutoFill, content="AutoFill")
   inspect(RepeatCount::AutoFit, content="AutoFit")
-  let rep = TrackSizingFunction::Repeat(RepeatCount::Count(2), [
-    SingleTrackSizing::Fr(1.0),
-    SingleTrackSizing::Auto,
-  ])
+  let rep = TrackSizingFunction::Repeat(
+    RepeatCount::Count(2),
+    [SingleTrackSizing::Fr(1.0), SingleTrackSizing::Auto],
+    [],
+  )
   inspect(rep, content="Repeat(Count(2), [Fr(1), Auto])")
+  // With inner line names, the third component is rendered.
+  let rep2 = TrackSizingFunction::Repeat(
+    RepeatCount::Count(3),
+    [SingleTrackSizing::Fr(1.0)],
+    [["a"], ["b"]],
+  )
+  inspect(rep2, content="Repeat(Count(3), [Fr(1)], [[\"a\"], [\"b\"]])")
 }
 
 ///|

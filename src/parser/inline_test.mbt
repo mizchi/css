@@ -1161,7 +1161,10 @@ test "grid-template-columns repeat with inner line names does not abort" {
     "grid-template-columns: repeat(3, [a] 1fr [b])",
   )
   inspect(style.grid_template_columns.length(), content="1")
-  inspect(style.grid_template_columns[0], content="Repeat(Count(3), [Fr(1)])")
+  inspect(
+    style.grid_template_columns[0],
+    content="Repeat(Count(3), [Fr(1)], [[\"a\"], [\"b\"]])",
+  )
 }
 
 ///|
