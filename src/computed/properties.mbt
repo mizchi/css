@@ -805,53 +805,7 @@ pub fn parse_grid_auto_flow(value : String) -> @types.GridAutoFlow {
 ///   <integer> && <custom-ident>?         -> Line / NamedLine (order-independent)
 ///   span && <integer>? && <custom-ident>? -> Span / SpanNamed
 pub fn parse_grid_placement(value : String) -> @types.GridPlacement {
-  let v = value.trim().to_lower()
-  if v == "auto" {
-    return @types.GridPlacement::Auto
-  }
-  // Split into whitespace-separated tokens.
-  let parts : Array[String] = []
-  for p in v.split(" ") {
-    let t = p.trim()
-    if t.length() > 0 {
-      parts.push(t.to_owned())
-    }
-  }
-  if parts.length() == 0 {
-    return @types.GridPlacement::Auto
-  }
-  // span && <integer>? && <custom-ident>
-  if parts[0] == "span" {
-    let mut n = 1
-    let mut name : String? = None
-    for i = 1; i < parts.length(); i = i + 1 {
-      let int_val = @string.parse_int(parts[i]) catch { _ => 0 }
-      if int_val != 0 {
-        n = int_val
-      } else if is_basic_custom_ident(parts[i]) {
-        name = Some(parts[i])
-      }
-    }
-    return match name {
-      Some(nm) => @types.GridPlacement::SpanNamed(n, nm)
-      None => @types.GridPlacement::Span(n)
-    }
-  }
-  // <integer> && <custom-ident>? (order-independent), or a bare ident.
-  let mut line = 0
-  let mut name : String? = None
-  for i = 0; i < parts.length(); i = i + 1 {
-    let int_val = @string.parse_int(parts[i]) catch { _ => 0 }
-    if int_val != 0 {
-      line = int_val
-    } else if is_basic_custom_ident(parts[i]) {
-      name = Some(parts[i])
-    }
-  }
-  match name {
-    Some(nm) => if line != 0 { @types.GridPlacement::NamedLine(line, nm) } else { @types.GridPlacement::Named(nm) }
-    None => if line != 0 { @types.GridPlacement::Line(line) } else { @types.GridPlacement::Auto }
-  }
+  @parser.parse_grid_placement_from_string(value)
 }
 
 ///|
@@ -860,25 +814,7 @@ pub fn parse_grid_placement(value : String) -> @types.GridPlacement {
 pub fn parse_grid_line_shorthand(
   value : String,
 ) -> (@types.GridPlacement, @types.GridPlacement) {
-  let v = value.trim()
-  // Check for "/" separator
-  let parts = v.split("/").map(fn(s) { s.trim().to_owned() }).collect()
-  if parts.length() == 2 {
-    let start = parse_grid_placement(parts[0])
-    let end = parse_grid_placement(parts[1])
-    (start, end)
-  } else {
-    // Single value. Per the grid-row/grid-column shorthand rules, a single
-    // <custom-ident> is copied to BOTH the start and end longhands (so a named
-    // line / implicit area like `grid-column: left-sidebar` spans
-    // left-sidebar-start..left-sidebar-end). Any other single value leaves the
-    // end as auto.
-    let start = parse_grid_placement(v.to_owned())
-    match start {
-      @types.GridPlacement::Named(_) => (start, start)
-      _ => (start, @types.GridPlacement::Auto)
-    }
-  }
+  @parser.parse_grid_line_shorthand_from_string(value)
 }
 
 ///|
@@ -993,44 +929,7 @@ pub fn parse_grid_area_shorthand(
   @types.GridPlacement,
   @types.GridPlacement,
 ) {
-  let v = value.trim()
-  let parts = v
-    .split("/")
-    .map(fn(s) { s.trim().to_owned() })
-    .filter(fn(s) { !s.is_empty() })
-    .collect()
-  if parts.length() >= 4 {
-    (
-      parse_grid_placement(parts[0]),
-      parse_grid_placement(parts[1]),
-      parse_grid_placement(parts[2]),
-      parse_grid_placement(parts[3]),
-    )
-  } else if parts.length() == 3 {
-    (
-      parse_grid_placement(parts[0]),
-      parse_grid_placement(parts[1]),
-      parse_grid_placement(parts[2]),
-      @types.GridPlacement::Auto,
-    )
-  } else if parts.length() == 2 {
-    (
-      parse_grid_placement(parts[0]),
-      parse_grid_placement(parts[1]),
-      @types.GridPlacement::Auto,
-      @types.GridPlacement::Auto,
-    )
-  } else if parts.length() == 1 {
-    let start = parse_grid_placement(parts[0])
-    (start, start, @types.GridPlacement::Auto, @types.GridPlacement::Auto)
-  } else {
-    (
-      @types.GridPlacement::Auto,
-      @types.GridPlacement::Auto,
-      @types.GridPlacement::Auto,
-      @types.GridPlacement::Auto,
-    )
-  }
+  @parser.parse_grid_area_shorthand_from_string(value)
 }
 
 ///|

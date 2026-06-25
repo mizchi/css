@@ -1951,6 +1951,210 @@ pub fn parse_grid_autoflow_form_from_string(
 }
 
 ///|
+/// Classify one `<grid-line>` token slice into a GridPlacement. Handles
+///   auto | <custom-ident> | <integer> && <custom-ident>? |
+///   span && <integer>? && <custom-ident>?
+/// (order-independent; CSS keywords are case-insensitive).
+fn classify_grid_line(tokens : ArrayView[@token.Token]) -> @types.GridPlacement {
+  let mut is_span = false
+  let mut has_auto = false
+  let mut line = 0
+  let mut name : String? = None
+  for i = 0; i < tokens.length(); i = i + 1 {
+    match tokens[i] {
+      @token.Token::Ident(s) => {
+        let ls = s.to_lower()
+        if ls == "auto" {
+          has_auto = true
+        } else if ls == "span" {
+          is_span = true
+        } else {
+          name = Some(ls)
+        }
+      }
+      @token.Token::Number(v, _) => {
+        let n = v.to_int()
+        if n != 0 {
+          line = n
+        }
+      }
+      _ => ()
+    }
+  }
+  if is_span {
+    let count = if line != 0 { line } else { 1 }
+    match name {
+      Some(nm) => @types.GridPlacement::SpanNamed(count, nm)
+      None => @types.GridPlacement::Span(count)
+    }
+  } else if has_auto {
+    @types.GridPlacement::Auto
+  } else {
+    match name {
+      Some(nm) =>
+        if line != 0 {
+          @types.GridPlacement::NamedLine(line, nm)
+        } else {
+          @types.GridPlacement::Named(nm)
+        }
+      None => if line != 0 { @types.GridPlacement::Line(line) } else { @types.GridPlacement::Auto }
+    }
+  }
+}
+
+///|
+/// Split a token view into segments separated by top-level `/` delimiters.
+fn split_grid_segments(
+  tokens : ArrayView[@token.Token],
+) -> Array[ArrayView[@token.Token]] {
+  let segments : Array[ArrayView[@token.Token]] = []
+  let mut start = 0
+  for i = 0; i < tokens.length(); i = i + 1 {
+    match tokens[i] {
+      @token.Token::Delim('/') => {
+        segments.push(tokens[start:i])
+        start = i + 1
+      }
+      _ => ()
+    }
+  }
+  segments.push(tokens[start:])
+  segments
+}
+
+///|
+/// Whether a token segment carries any meaningful (non-whitespace/EOF) token.
+fn grid_segment_is_empty(tokens : ArrayView[@token.Token]) -> Bool {
+  for i = 0; i < tokens.length(); i = i + 1 {
+    match tokens[i] {
+      @token.Token::Whitespace | @token.Token::EOF => ()
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
+/// Parse a grid-column / grid-row value (`<start> [ / <end> ]?`) from tokens.
+/// A single bare `<custom-ident>` is copied to both start and end (implicit
+/// named area); any other single value leaves the end as auto.
+fn parse_grid_line_shorthand_tokens(
+  tokens : ArrayView[@token.Token],
+) -> (@types.GridPlacement, @types.GridPlacement) {
+  let segments = split_grid_segments(tokens)
+  if segments.length() >= 2 {
+    (classify_grid_line(segments[0]), classify_grid_line(segments[1]))
+  } else {
+    let start = classify_grid_line(tokens)
+    match start {
+      @types.GridPlacement::Named(_) => (start, start)
+      _ => (start, @types.GridPlacement::Auto)
+    }
+  }
+}
+
+///|
+/// Parse a grid-area value (`<row-start> [ / <col-start> [ / <row-end>
+/// [ / <col-end> ]?]?]?`) from tokens, filling omitted longhands with auto
+/// (a single value applies to both start longhands).
+fn parse_grid_area_shorthand_tokens(
+  tokens : ArrayView[@token.Token],
+) -> (
+  @types.GridPlacement,
+  @types.GridPlacement,
+  @types.GridPlacement,
+  @types.GridPlacement,
+) {
+  let parts = split_grid_segments(tokens).filter(fn(s) {
+    !grid_segment_is_empty(s)
+  })
+  let auto = @types.GridPlacement::Auto
+  if parts.length() >= 4 {
+    (
+      classify_grid_line(parts[0]),
+      classify_grid_line(parts[1]),
+      classify_grid_line(parts[2]),
+      classify_grid_line(parts[3]),
+    )
+  } else if parts.length() == 3 {
+    (
+      classify_grid_line(parts[0]),
+      classify_grid_line(parts[1]),
+      classify_grid_line(parts[2]),
+      auto,
+    )
+  } else if parts.length() == 2 {
+    (classify_grid_line(parts[0]), classify_grid_line(parts[1]), auto, auto)
+  } else if parts.length() == 1 {
+    let start = classify_grid_line(parts[0])
+    (start, start, auto, auto)
+  } else {
+    (auto, auto, auto, auto)
+  }
+}
+
+///|
+/// If the value is a single `<custom-ident>` (no slash, not a number / `auto` /
+/// `span` / global keyword), return that lowercased ident as a grid-area name.
+/// Otherwise return None (the value is a line-based placement).
+fn grid_area_single_name(tokens : ArrayView[@token.Token]) -> String? {
+  let mut found : String? = None
+  for i = 0; i < tokens.length(); i = i + 1 {
+    match tokens[i] {
+      @token.Token::Whitespace | @token.Token::EOF => ()
+      @token.Token::Ident(s) => {
+        let ls = s.to_lower()
+        if ls == "auto" ||
+          ls == "span" ||
+          ls == "none" ||
+          ls == "inherit" ||
+          ls == "initial" ||
+          ls == "unset" {
+          return None
+        }
+        // More than one meaningful token => not a bare ident.
+        match found {
+          Some(_) => return None
+          None => found = Some(ls)
+        }
+      }
+      // Any number, slash, or other token means this is not a bare ident.
+      _ => return None
+    }
+  }
+  found
+}
+
+///|
+/// Parse a single `<grid-line>` from a raw string.
+pub fn parse_grid_placement_from_string(
+  value : String,
+) -> @types.GridPlacement {
+  classify_grid_line(@token.tokenize(value)[:])
+}
+
+///|
+/// Parse a grid-column / grid-row shorthand from a raw string.
+pub fn parse_grid_line_shorthand_from_string(
+  value : String,
+) -> (@types.GridPlacement, @types.GridPlacement) {
+  parse_grid_line_shorthand_tokens(@token.tokenize(value)[:])
+}
+
+///|
+/// Parse a grid-area shorthand from a raw string.
+pub fn parse_grid_area_shorthand_from_string(
+  value : String,
+) -> (
+  @types.GridPlacement,
+  @types.GridPlacement,
+  @types.GridPlacement,
+  @types.GridPlacement,
+) {
+  parse_grid_area_shorthand_tokens(@token.tokenize(value)[:])
+}
+
+///|
 /// Parse grid-template-columns or grid-template-rows from a raw string
 pub fn parse_grid_template_tracks_from_string(
   value : String,
@@ -4214,6 +4418,55 @@ fn apply_property(
           grid_template_column_line_names: col_names,
         }
       None => ()
+    }
+  }
+  // Grid item placement longhands
+  if property == "grid-column-start" {
+    return {
+      ..style,
+      grid_column: { ..style.grid_column, start: classify_grid_line(value_tokens) },
+    }
+  }
+  if property == "grid-column-end" {
+    return {
+      ..style,
+      grid_column: { ..style.grid_column, end: classify_grid_line(value_tokens) },
+    }
+  }
+  if property == "grid-row-start" {
+    return {
+      ..style,
+      grid_row: { ..style.grid_row, start: classify_grid_line(value_tokens) },
+    }
+  }
+  if property == "grid-row-end" {
+    return {
+      ..style,
+      grid_row: { ..style.grid_row, end: classify_grid_line(value_tokens) },
+    }
+  }
+  // grid-column / grid-row shorthand
+  if property == "grid-column" {
+    let (start, end) = parse_grid_line_shorthand_tokens(value_tokens)
+    return { ..style, grid_column: { start, end } }
+  }
+  if property == "grid-row" {
+    let (start, end) = parse_grid_line_shorthand_tokens(value_tokens)
+    return { ..style, grid_row: { start, end } }
+  }
+  // grid-area: either a single named area, or up to four grid lines.
+  if property == "grid-area" {
+    match grid_area_single_name(value_tokens) {
+      // A single <custom-ident> names a grid area rather than placing lines.
+      Some(name) => return { ..style, grid_area: Some(name) }
+      None => {
+        let (rs, cs, re, ce) = parse_grid_area_shorthand_tokens(value_tokens)
+        return {
+          ..style,
+          grid_row: { start: rs, end: re },
+          grid_column: { start: cs, end: ce },
+        }
+      }
     }
   }
   // contain

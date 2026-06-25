@@ -1,4 +1,38 @@
 ///|
+test "inline parser grid item placement longhands and shorthands" {
+  // longhands
+  let a = parse_inline_style("grid-column-start: 2; grid-column-end: span foo")
+  inspect(a.grid_column.start, content="Line(2)")
+  inspect(a.grid_column.end, content="SpanNamed(1, foo)")
+  let b = parse_inline_style("grid-row-start: 1; grid-row-end: 3")
+  inspect(b.grid_row.start, content="Line(1)")
+  inspect(b.grid_row.end, content="Line(3)")
+  // grid-column / grid-row shorthand
+  let c = parse_inline_style("grid-column: 2 foo / span 3")
+  inspect(c.grid_column.start, content="NamedLine(2, foo)")
+  inspect(c.grid_column.end, content="Span(3)")
+  // single custom-ident copies to both (implicit named area)
+  let d = parse_inline_style("grid-column: left-sidebar")
+  inspect(d.grid_column.start, content="Named(left-sidebar)")
+  inspect(d.grid_column.end, content="Named(left-sidebar)")
+}
+
+///|
+test "inline parser grid-area: named area vs four lines" {
+  // single <custom-ident> => named area, no line placement
+  let named = parse_inline_style("grid-area: header")
+  debug_inspect(named.grid_area, content="Some(\"header\")")
+  inspect(named.grid_row.start, content="Auto")
+  // four lines: row-start / col-start / row-end / col-end
+  let lines = parse_inline_style("grid-area: 1 / 2 / 3 / 4")
+  debug_inspect(lines.grid_area, content="None")
+  inspect(lines.grid_row.start, content="Line(1)")
+  inspect(lines.grid_column.start, content="Line(2)")
+  inspect(lines.grid_row.end, content="Line(3)")
+  inspect(lines.grid_column.end, content="Line(4)")
+}
+
+///|
 test "parse_inline_style calc with unitless multiplier" {
   inspect(
     parse_inline_style("width: calc(10px * 2)").width,
