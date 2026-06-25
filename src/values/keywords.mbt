@@ -121,6 +121,16 @@ pub(all) enum GridAutoFlow {
 } derive(Debug, Eq)
 
 ///|
+/// Kind of a grid template axis (grid-template-columns / -rows).
+/// `Explicit` is the normal `<track-list>` (or `none` when the track array is
+/// empty); `Subgrid` / `Masonry` are the alternative axis values.
+pub(all) enum GridTemplateKind {
+  Explicit
+  Subgrid
+  Masonry
+} derive(Debug, Eq)
+
+///|
 /// Grid line placement for grid items
 pub(all) enum GridPlacement {
   Auto
@@ -129,6 +139,12 @@ pub(all) enum GridPlacement {
   // Named line reference, e.g. `grid-column: left-sidebar`.
   // Resolved against the named lines declared in grid-template-columns/rows.
   Named(String)
+  // `<integer> && <custom-ident>`, e.g. `grid-column: 2 foo`: the Nth line
+  // named `foo` (N may be negative to count from the end).
+  NamedLine(Int, String)
+  // `span && <integer>? && <custom-ident>`, e.g. `grid-column: span 2 foo`:
+  // span until the Nth line named `foo` (N defaults to 1).
+  SpanNamed(Int, String)
 } derive(Debug, Eq)
 
 ///|
@@ -349,12 +365,24 @@ pub impl Show for GridAutoFlow with output(self, logger) {
 }
 
 ///|
+pub impl Show for GridTemplateKind with output(self, logger) {
+  let name = match self {
+    Explicit => "Explicit"
+    Subgrid => "Subgrid"
+    Masonry => "Masonry"
+  }
+  logger.write_string(name)
+}
+
+///|
 pub impl Show for GridPlacement with output(self, logger) {
   let text = match self {
     Auto => "Auto"
     Line(v) => "Line(\{v})"
     Span(v) => "Span(\{v})"
     Named(name) => "Named(\{name})"
+    NamedLine(n, name) => "NamedLine(\{n}, \{name})"
+    SpanNamed(n, name) => "SpanNamed(\{n}, \{name})"
   }
   logger.write_string(text)
 }

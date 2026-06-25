@@ -1668,6 +1668,68 @@ fn parse_grid_template_tracks(
 }
 
 ///|
+/// Parse the `<line-name-list>` that follows `subgrid`. Unlike a track list,
+/// each `[...]` bracket group is a SEPARATE grid line, so names are not merged.
+/// `repeat(...)` inside the list is not yet expanded and is skipped.
+fn parse_subgrid_line_names(
+  tokens : ArrayView[@token.Token],
+) -> Array[Array[String]] {
+  let result : Array[Array[String]] = []
+  let mut remaining = skip_whitespace(tokens)
+  while remaining.length() > 0 {
+    match remaining[0] {
+      @token.Token::LeftBracket => {
+        let names : Array[String] = []
+        let mut i = 1
+        while i < remaining.length() {
+          match remaining[i] {
+            @token.Token::RightBracket => {
+              i = i + 1
+              break
+            }
+            @token.Token::Ident(s) => {
+              names.push(s.to_lower())
+              i = i + 1
+            }
+            _ => i = i + 1
+          }
+        }
+        result.push(names)
+        remaining = skip_whitespace(remaining[i:])
+      }
+      @token.Token::Semicolon | @token.Token::EOF => break
+      // Skip anything else (e.g. an unsupported repeat()) without aborting.
+      _ => remaining = skip_whitespace(remaining[1:])
+    }
+  }
+  result
+}
+
+///|
+/// Parse one grid template axis (grid-template-columns / -rows), detecting the
+/// `subgrid` and `masonry` keywords. Returns the axis kind, the explicit track
+/// sizing functions, and the line names.
+fn parse_grid_template_axis(
+  tokens : ArrayView[@token.Token],
+) -> (
+  @types.GridTemplateKind,
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+) {
+  let toks = skip_whitespace(tokens)
+  if toks.length() > 0 {
+    match toks[0] {
+      @token.Token::Ident("subgrid") =>
+        return (@types.Subgrid, [], parse_subgrid_line_names(toks[1:]))
+      @token.Token::Ident("masonry") => return (@types.Masonry, [], [])
+      _ => ()
+    }
+  }
+  let (tracks, names) = parse_grid_template_track_list(toks)
+  (@types.Explicit, tracks, names)
+}
+
+///|
 /// Parse grid-template shorthand: `<rows> / <columns>`, preserving named lines.
 fn parse_grid_template_shorthand(
   tokens : ArrayView[@token.Token],
@@ -1696,6 +1758,188 @@ fn parse_grid_template_shorthand(
 }
 
 ///|
+/// Parse the `grid-template` / `grid` "areas" form:
+///   [ <line-names>? <string> <track-size>? <line-names>? ]+ [ / <track-list> ]?
+/// Returns the areas (one string per row), the row track sizes and row line
+/// names, and the column track sizes and column line names. Returns None when
+/// the value is not the areas form (no <string> tokens present).
+fn parse_grid_template_areas_form(
+  tokens : ArrayView[@token.Token],
+) -> (
+  Array[String],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+)? {
+  // Split off the optional `/ <columns>` part at the top-level slash.
+  let mut slash_index = -1
+  let mut has_string = false
+  for i = 0; i < tokens.length(); i = i + 1 {
+    match tokens[i] {
+      @token.Token::Delim('/') => if slash_index < 0 { slash_index = i }
+      @token.Token::String(_) => has_string = true
+      _ => ()
+    }
+  }
+  if !has_string {
+    return None
+  }
+  let left = if slash_index < 0 { tokens } else { tokens[:slash_index] }
+  let areas : Array[String] = []
+  let rows : Array[@types.TrackSizingFunction] = []
+  let row_names : Array[Array[String]] = []
+  let mut remaining = left
+  let mut done = false
+  while !done {
+    let (names, rest) = capture_grid_line_names(remaining)
+    remaining = rest
+    if remaining.length() == 0 {
+      row_names.push(names)
+      done = true
+    } else {
+      match remaining[0] {
+        @token.Token::String(s) => {
+          row_names.push(names)
+          areas.push(s)
+          remaining = remaining[1:]
+          // Optional row track size after the string.
+          let after = skip_whitespace(remaining)
+          match parse_track_sizing_function(after) {
+            Some((track, rest2)) => {
+              rows.push(track)
+              remaining = rest2
+            }
+            None => rows.push(@types.TrackSizingFunction::Auto)
+          }
+        }
+        _ => {
+          row_names.push(names)
+          done = true
+        }
+      }
+    }
+  }
+  let (cols, col_names) = if slash_index < 0 {
+    ([], [])
+  } else {
+    parse_grid_template_track_list(tokens[slash_index + 1:])
+  }
+  Some((areas, rows, row_names, cols, col_names))
+}
+
+///|
+/// Whether a side of the `grid` shorthand contains the `auto-flow` keyword.
+fn grid_side_has_autoflow(tokens : ArrayView[@token.Token]) -> Bool {
+  for i = 0; i < tokens.length(); i = i + 1 {
+    match tokens[i] {
+      @token.Token::Ident("auto-flow") => return true
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
+/// Parse the `[ auto-flow && dense? ] <track-list>?` side of a `grid` shorthand.
+/// Returns the resolved auto-flow direction and the implicit (auto) track list.
+fn parse_grid_autoflow_side(
+  tokens : ArrayView[@token.Token],
+  is_column : Bool,
+) -> (@types.GridAutoFlow, Array[@types.TrackSizingFunction]) {
+  let mut dense = false
+  let mut remaining = skip_whitespace(tokens)
+  let mut consuming = true
+  while consuming && remaining.length() > 0 {
+    match remaining[0] {
+      @token.Token::Ident("auto-flow") => remaining = skip_whitespace(remaining[1:])
+      @token.Token::Ident("dense") => {
+        dense = true
+        remaining = skip_whitespace(remaining[1:])
+      }
+      _ => consuming = false
+    }
+  }
+  let flow = if is_column {
+    if dense {
+      @types.GridAutoFlow::ColumnDense
+    } else {
+      @types.GridAutoFlow::Column
+    }
+  } else if dense {
+    @types.GridAutoFlow::RowDense
+  } else {
+    @types.GridAutoFlow::Row
+  }
+  let (tracks, _) = parse_grid_template_track_list(remaining)
+  (flow, tracks)
+}
+
+///|
+/// Parse the `grid` shorthand auto-flow form:
+///   <grid-template-rows> / [ auto-flow && dense? ] <grid-auto-columns>?
+///   [ auto-flow && dense? ] <grid-auto-rows>? / <grid-template-columns>
+/// Returns (auto-flow, template-rows, row-names, template-cols, col-names,
+/// auto-rows, auto-cols). Returns None when neither side has `auto-flow`.
+fn parse_grid_autoflow_form(
+  tokens : ArrayView[@token.Token],
+) -> (
+  @types.GridAutoFlow,
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[@types.TrackSizingFunction],
+)? {
+  let mut slash = -1
+  for i = 0; i < tokens.length(); i = i + 1 {
+    match tokens[i] {
+      @token.Token::Delim('/') => {
+        slash = i
+        break
+      }
+      _ => ()
+    }
+  }
+  if slash < 0 {
+    return None
+  }
+  let left = tokens[:slash]
+  let right = tokens[slash + 1:]
+  if grid_side_has_autoflow(right) {
+    // rows are explicit (left); columns flow automatically (right).
+    let (rows, row_names) = parse_grid_template_track_list(left)
+    let (flow, auto_cols) = parse_grid_autoflow_side(right, true)
+    Some((flow, rows, row_names, [], [], [], auto_cols))
+  } else if grid_side_has_autoflow(left) {
+    // rows flow automatically (left); columns are explicit (right).
+    let (cols, col_names) = parse_grid_template_track_list(right)
+    let (flow, auto_rows) = parse_grid_autoflow_side(left, false)
+    Some((flow, [], [], cols, col_names, auto_rows, []))
+  } else {
+    None
+  }
+}
+
+///|
+/// Parse the `grid` shorthand auto-flow form from a raw string.
+pub fn parse_grid_autoflow_form_from_string(
+  value : String,
+) -> (
+  @types.GridAutoFlow,
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[@types.TrackSizingFunction],
+)? {
+  let tokens = @token.tokenize(value)
+  parse_grid_autoflow_form(tokens[:])
+}
+
+///|
 /// Parse grid-template-columns or grid-template-rows from a raw string
 pub fn parse_grid_template_tracks_from_string(
   value : String,
@@ -1713,6 +1957,37 @@ pub fn parse_grid_template_track_list_from_string(
 ) -> (Array[@types.TrackSizingFunction], Array[Array[String]]) {
   let tokens = @token.tokenize(value)
   parse_grid_template_track_list(tokens[:])
+}
+
+///|
+/// Parse the `grid-template` / `grid` areas form from a raw string.
+/// Returns (areas, rows, row_line_names, cols, col_line_names) or None when the
+/// value is not the areas form.
+pub fn parse_grid_template_areas_form_from_string(
+  value : String,
+) -> (
+  Array[String],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+)? {
+  let tokens = @token.tokenize(value)
+  parse_grid_template_areas_form(tokens[:])
+}
+
+///|
+/// Parse one grid template axis from a raw string, detecting subgrid/masonry.
+/// Returns the axis kind, the explicit tracks, and the line names.
+pub fn parse_grid_template_axis_from_string(
+  value : String,
+) -> (
+  @types.GridTemplateKind,
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+) {
+  let tokens = @token.tokenize(value)
+  parse_grid_template_axis(tokens[:])
 }
 
 ///|
@@ -3868,28 +4143,33 @@ fn apply_property(
   }
   // grid-template-columns
   if property == "grid-template-columns" {
-    let (tracks, line_names) = parse_grid_template_track_list(value_tokens)
+    let (kind, tracks, line_names) = parse_grid_template_axis(value_tokens)
     return {
       ..style,
       grid_template_columns: tracks,
       grid_template_column_line_names: line_names,
+      grid_template_columns_kind: kind,
     }
   }
   // grid-template-rows
   if property == "grid-template-rows" {
-    let (tracks, line_names) = parse_grid_template_track_list(value_tokens)
+    let (kind, tracks, line_names) = parse_grid_template_axis(value_tokens)
     return {
       ..style,
       grid_template_rows: tracks,
       grid_template_row_line_names: line_names,
+      grid_template_rows_kind: kind,
     }
   }
-  // grid-template shorthand: <rows> / <columns>
-  if property == "grid-template" {
-    match parse_grid_template_shorthand(value_tokens) {
-      Some((rows, row_names, cols, col_names)) =>
+  // grid-template / grid shorthand. Try the "areas" form first (it carries
+  // <string> rows). The `grid` shorthand additionally supports the auto-flow
+  // form. Finally fall back to the `<rows> / <columns>` form.
+  if property == "grid-template" || property == "grid" {
+    match parse_grid_template_areas_form(value_tokens) {
+      Some((areas, rows, row_names, cols, col_names)) =>
         return {
           ..style,
+          grid_template_areas: areas,
           grid_template_rows: rows,
           grid_template_row_line_names: row_names,
           grid_template_columns: cols,
@@ -3897,9 +4177,22 @@ fn apply_property(
         }
       None => ()
     }
-  }
-  // grid shorthand (partial): support template syntax `<rows> / <columns>`
-  if property == "grid" {
+    if property == "grid" {
+      match parse_grid_autoflow_form(value_tokens) {
+        Some((flow, rows, row_names, cols, col_names, auto_rows, auto_cols)) =>
+          return {
+            ..style,
+            grid_auto_flow: flow,
+            grid_template_rows: rows,
+            grid_template_row_line_names: row_names,
+            grid_template_columns: cols,
+            grid_template_column_line_names: col_names,
+            grid_auto_rows: auto_rows,
+            grid_auto_columns: auto_cols,
+          }
+        None => ()
+      }
+    }
     match parse_grid_template_shorthand(value_tokens) {
       Some((rows, row_names, cols, col_names)) =>
         return {

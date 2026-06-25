@@ -947,6 +947,9 @@ pub(all) struct Style {
   // e.g. `[a] 1fr [b c] 2fr` => [["a"], ["b", "c"], []]
   mut grid_template_column_line_names : Array[Array[String]]
   mut grid_template_row_line_names : Array[Array[String]]
+  // Axis kind: Explicit track list (default), subgrid, or masonry.
+  mut grid_template_columns_kind : @types.GridTemplateKind
+  mut grid_template_rows_kind : @types.GridTemplateKind
   // Grid template areas (each string is a row, e.g. ["header header", "sidebar main"])
   mut grid_template_areas : Array[String]
   // Grid item properties
@@ -1102,6 +1105,8 @@ pub fn Style::default() -> Style {
     grid_auto_flow: @types.Row,
     grid_template_column_line_names: [],
     grid_template_row_line_names: [],
+    grid_template_columns_kind: @types.Explicit,
+    grid_template_rows_kind: @types.Explicit,
     grid_template_areas: [],
     grid_row: @types.GridLine::auto(),
     grid_column: @types.GridLine::auto(),

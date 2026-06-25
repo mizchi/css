@@ -999,6 +999,88 @@ test "grid-template-columns none" {
 }
 
 ///|
+test "grid-template-columns subgrid with line names" {
+  let style = parse_inline_style("grid-template-columns: subgrid [a] [b c] [d]")
+  inspect(style.grid_template_columns_kind, content="Subgrid")
+  inspect(style.grid_template_columns.length(), content="0")
+  // Each bracket group is a separate line (not merged like a track list).
+  let names = style.grid_template_column_line_names
+  inspect(names.length(), content="3")
+  debug_inspect(names[0], content="[\"a\"]")
+  debug_inspect(names[1], content="[\"b\", \"c\"]")
+  debug_inspect(names[2], content="[\"d\"]")
+}
+
+///|
+test "grid-template-rows masonry" {
+  let style = parse_inline_style("grid-template-rows: masonry")
+  inspect(style.grid_template_rows_kind, content="Masonry")
+  inspect(style.grid_template_rows.length(), content="0")
+}
+
+///|
+test "grid-template-columns explicit kind by default" {
+  let style = parse_inline_style("grid-template-columns: 1fr 2fr")
+  inspect(style.grid_template_columns_kind, content="Explicit")
+}
+
+///|
+test "grid-template areas form sets areas, row sizes and columns" {
+  let style = parse_inline_style(
+    "grid-template: \"head head\" 80px \"nav main\" 1fr / 200px 1fr",
+  )
+  inspect(style.grid_template_areas.length(), content="2")
+  inspect(style.grid_template_areas[0], content="head head")
+  inspect(style.grid_template_areas[1], content="nav main")
+  inspect(style.grid_template_rows.length(), content="2")
+  inspect(style.grid_template_rows[0], content="Length(80)")
+  inspect(style.grid_template_rows[1], content="Fr(1)")
+  inspect(style.grid_template_columns.length(), content="2")
+  inspect(style.grid_template_columns[0], content="Length(200)")
+  inspect(style.grid_template_columns[1], content="Fr(1)")
+}
+
+///|
+test "grid-template areas form without column part or row sizes" {
+  let style = parse_inline_style("grid-template: \"a\" \"b\" \"c\"")
+  inspect(style.grid_template_areas.length(), content="3")
+  // No explicit row sizes -> each row defaults to auto.
+  inspect(style.grid_template_rows.length(), content="3")
+  inspect(style.grid_template_rows[0], content="Auto")
+  inspect(style.grid_template_columns.length(), content="0")
+}
+
+///|
+test "grid shorthand areas form" {
+  let style = parse_inline_style("grid: \"a b\" 100px / 1fr 1fr")
+  inspect(style.grid_template_areas.length(), content="1")
+  inspect(style.grid_template_areas[0], content="a b")
+  inspect(style.grid_template_rows[0], content="Length(100)")
+  inspect(style.grid_template_columns.length(), content="2")
+}
+
+///|
+test "grid shorthand auto-flow on the column side" {
+  // rows are explicit; columns are auto-placed.
+  let style = parse_inline_style("grid: 100px 200px / auto-flow 1fr")
+  inspect(style.grid_auto_flow, content="Column")
+  inspect(style.grid_template_rows.length(), content="2")
+  inspect(style.grid_template_rows[0], content="Length(100)")
+  inspect(style.grid_auto_columns.length(), content="1")
+  inspect(style.grid_auto_columns[0], content="Fr(1)")
+  inspect(style.grid_template_columns.length(), content="0")
+}
+
+///|
+test "grid shorthand auto-flow dense on the row side" {
+  let style = parse_inline_style("grid: auto-flow dense 80px / 1fr 1fr")
+  inspect(style.grid_auto_flow, content="RowDense")
+  inspect(style.grid_auto_rows.length(), content="1")
+  inspect(style.grid_auto_rows[0], content="Length(80)")
+  inspect(style.grid_template_columns.length(), content="2")
+}
+
+///|
 test "grid-template-columns converts rem/em and physical units to px" {
   let style = parse_inline_style(
     "grid-template-columns: 10rem 2em 1fr 12pt 1in",

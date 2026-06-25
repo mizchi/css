@@ -214,6 +214,9 @@ priv struct StyleBuilder {
   // Named lines declared in grid-template-columns/rows (index = grid line)
   mut grid_template_column_line_names : Array[Array[String]]
   mut grid_template_row_line_names : Array[Array[String]]
+  // Axis kind: Explicit track list (default), subgrid, or masonry.
+  mut grid_template_columns_kind : @types.GridTemplateKind
+  mut grid_template_rows_kind : @types.GridTemplateKind
   // Grid template areas (container)
   mut grid_template_areas : Array[String]
   // Grid item placement
@@ -358,6 +361,8 @@ fn StyleBuilder::new() -> StyleBuilder {
     grid_auto_columns: [],
     grid_template_column_line_names: [],
     grid_template_row_line_names: [],
+    grid_template_columns_kind: @types.Explicit,
+    grid_template_rows_kind: @types.Explicit,
     grid_template_areas: [],
     grid_column_start: @types.GridPlacement::Auto,
     grid_column_end: @types.GridPlacement::Auto,
@@ -486,6 +491,8 @@ fn StyleBuilder::from_style(style : @style.Style) -> StyleBuilder {
     grid_auto_columns: style.grid_auto_columns,
     grid_template_column_line_names: style.grid_template_column_line_names,
     grid_template_row_line_names: style.grid_template_row_line_names,
+    grid_template_columns_kind: style.grid_template_columns_kind,
+    grid_template_rows_kind: style.grid_template_rows_kind,
     grid_template_areas: style.grid_template_areas,
     grid_column_start: style.grid_column.start,
     grid_column_end: style.grid_column.end,
@@ -623,6 +630,8 @@ fn StyleBuilder::build(self : StyleBuilder) -> @style.Style {
     grid_auto_flow: self.grid_auto_flow,
     grid_template_column_line_names: self.grid_template_column_line_names,
     grid_template_row_line_names: self.grid_template_row_line_names,
+    grid_template_columns_kind: self.grid_template_columns_kind,
+    grid_template_rows_kind: self.grid_template_rows_kind,
     grid_template_areas: self.grid_template_areas,
     grid_row: { start: self.grid_row_start, end: self.grid_row_end },
     grid_column: { start: self.grid_column_start, end: self.grid_column_end },
@@ -2199,41 +2208,66 @@ fn apply_property(
         grid_template_value(value),
       )
     "grid-template-columns" => {
-      let (tracks, line_names) = parse_grid_template_track_list(
+      let (kind, tracks, line_names) = parse_grid_template_axis(
         grid_template_value(value),
       )
       builder.grid_template_columns = tracks
       builder.grid_template_column_line_names = line_names
+      builder.grid_template_columns_kind = kind
     }
     "grid-template-rows" => {
-      let (tracks, line_names) = parse_grid_template_track_list(
+      let (kind, tracks, line_names) = parse_grid_template_axis(
         grid_template_value(value),
       )
       builder.grid_template_rows = tracks
       builder.grid_template_row_line_names = line_names
+      builder.grid_template_rows_kind = kind
     }
     "grid-template-areas" =>
       builder.grid_template_areas = parse_grid_template_areas_value(value)
-    "grid-template" =>
-      match parse_grid_template_shorthand_with_names(grid_template_value(value)) {
-        Some((rows, row_names, cols, col_names)) => {
+    "grid-template" | "grid" => {
+      let tv = grid_template_value(value)
+      // Try the "areas" form first (it carries <string> rows); the `grid`
+      // shorthand additionally supports the auto-flow form; finally fall back to
+      // the `<rows> / <columns>` form.
+      match parse_grid_template_areas_form(tv) {
+        Some((areas, rows, row_names, cols, col_names)) => {
+          builder.grid_template_areas = areas
           builder.grid_template_rows = rows
           builder.grid_template_row_line_names = row_names
           builder.grid_template_columns = cols
           builder.grid_template_column_line_names = col_names
         }
-        None => ()
-      }
-    "grid" =>
-      match parse_grid_template_shorthand_with_names(grid_template_value(value)) {
-        Some((rows, row_names, cols, col_names)) => {
-          builder.grid_template_rows = rows
-          builder.grid_template_row_line_names = row_names
-          builder.grid_template_columns = cols
-          builder.grid_template_column_line_names = col_names
+        None => {
+          let autoflow = if property == "grid" {
+            parse_grid_autoflow_form(tv)
+          } else {
+            None
+          }
+          match autoflow {
+            Some((flow, rows, row_names, cols, col_names, auto_rows, auto_cols)) => {
+              builder.grid_auto_flow = flow
+              builder.grid_template_rows = rows
+              builder.grid_template_row_line_names = row_names
+              builder.grid_template_columns = cols
+              builder.grid_template_column_line_names = col_names
+              builder.grid_auto_rows = auto_rows
+              builder.grid_auto_columns = auto_cols
+            }
+            None =>
+              match parse_grid_template_shorthand_with_names(tv) {
+                Some((rows, row_names, cols, col_names)) => {
+                  builder.grid_template_rows = rows
+                  builder.grid_template_row_line_names = row_names
+                  builder.grid_template_columns = cols
+                  builder.grid_template_column_line_names = col_names
+                }
+                None => ()
+              }
+          }
         }
-        None => ()
       }
+    }
     // Grid item placement
     "grid-column-start" =>
       builder.grid_column_start = parse_grid_placement(value)

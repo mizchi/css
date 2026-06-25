@@ -798,31 +798,59 @@ pub fn parse_grid_auto_flow(value : String) -> @types.GridAutoFlow {
 }
 
 ///|
-/// Parse a grid placement value (for grid-column-start, grid-row-end, etc.)
-/// Supports: auto, <integer>, span <integer>
+/// Parse a grid placement value (for grid-column-start, grid-row-end, etc.).
+/// Supports the full `<grid-line>` grammar:
+///   auto
+///   <custom-ident>                       -> Named
+///   <integer> && <custom-ident>?         -> Line / NamedLine (order-independent)
+///   span && <integer>? && <custom-ident>? -> Span / SpanNamed
 pub fn parse_grid_placement(value : String) -> @types.GridPlacement {
   let v = value.trim().to_lower()
   if v == "auto" {
     return @types.GridPlacement::Auto
   }
-  // Check for "span N" pattern
-  if v.has_prefix("span") {
-    let num_str = view_to_string(v.view(start_offset=4))
-    let num = @string.parse_int(num_str.trim().to_owned()) catch { _ => 1 }
-    return @types.GridPlacement::Span(num)
+  // Split into whitespace-separated tokens.
+  let parts : Array[String] = []
+  for p in v.split(" ") {
+    let t = p.trim()
+    if t.length() > 0 {
+      parts.push(t.to_owned())
+    }
   }
-  // Otherwise, parse as integer (line number)
-  let line = @string.parse_int(v.to_owned()) catch { _ => 0 }
-  if line != 0 {
-    @types.GridPlacement::Line(line)
-  } else if is_basic_custom_ident(v) {
-    // Named line reference (e.g. `grid-column: left-sidebar`). Preserve the name
-    // so it can be resolved against the named lines declared in the grid
-    // template. Resolution happens in `resolve_grid_named_line` once the
-    // template's line names are known.
-    @types.GridPlacement::Named(view_to_string(v).to_string())
-  } else {
-    @types.GridPlacement::Auto
+  if parts.length() == 0 {
+    return @types.GridPlacement::Auto
+  }
+  // span && <integer>? && <custom-ident>
+  if parts[0] == "span" {
+    let mut n = 1
+    let mut name : String? = None
+    for i = 1; i < parts.length(); i = i + 1 {
+      let int_val = @string.parse_int(parts[i]) catch { _ => 0 }
+      if int_val != 0 {
+        n = int_val
+      } else if is_basic_custom_ident(parts[i]) {
+        name = Some(parts[i])
+      }
+    }
+    return match name {
+      Some(nm) => @types.GridPlacement::SpanNamed(n, nm)
+      None => @types.GridPlacement::Span(n)
+    }
+  }
+  // <integer> && <custom-ident>? (order-independent), or a bare ident.
+  let mut line = 0
+  let mut name : String? = None
+  for i = 0; i < parts.length(); i = i + 1 {
+    let int_val = @string.parse_int(parts[i]) catch { _ => 0 }
+    if int_val != 0 {
+      line = int_val
+    } else if is_basic_custom_ident(parts[i]) {
+      name = Some(parts[i])
+    }
+  }
+  match name {
+    Some(nm) => if line != 0 { @types.GridPlacement::NamedLine(line, nm) } else { @types.GridPlacement::Named(nm) }
+    None => if line != 0 { @types.GridPlacement::Line(line) } else { @types.GridPlacement::Auto }
   }
 }
 
@@ -873,6 +901,37 @@ pub fn find_grid_named_line(
 }
 
 ///|
+/// Find the 1-based grid line number of the `n`-th line named `name`. Positive
+/// `n` counts occurrences from the start (n=1 is the first); negative `n` counts
+/// from the end (n=-1 is the last). Returns None if there is no such line.
+pub fn find_grid_named_line_nth(
+  name : String,
+  n : Int,
+  line_names : Array[Array[String]],
+) -> Int? {
+  // Collect the 1-based line numbers carrying `name`, in document order.
+  let hits : Array[Int] = []
+  for i = 0; i < line_names.length(); i = i + 1 {
+    let group = line_names[i]
+    for j = 0; j < group.length(); j = j + 1 {
+      if group[j] == name {
+        hits.push(i + 1)
+        break
+      }
+    }
+  }
+  if n == 0 || hits.length() == 0 {
+    return None
+  }
+  let idx = if n > 0 { n - 1 } else { hits.length() + n }
+  if idx < 0 || idx >= hits.length() {
+    None
+  } else {
+    Some(hits[idx])
+  }
+}
+
+///|
 /// Resolve one side of a named grid placement to a concrete 1-based line number.
 /// Falls back to the implicit named area edge (`<name>-start` / `<name>-end`)
 /// when no explicit line carries the bare name. `is_start` selects the edge.
@@ -907,12 +966,17 @@ pub fn resolve_grid_line_placement(
     @types.GridPlacement::Line(n) => Some(n)
     @types.GridPlacement::Named(name) =>
       resolve_named_grid_side(name, true, line_names)
+    @types.GridPlacement::NamedLine(n, name) =>
+      find_grid_named_line_nth(name, n, line_names)
+    // Auto / Span / SpanNamed are relative and resolved by the layout engine.
     _ => None
   }
   let end_line = match end {
     @types.GridPlacement::Line(n) => Some(n)
     @types.GridPlacement::Named(name) =>
       resolve_named_grid_side(name, false, line_names)
+    @types.GridPlacement::NamedLine(n, name) =>
+      find_grid_named_line_nth(name, n, line_names)
     _ => None
   }
   (start_line, end_line)
@@ -1029,6 +1093,52 @@ pub fn parse_grid_template_track_list(
   value : String,
 ) -> (Array[@types.TrackSizingFunction], Array[Array[String]]) {
   @parser.parse_grid_template_track_list_from_string(value)
+}
+
+///|
+/// Parse the `grid-template` / `grid` areas form. Returns
+/// (areas, rows, row_line_names, cols, col_line_names) or None.
+pub fn parse_grid_template_areas_form(
+  value : String,
+) -> (
+  Array[String],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+)? {
+  @parser.parse_grid_template_areas_form_from_string(value)
+}
+
+///|
+/// Parse the `grid` shorthand auto-flow form. Returns (auto-flow,
+/// template-rows, row-names, template-cols, col-names, auto-rows, auto-cols) or
+/// None when neither side has `auto-flow`.
+pub fn parse_grid_autoflow_form(
+  value : String,
+) -> (
+  @types.GridAutoFlow,
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+  Array[@types.TrackSizingFunction],
+  Array[@types.TrackSizingFunction],
+)? {
+  @parser.parse_grid_autoflow_form_from_string(value)
+}
+
+///|
+/// Parse one grid template axis, detecting subgrid/masonry. Returns the axis
+/// kind, the explicit track sizing functions, and the line names.
+pub fn parse_grid_template_axis(
+  value : String,
+) -> (
+  @types.GridTemplateKind,
+  Array[@types.TrackSizingFunction],
+  Array[Array[String]],
+) {
+  @parser.parse_grid_template_axis_from_string(value)
 }
 
 ///|
