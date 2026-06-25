@@ -320,6 +320,18 @@ test "parse width: calc() with subtraction" {
 }
 
 ///|
+test "parse width: calc() converts rem/em and physical units" {
+  // Non-px length units must be converted to px before accumulating,
+  // otherwise the term is silently dropped.
+  inspect(parse_inline_style("width: calc(10rem)").width, content="Length(160)")
+  inspect(
+    parse_inline_style("width: calc(2rem + 8px)").width,
+    content="Length(40)",
+  )
+  inspect(parse_inline_style("width: calc(1in - 16px)").width, content="Length(80)")
+}
+
+///|
 test "parse width: calc() with pure percentage" {
   let s = parse_inline_style("width: calc(50% + 10%)")
   inspect(s.width, content="Percent(0.6)")
@@ -616,6 +628,20 @@ test "parse - clip rect()" {
   inspect(s.clip, content="rect(1, 2, 3, 4)")
   let auto = parse_inline_style("clip: auto")
   inspect(auto.clip, content="auto")
+}
+
+///|
+test "parse - clip-path inset/circle convert rem/physical units" {
+  // inset(1rem) -> 16px on all sides
+  debug_inspect(
+    parse_inline_style("clip-path: inset(1rem)").clip_path,
+    content="Inset(16, 16, 16, 16)",
+  )
+  // circle(2rem at 1in 1in) -> radius 32, center 96/96
+  debug_inspect(
+    parse_inline_style("clip-path: circle(2rem at 1in 1in)").clip_path,
+    content="Circle(32, 96, 96)",
+  )
 }
 
 ///|
@@ -1701,6 +1727,13 @@ test "parse transform translate with percentage" {
   let style = parse_inline_style("transform: translate(-50%, -50%)")
   inspect(style.transform.translate_x, content="Percent(-0.5)")
   inspect(style.transform.translate_y, content="Percent(-0.5)")
+}
+
+///|
+test "parse transform translate converts rem/physical units" {
+  let style = parse_inline_style("transform: translate(2rem, 1in)")
+  inspect(style.transform.translate_x, content="Length(32)")
+  inspect(style.transform.translate_y, content="Length(96)")
 }
 
 ///|

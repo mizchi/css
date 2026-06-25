@@ -66,22 +66,9 @@ fn parse_calc_linear(
         // End of calc expression: return the linear form (pct as a ratio).
         return Some(((result_px, result_pct / 100.0), remaining[1:]))
       }
-      @token.Token::Dimension(value, unit) => {
-        if unit == "px" {
-          if !have_value {
-            result_px = value * leading_factor
-            have_value = true
-            leading_factor = 1.0
-          } else {
-            match current_op {
-              '+' => result_px = result_px + value
-              '-' => result_px = result_px - value
-              '*' => result_px = result_px * value
-              '/' => result_px = result_px / value
-              _ => ()
-            }
-          }
-        } else if unit == "%" {
+      @token.Token::Dimension(value, raw_unit) => {
+        let unit = raw_unit.to_lower()
+        if unit == "%" {
           if !have_value {
             result_pct = value * leading_factor
             have_value = true
@@ -92,6 +79,26 @@ fn parse_calc_linear(
               '-' => result_pct = result_pct - value
               '*' => result_pct = result_pct * value
               '/' => result_pct = result_pct / value
+              _ => ()
+            }
+          }
+        } else {
+          // px and other length units (rem/em/pt/cm/in/...) accumulate in px.
+          // Unknown units fall back to the legacy px interpretation.
+          let px = match dimension_unit_to_px(value, unit) {
+            Some(p) => p
+            None => value
+          }
+          if !have_value {
+            result_px = px * leading_factor
+            have_value = true
+            leading_factor = 1.0
+          } else {
+            match current_op {
+              '+' => result_px = result_px + px
+              '-' => result_px = result_px - px
+              '*' => result_px = result_px * px
+              '/' => result_px = result_px / px
               _ => ()
             }
           }
@@ -1636,7 +1643,14 @@ fn parse_clip(tokens : ArrayView[@token.Token]) -> @types.ClipRect {
         let values : Array[Double] = []
         for token in args {
           match token {
-            @token.Token::Dimension(v, _) => values.push(v)
+            @token.Token::Dimension(v, unit) => {
+              // rem/em and physical length units are converted to px.
+              let px = match dimension_unit_to_px(v, unit.to_lower()) {
+                Some(p) => p
+                None => v
+              }
+              values.push(px)
+            }
             @token.Token::Number(v, _) => values.push(v)
             @token.Token::Ident(s) =>
               if s == "auto" {
@@ -1710,7 +1724,12 @@ fn parse_clip_path_inset(tokens : ArrayView[@token.Token]) -> @style.ClipPath {
         if unit == "%" {
           values.push(-(v / 100.0))
         } else {
-          values.push(v)
+          // rem/em and physical length units are converted to px.
+          let px = match dimension_unit_to_px(v, unit.to_lower()) {
+            Some(p) => p
+            None => v
+          }
+          values.push(px)
         }
       @token.Token::Percentage(v) => values.push(-(v / 100.0))
       @token.Token::Number(v, _) => values.push(v)
@@ -2611,7 +2630,11 @@ fn parse_clip_path_shape_token(token : @token.Token) -> Double? {
       if unit == "%" {
         Some(-(v / 100.0))
       } else {
-        Some(v)
+        // rem/em and physical length units are converted to px.
+        match dimension_unit_to_px(v, unit.to_lower()) {
+          Some(p) => Some(p)
+          None => Some(v)
+        }
       }
     @token.Token::Percentage(v) => Some(-(v / 100.0))
     @token.Token::Number(v, _) => Some(v)
@@ -3072,39 +3095,34 @@ fn parse_scale_value(value : String) -> Double {
 }
 
 ///|
-/// Parse a single translate value (can be length or percentage)
+/// Parse a single translate value (can be length or percentage).
+/// Tokenizes the value so every length unit (px/rem/em/pt/cm/in/vw/...) is
+/// converted to px via dimension_unit_to_px, instead of only px/em/rem.
 fn parse_translate_value(value : String) -> @style.TranslateValue {
   let v = value.trim()
   if v.is_empty() {
     return @style.TranslateValue::Length(0.0)
   }
-  // Check for percentage
-  if v.has_suffix("%") {
-    let num_str = v[:v.length() - 1].to_owned()
-    let n = @string.parse_double(num_str.trim()) catch {
-      _ => return @style.TranslateValue::Length(0.0)
+  let tokens = skip_whitespace(@token.tokenize(v.to_owned())[:])
+  if tokens.length() == 0 {
+    return @style.TranslateValue::Length(0.0)
+  }
+  match tokens[0] {
+    @token.Token::Dimension(n, raw_unit) => {
+      let unit = raw_unit.to_lower()
+      if unit == "%" {
+        @style.TranslateValue::Percent(n / 100.0)
+      } else {
+        let px = match dimension_unit_to_px(n, unit) {
+          Some(p) => p
+          None => n
+        }
+        @style.TranslateValue::Length(px)
+      }
     }
-    @style.TranslateValue::Percent(n / 100.0)
-  } else if v.has_suffix("px") {
-    let num_str = v[:v.length() - 2].to_owned()
-    let n = @string.parse_double(num_str.trim()) catch {
-      _ => return @style.TranslateValue::Length(0.0)
-    }
-    @style.TranslateValue::Length(n)
-  } else if v.has_suffix("em") || v.has_suffix("rem") {
-    // em/rem - convert to pixels assuming 16px base
-    let suffix_len = if v.has_suffix("rem") { 3 } else { 2 }
-    let num_str = v[:v.length() - suffix_len].to_owned()
-    let n = @string.parse_double(num_str.trim()) catch {
-      _ => return @style.TranslateValue::Length(0.0)
-    }
-    @style.TranslateValue::Length(n * 16.0)
-  } else {
-    // Try parsing as plain number (assumed px)
-    let n = @string.parse_double(v) catch {
-      _ => return @style.TranslateValue::Length(0.0)
-    }
-    @style.TranslateValue::Length(n)
+    @token.Token::Percentage(n) => @style.TranslateValue::Percent(n / 100.0)
+    @token.Token::Number(n, _) => @style.TranslateValue::Length(n)
+    _ => @style.TranslateValue::Length(0.0)
   }
 }
 
