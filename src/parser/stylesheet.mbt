@@ -31,8 +31,11 @@ pub fn parse_stylesheet(css : String) -> @cascade.Stylesheet {
         } else if name.to_lower() == "supports" {
           // Parse @supports rule (treat condition as always true)
           pos = parse_supports_rule(stylesheet, tokens, pos)
+        } else if is_keyframes_keyword(name) {
+          // Parse @keyframes rule
+          pos = parse_keyframes_rule(stylesheet, tokens, pos)
         } else {
-          // Skip other @-rules (e.g., @import, @keyframes)
+          // Skip other @-rules (e.g., @import, @font-face)
           pos = skip_at_rule(tokens, pos)
         }
       _ =>
@@ -369,6 +372,129 @@ fn supports_condition_matches(condition : String) -> Bool {
     Some(value) => value
     None => true
   }
+}
+
+///|
+/// Parse an `@keyframes name { <keyframe-block>* }` rule and add it to the
+/// stylesheet. `start` points at the `@keyframes` (or `@-webkit-keyframes`)
+/// AtKeyword token. Returns the position just past the closing brace.
+fn parse_keyframes_rule(
+  stylesheet : @cascade.Stylesheet,
+  tokens : Array[@token.Token],
+  start : Int,
+) -> Int {
+  let mut pos = skip_ws(tokens, start + 1)
+  // Animation name: a custom-ident or a string.
+  let name = match tokens[pos] {
+    @token.Token::Ident(n) => {
+      pos = pos + 1
+      n
+    }
+    @token.Token::String(n) => {
+      pos = pos + 1
+      n
+    }
+    _ => return skip_at_rule(tokens, start)
+  }
+  pos = skip_ws(tokens, pos)
+  match tokens[pos] {
+    @token.Token::LeftBrace => pos = pos + 1
+    _ => return skip_at_rule(tokens, start)
+  }
+  let blocks : Array[@cascade.KeyframeBlock] = []
+  while pos < tokens.length() {
+    pos = skip_ws(tokens, pos)
+    match tokens[pos] {
+      @token.Token::RightBrace => {
+        pos = pos + 1
+        break
+      }
+      @token.Token::EOF => break
+      _ => {
+        // Keyframe selector list: from | to | <percentage> (comma-separated),
+        // up to the block's '{'.
+        let offsets : Array[Double] = []
+        while pos < tokens.length() {
+          pos = skip_ws(tokens, pos)
+          match tokens[pos] {
+            @token.Token::LeftBrace => break
+            @token.Token::EOF => break
+            @token.Token::RightBrace => break
+            @token.Token::Percentage(v) => {
+              offsets.push(v / 100.0)
+              pos = pos + 1
+            }
+            @token.Token::Number(v, _) => {
+              // Only `0` is a valid unitless keyframe selector (= 0%).
+              if v == 0.0 {
+                offsets.push(0.0)
+              }
+              pos = pos + 1
+            }
+            @token.Token::Ident(s) => {
+              let ls = s.to_lower()
+              if ls == "from" {
+                offsets.push(0.0)
+              } else if ls == "to" {
+                offsets.push(1.0)
+              }
+              pos = pos + 1
+            }
+            @token.Token::Comma => pos = pos + 1
+            _ => pos = pos + 1
+          }
+        }
+        if pos >= tokens.length() {
+          break
+        }
+        match tokens[pos] {
+          @token.Token::LeftBrace => pos = pos + 1
+          _ => break
+        }
+        // Declarations for this block, until '}'.
+        let declarations : Array[@cascade.Declaration] = []
+        let mut decl_order = 0
+        while pos < tokens.length() {
+          pos = skip_ws(tokens, pos)
+          match tokens[pos] {
+            @token.Token::RightBrace => {
+              pos = pos + 1
+              break
+            }
+            @token.Token::EOF => break
+            _ =>
+              match parse_rule_declaration(tokens, pos) {
+                Some((property, value, importance, new_pos)) => {
+                  declarations.push({
+                    property,
+                    value: @cascade.Value(value),
+                    origin: @cascade.Author,
+                    importance,
+                    specificity: { a: 0, b: 0, c: 0 },
+                    source_order: decl_order,
+                  })
+                  decl_order = decl_order + 1
+                  pos = new_pos
+                }
+                None => pos = pos + 1
+              }
+          }
+        }
+        if offsets.length() > 0 {
+          blocks.push({ offsets, declarations })
+        }
+      }
+    }
+  }
+  stylesheet.add_keyframes({ name, blocks })
+  pos
+}
+
+///|
+/// Whether an `@`-rule keyword names a `@keyframes` (incl. vendor-prefixed).
+fn is_keyframes_keyword(name : String) -> Bool {
+  let n = name.to_lower()
+  n == "keyframes" || n == "-webkit-keyframes" || n == "-moz-keyframes"
 }
 
 ///|
@@ -975,8 +1101,11 @@ pub fn parse_stylesheet_with_diagnostics(css : String) -> ParseResult {
           pos = parse_supports_rule_with_diagnostics(
             stylesheet, diagnostics, tokens, pos,
           )
+        } else if is_keyframes_keyword(name) {
+          // Parse @keyframes rule
+          pos = parse_keyframes_rule(stylesheet, tokens, pos)
         } else {
-          // Skip other @-rules (e.g., @import, @keyframes)
+          // Skip other @-rules (e.g., @import, @font-face)
           pos = skip_at_rule(tokens, pos)
         }
       _ =>

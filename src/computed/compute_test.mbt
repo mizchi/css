@@ -325,6 +325,98 @@ test "compute_inline MDN page shell: named lines resolve grid-column" {
 }
 
 ///|
+test "build_keyframe_track resolves @keyframes into a typed track" {
+  let ctx = @computed.ComputeContext::new()
+  let css =
+    #|@keyframes slide { from { left: 0; } to { left: 100px; } }
+  let sheet = @parser.parse_stylesheet(css)
+  let rule = sheet.find_keyframes("slide").unwrap()
+  // Unitless `0` is reconciled to Length(0) so it interpolates with `100px`.
+  let track = @computed.build_keyframe_track(rule, "left", "0px", ctx)
+  inspect(track.length(), content="2")
+  let effect = @animation.AnimatableKeyframeEffect::new(track, {
+    ..@animation.EffectTiming::new(1000.0),
+    fill: @animation.FillMode::Both,
+  }).unwrap()
+  inspect(effect.sample(500.0).unwrap(), content="Length(50)")
+  inspect(effect.sample(0.0).unwrap(), content="Length(0)")
+  inspect(effect.sample(1000.0).unwrap(), content="Length(100)")
+}
+
+///|
+test "build_keyframe_track fills implicit endpoint from base and interpolates color" {
+  let ctx = @computed.ComputeContext::new()
+  // Only a `to` keyframe; the 0% endpoint is filled from the base value.
+  let css =
+    #|@keyframes redden { to { color: rgb(255, 0, 0); } }
+  let sheet = @parser.parse_stylesheet(css)
+  let rule = sheet.find_keyframes("redden").unwrap()
+  let track = @computed.build_keyframe_track(
+    rule, "color", "rgb(0, 0, 0)", ctx,
+  )
+  inspect(track.length(), content="2")
+  let effect = @animation.AnimatableKeyframeEffect::new(
+    track,
+    @animation.EffectTiming::new(1000.0),
+  ).unwrap()
+  // Midpoint interpolates black -> red in sRGB.
+  inspect(effect.sample(500.0).unwrap(), content="Color(rgb(128, 0, 0))")
+  // No fill -> before phase (t < 0) yields no value.
+  assert_true(effect.sample(-10.0) is None)
+}
+
+///|
+test "effect_timing_from_style bridges animation longhands" {
+  let ctx = @computed.ComputeContext::new()
+  let style = @computed.compute_inline(
+    "animation: slide 2s ease-in 0.5s infinite alternate both", ctx,
+  )
+  let timing = @computed.effect_timing_from_style(style, 0)
+  // seconds -> ms
+  inspect(timing.duration, content="2000")
+  inspect(timing.delay, content="500")
+  inspect(timing.fill, content="Both")
+  inspect(timing.direction, content="Alternate")
+  inspect(timing.easing, content="EaseIn")
+  // infinite iteration count maps to an infinite Double
+  assert_true(timing.iterations > 1.0e308)
+}
+
+///|
+test "end-to-end: @keyframes + animation drive a sampled value" {
+  let ctx = @computed.ComputeContext::new()
+  let css =
+    #|@keyframes grow { from { width: 0; } to { width: 200px; } }
+  let sheet = @parser.parse_stylesheet(css)
+  let rule = sheet.find_keyframes("grow").unwrap()
+  // The element using the animation.
+  let style = @computed.compute_inline("animation: grow 1s linear", ctx)
+  let timing = @computed.effect_timing_from_style(style, 0)
+  let track = @computed.build_keyframe_track(rule, "width", "0px", ctx)
+  let effect = @animation.AnimatableKeyframeEffect::new(track, timing).unwrap()
+  // 1s duration, linear, no fill: quarter time -> 50px.
+  inspect(effect.sample(250.0).unwrap(), content="Length(50)")
+}
+
+///|
+test "compute_inline animation and transition shorthands" {
+  let ctx = @computed.ComputeContext::new()
+  let s = @computed.compute_inline(
+    "animation: fade 1s ease-in 0.2s 3 reverse; transition: width 0.5s linear",
+    ctx,
+  )
+  debug_inspect(s.animation_name, content="[\"fade\"]")
+  debug_inspect(s.animation_duration, content="[1]")
+  inspect(s.animation_timing_function[0], content="EaseIn")
+  debug_inspect(s.animation_delay, content="[0.2]")
+  inspect(s.animation_iteration_count[0], content="Count(3)")
+  inspect(s.animation_direction[0], content="Reverse")
+  debug_inspect(s.transition_property, content="[\"width\"]")
+  debug_inspect(s.transition_duration, content="[0.5]")
+  inspect(s.transition_timing_function[0], content="Linear")
+}
+
+///|
 test "compute_inline grid-template-areas parsed correctly" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline(

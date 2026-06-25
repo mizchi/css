@@ -199,4 +199,108 @@ test "NumericKeyframeEffect::new validates offsets" {
     ),
     content="None",
   )
+  // Duplicate (non-increasing) offsets are rejected: offsets must be strictly
+  // increasing, so two keyframes sharing the same offset fail validation.
+  debug_inspect(
+    NumericKeyframeEffect::new(
+      [
+        NumericKeyframe::new(0.0, 0.0),
+        NumericKeyframe::new(0.5, 10.0),
+        NumericKeyframe::new(0.5, 20.0),
+        NumericKeyframe::new(1.0, 100.0),
+      ],
+      EffectTiming::new(1.0),
+    ),
+    content="None",
+  )
+}
+
+///|
+test "interpolate computed values by kind" {
+  inspect(
+    @animation.interpolate(
+      @animation.AnimatableValue::Length(0.0),
+      @animation.AnimatableValue::Length(100.0),
+      0.25,
+    ),
+    content="Length(25)",
+  )
+  inspect(
+    @animation.interpolate(
+      @animation.AnimatableValue::Number(1.0),
+      @animation.AnimatableValue::Number(3.0),
+      0.5,
+    ),
+    content="Number(2)",
+  )
+  inspect(
+    @animation.interpolate(
+      @animation.AnimatableValue::Percent(0.0),
+      @animation.AnimatableValue::Percent(1.0),
+      0.5,
+    ),
+    content="Percent(0.5)",
+  )
+  // sRGB color interpolation
+  inspect(
+    @animation.interpolate(
+      @animation.AnimatableValue::Color(@values.Color::rgb(0, 0, 0)),
+      @animation.AnimatableValue::Color(@values.Color::rgb(255, 0, 0)),
+      0.5,
+    ),
+    content="Color(rgb(128, 0, 0))",
+  )
+}
+
+///|
+test "interpolate mismatched / non-interpolable kinds are discrete" {
+  // length <-> percent cannot interpolate => discrete jump at 0.5
+  inspect(
+    @animation.interpolate(
+      @animation.AnimatableValue::Length(0.0),
+      @animation.AnimatableValue::Percent(1.0),
+      0.25,
+    ),
+    content="Length(0)",
+  )
+  inspect(
+    @animation.interpolate(
+      @animation.AnimatableValue::Length(0.0),
+      @animation.AnimatableValue::Percent(1.0),
+      0.75,
+    ),
+    content="Percent(1)",
+  )
+  // `auto` <-> length (Discrete) also jumps
+  inspect(
+    @animation.interpolate(
+      @animation.AnimatableValue::Discrete("auto"),
+      @animation.AnimatableValue::Length(100.0),
+      0.6,
+    ),
+    content="Length(100)",
+  )
+}
+
+///|
+test "AnimatableKeyframeEffect samples typed keyframes with easing and timing" {
+  let effect = @animation.AnimatableKeyframeEffect::new(
+    [
+      @animation.AnimatableKeyframe::new(
+        0.0,
+        @animation.AnimatableValue::Length(0.0),
+      ),
+      @animation.AnimatableKeyframe::new(
+        1.0,
+        @animation.AnimatableValue::Length(100.0),
+      ),
+    ],
+    { ..@animation.EffectTiming::new(1000.0), fill: @animation.FillMode::Both },
+  ).unwrap()
+  // midpoint
+  inspect(effect.sample(500.0).unwrap(), content="Length(50)")
+  // before phase with Both fill clamps to first
+  inspect(effect.sample(-10.0).unwrap(), content="Length(0)")
+  // after phase clamps to last
+  inspect(effect.sample(2000.0).unwrap(), content="Length(100)")
 }

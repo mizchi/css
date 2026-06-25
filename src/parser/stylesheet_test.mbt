@@ -226,13 +226,38 @@ test "parse stylesheet with only whitespace" {
 }
 
 ///|
-test "skip @keyframes rule" {
+test "parse @keyframes rule" {
   let css =
     #|@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     #|.fade { animation: fadeIn 1s; }
   let stylesheet = @parser.parse_stylesheet(css)
+  // The style rule is still parsed.
   inspect(stylesheet.rules.length(), content="1")
   inspect(stylesheet.rules[0].selector_text, content=".fade")
+  // The @keyframes rule is now captured.
+  inspect(stylesheet.keyframes.length(), content="1")
+  let kf = stylesheet.find_keyframes("fadeIn").unwrap()
+  inspect(kf.name, content="fadeIn")
+  inspect(kf.blocks.length(), content="2")
+  debug_inspect(kf.blocks[0].offsets, content="[0]")
+  inspect(kf.blocks[0].declarations[0].property, content="opacity")
+  debug_inspect(kf.blocks[1].offsets, content="[1]")
+}
+
+///|
+test "parse @keyframes with percentage and grouped selectors" {
+  let css =
+    #|@keyframes slide {
+    #|  0% { left: 0px; }
+    #|  50%, 75% { left: 50px; }
+    #|  100% { left: 100px; }
+    #|}
+  let stylesheet = @parser.parse_stylesheet(css)
+  let kf = stylesheet.find_keyframes("slide").unwrap()
+  inspect(kf.blocks.length(), content="3")
+  debug_inspect(kf.blocks[0].offsets, content="[0]")
+  debug_inspect(kf.blocks[1].offsets, content="[0.5, 0.75]")
+  debug_inspect(kf.blocks[2].offsets, content="[1]")
 }
 
 ///|

@@ -263,6 +263,19 @@ priv struct StyleBuilder {
   mut contain_intrinsic_block_size : Double?
   // Transform
   mut transform : @style.Transform
+  // Animation / transition properties (parallel longhand lists).
+  mut animation_name : Array[String]
+  mut animation_duration : Array[Double]
+  mut animation_timing_function : Array[@types.Easing]
+  mut animation_delay : Array[Double]
+  mut animation_iteration_count : Array[@types.AnimationIterationCount]
+  mut animation_direction : Array[@types.AnimationDirection]
+  mut animation_fill_mode : Array[@types.AnimationFillMode]
+  mut animation_play_state : Array[@types.AnimationPlayState]
+  mut transition_property : Array[String]
+  mut transition_duration : Array[Double]
+  mut transition_timing_function : Array[@types.Easing]
+  mut transition_delay : Array[Double]
   // CSS filter / backdrop-filter presence (not none). Layout uses this only
   // to know that the element establishes a containing block for abspos.
   mut has_filter : Bool
@@ -397,6 +410,18 @@ fn StyleBuilder::new() -> StyleBuilder {
     contain_intrinsic_inline_size: None,
     contain_intrinsic_block_size: None,
     transform: @style.Transform::none(),
+    animation_name: [],
+    animation_duration: [],
+    animation_timing_function: [],
+    animation_delay: [],
+    animation_iteration_count: [],
+    animation_direction: [],
+    animation_fill_mode: [],
+    animation_play_state: [],
+    transition_property: [],
+    transition_duration: [],
+    transition_timing_function: [],
+    transition_delay: [],
     has_filter: false,
     zoom: 1.0,
     border_spacing: 0.0,
@@ -527,6 +552,18 @@ fn StyleBuilder::from_style(style : @style.Style) -> StyleBuilder {
     contain_intrinsic_inline_size: style.contain_intrinsic_inline_size,
     contain_intrinsic_block_size: style.contain_intrinsic_block_size,
     transform: style.transform,
+    animation_name: style.animation_name,
+    animation_duration: style.animation_duration,
+    animation_timing_function: style.animation_timing_function,
+    animation_delay: style.animation_delay,
+    animation_iteration_count: style.animation_iteration_count,
+    animation_direction: style.animation_direction,
+    animation_fill_mode: style.animation_fill_mode,
+    animation_play_state: style.animation_play_state,
+    transition_property: style.transition_property,
+    transition_duration: style.transition_duration,
+    transition_timing_function: style.transition_timing_function,
+    transition_delay: style.transition_delay,
     has_filter: style.has_filter,
     zoom: style.zoom,
     border_spacing: style.border_spacing,
@@ -666,6 +703,18 @@ fn StyleBuilder::build(self : StyleBuilder) -> @style.Style {
     contain_intrinsic_inline_size: self.contain_intrinsic_inline_size,
     contain_intrinsic_block_size: self.contain_intrinsic_block_size,
     transform: self.transform,
+    animation_name: self.animation_name,
+    animation_duration: self.animation_duration,
+    animation_timing_function: self.animation_timing_function,
+    animation_delay: self.animation_delay,
+    animation_iteration_count: self.animation_iteration_count,
+    animation_direction: self.animation_direction,
+    animation_fill_mode: self.animation_fill_mode,
+    animation_play_state: self.animation_play_state,
+    transition_property: self.transition_property,
+    transition_duration: self.transition_duration,
+    transition_timing_function: self.transition_timing_function,
+    transition_delay: self.transition_delay,
     has_filter: self.has_filter,
     zoom: self.zoom,
     border_spacing: self.border_spacing,
@@ -2312,6 +2361,64 @@ fn apply_property(
         builder.grid_row_end = row_end
         builder.grid_column_end = column_end
       }
+    }
+    // Animation longhands
+    "animation-name" =>
+      builder.animation_name = @parser.parse_animation_name_from_string(value)
+    "animation-duration" =>
+      builder.animation_duration = @parser.parse_time_list_from_string(value)
+    "animation-timing-function" =>
+      builder.animation_timing_function = @parser.parse_easing_list_from_string(
+        value,
+      )
+    "animation-delay" =>
+      builder.animation_delay = @parser.parse_time_list_from_string(value)
+    "animation-iteration-count" =>
+      builder.animation_iteration_count = @parser.parse_iteration_count_list_from_string(
+        value,
+      )
+    "animation-direction" =>
+      builder.animation_direction = @parser.parse_direction_list_from_string(
+        value,
+      )
+    "animation-fill-mode" =>
+      builder.animation_fill_mode = @parser.parse_fill_mode_list_from_string(
+        value,
+      )
+    "animation-play-state" =>
+      builder.animation_play_state = @parser.parse_play_state_list_from_string(
+        value,
+      )
+    "animation" => {
+      let a = @parser.parse_animation_shorthand_from_string(value)
+      builder.animation_name = a.names
+      builder.animation_duration = a.durations
+      builder.animation_timing_function = a.timing_functions
+      builder.animation_delay = a.delays
+      builder.animation_iteration_count = a.iteration_counts
+      builder.animation_direction = a.directions
+      builder.animation_fill_mode = a.fill_modes
+      builder.animation_play_state = a.play_states
+    }
+    // Transition longhands
+    "transition-property" =>
+      builder.transition_property = @parser.parse_animation_name_from_string(
+        value,
+      )
+    "transition-duration" =>
+      builder.transition_duration = @parser.parse_time_list_from_string(value)
+    "transition-timing-function" =>
+      builder.transition_timing_function = @parser.parse_easing_list_from_string(
+        value,
+      )
+    "transition-delay" =>
+      builder.transition_delay = @parser.parse_time_list_from_string(value)
+    "transition" => {
+      let t = @parser.parse_transition_shorthand_from_string(value)
+      builder.transition_property = t.properties
+      builder.transition_duration = t.durations
+      builder.transition_timing_function = t.timing_functions
+      builder.transition_delay = t.delays
     }
     // Font properties
     "font-size" => builder.font_size = parse_font_size(value, ctx)

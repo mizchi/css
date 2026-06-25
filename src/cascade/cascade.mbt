@@ -137,10 +137,32 @@ pub struct CSSRule {
 }
 
 ///|
+/// One keyframe block inside an `@keyframes` rule: a set of offsets (the
+/// `from` / `to` / `<percentage>` selectors, normalized to [0, 1]) sharing the
+/// same declarations.
+pub(all) struct KeyframeBlock {
+  /// Offsets in [0, 1] this block applies to (e.g. `0%, 50%` => [0.0, 0.5]).
+  offsets : Array[Double]
+  /// Declarations declared for these offsets.
+  declarations : Array[Declaration]
+}
+
+///|
+/// A parsed `@keyframes` at-rule.
+pub(all) struct KeyframesRule {
+  /// The animation name (the identifier after `@keyframes`).
+  name : String
+  /// Keyframe blocks in source order.
+  blocks : Array[KeyframeBlock]
+}
+
+///|
 /// A stylesheet: collection of rules
 pub struct Stylesheet {
   /// Rules in source order
   rules : Array[CSSRule]
+  /// `@keyframes` rules in source order.
+  keyframes : Array[KeyframesRule]
   /// Origin of this stylesheet
   origin : Origin
   /// Lazily-built selector index for fast match candidate lookup. Invalidated
@@ -150,7 +172,32 @@ pub struct Stylesheet {
 
 ///|
 pub fn Stylesheet::new(origin : Origin) -> Stylesheet {
-  { rules: [], origin, cached_index: None }
+  { rules: [], keyframes: [], origin, cached_index: None }
+}
+
+///|
+/// Add a parsed `@keyframes` rule to the stylesheet.
+pub fn Stylesheet::add_keyframes(
+  self : Stylesheet,
+  rule : KeyframesRule,
+) -> Unit {
+  self.keyframes.push(rule)
+}
+
+///|
+/// Find the last `@keyframes` rule with the given name (later rules win, per
+/// the CSS cascade). Returns None if no such rule exists.
+pub fn Stylesheet::find_keyframes(
+  self : Stylesheet,
+  name : String,
+) -> KeyframesRule? {
+  let mut found : KeyframesRule? = None
+  for kf in self.keyframes {
+    if kf.name == name {
+      found = Some(kf)
+    }
+  }
+  found
 }
 
 ///|

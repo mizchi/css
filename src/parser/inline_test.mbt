@@ -33,6 +33,56 @@ test "inline parser grid-area: named area vs four lines" {
 }
 
 ///|
+test "inline parser animation shorthand" {
+  let s = parse_inline_style(
+    "animation: slide 2s ease-in-out 0.5s infinite alternate both",
+  )
+  debug_inspect(s.animation_name, content="[\"slide\"]")
+  debug_inspect(s.animation_duration, content="[2]")
+  inspect(s.animation_timing_function[0], content="EaseInOut")
+  debug_inspect(s.animation_delay, content="[0.5]")
+  inspect(s.animation_iteration_count[0], content="Infinite")
+  inspect(s.animation_direction[0], content="Alternate")
+  inspect(s.animation_fill_mode[0], content="Both")
+}
+
+///|
+test "inline parser animation list with cubic-bezier (internal commas)" {
+  let s = parse_inline_style(
+    "animation: a 1s cubic-bezier(0.1, 0.2, 0.3, 0.4), b 2s linear",
+  )
+  debug_inspect(s.animation_name, content="[\"a\", \"b\"]")
+  debug_inspect(s.animation_duration, content="[1, 2]")
+  inspect(
+    s.animation_timing_function[0],
+    content="CubicBezier(0.1, 0.2, 0.3, 0.4)",
+  )
+  inspect(s.animation_timing_function[1], content="Linear")
+}
+
+///|
+test "inline parser animation longhands" {
+  let s = parse_inline_style(
+    "animation-name: a, b; animation-duration: 1s, 200ms; animation-iteration-count: 3, infinite",
+  )
+  debug_inspect(s.animation_name, content="[\"a\", \"b\"]")
+  debug_inspect(s.animation_duration, content="[1, 0.2]")
+  inspect(s.animation_iteration_count[0], content="Count(3)")
+  inspect(s.animation_iteration_count[1], content="Infinite")
+}
+
+///|
+test "inline parser transition shorthand" {
+  let s = parse_inline_style(
+    "transition: opacity 0.3s ease-in 0.1s, transform 1s",
+  )
+  debug_inspect(s.transition_property, content="[\"opacity\", \"transform\"]")
+  debug_inspect(s.transition_duration, content="[0.3, 1]")
+  inspect(s.transition_timing_function[0], content="EaseIn")
+  debug_inspect(s.transition_delay, content="[0.1, 0]")
+}
+
+///|
 test "parse_inline_style calc with unitless multiplier" {
   inspect(
     parse_inline_style("width: calc(10px * 2)").width,

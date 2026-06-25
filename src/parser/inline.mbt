@@ -4469,6 +4469,82 @@ fn apply_property(
       }
     }
   }
+  // Animation longhands
+  if property == "animation-name" {
+    return { ..style, animation_name: parse_ident_list(value_tokens) }
+  }
+  if property == "animation-duration" {
+    return { ..style, animation_duration: parse_time_list(value_tokens) }
+  }
+  if property == "animation-timing-function" {
+    return {
+      ..style,
+      animation_timing_function: parse_easing_list(value_tokens),
+    }
+  }
+  if property == "animation-delay" {
+    return { ..style, animation_delay: parse_time_list(value_tokens) }
+  }
+  if property == "animation-iteration-count" {
+    return {
+      ..style,
+      animation_iteration_count: parse_iteration_count_list(value_tokens),
+    }
+  }
+  if property == "animation-direction" {
+    return { ..style, animation_direction: parse_direction_list(value_tokens) }
+  }
+  if property == "animation-fill-mode" {
+    return { ..style, animation_fill_mode: parse_fill_mode_list(value_tokens) }
+  }
+  if property == "animation-play-state" {
+    return {
+      ..style,
+      animation_play_state: parse_play_state_list(value_tokens),
+    }
+  }
+  // animation shorthand
+  if property == "animation" {
+    let a = parse_animation_shorthand(value_tokens)
+    return {
+      ..style,
+      animation_name: a.names,
+      animation_duration: a.durations,
+      animation_timing_function: a.timing_functions,
+      animation_delay: a.delays,
+      animation_iteration_count: a.iteration_counts,
+      animation_direction: a.directions,
+      animation_fill_mode: a.fill_modes,
+      animation_play_state: a.play_states,
+    }
+  }
+  // Transition longhands
+  if property == "transition-property" {
+    return { ..style, transition_property: parse_ident_list(value_tokens) }
+  }
+  if property == "transition-duration" {
+    return { ..style, transition_duration: parse_time_list(value_tokens) }
+  }
+  if property == "transition-timing-function" {
+    return {
+      ..style,
+      transition_timing_function: parse_easing_list(value_tokens),
+    }
+  }
+  if property == "transition-delay" {
+    return { ..style, transition_delay: parse_time_list(value_tokens) }
+  }
+  // transition shorthand
+  if property == "transition" {
+    let t = parse_transition_shorthand(value_tokens)
+    return {
+      ..style,
+      transition_property: t.properties,
+      transition_duration: t.durations,
+      transition_timing_function: t.timing_functions,
+      transition_delay: t.delays,
+    }
+  }
   // contain
   if property == "contain" {
     let contain = parse_contain(value_tokens)

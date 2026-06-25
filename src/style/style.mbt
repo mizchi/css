@@ -999,6 +999,21 @@ pub(all) struct Style {
   mut contain_intrinsic_block_size : Double?
   // CSS transform (visual offset, applied in paint phase)
   mut transform : Transform
+  // Animation properties (parallel longhand lists; index = animation in the
+  // comma-separated list). Set by the `animation` shorthand or the longhands.
+  animation_name : Array[String]
+  animation_duration : Array[Double] // seconds
+  animation_timing_function : Array[@types.Easing]
+  animation_delay : Array[Double] // seconds
+  animation_iteration_count : Array[@types.AnimationIterationCount]
+  animation_direction : Array[@types.AnimationDirection]
+  animation_fill_mode : Array[@types.AnimationFillMode]
+  animation_play_state : Array[@types.AnimationPlayState]
+  // Transition properties (parallel longhand lists).
+  transition_property : Array[String]
+  transition_duration : Array[Double] // seconds
+  transition_timing_function : Array[@types.Easing]
+  transition_delay : Array[Double] // seconds
   // CSS filter / backdrop-filter presence flag. Layout only cares whether
   // such a property establishes a containing block for abspos descendants,
   // not the actual filter functions.
@@ -1141,6 +1156,18 @@ pub fn Style::default() -> Style {
     contain_intrinsic_inline_size: None,
     contain_intrinsic_block_size: None,
     transform: Transform::none(),
+    animation_name: [],
+    animation_duration: [],
+    animation_timing_function: [],
+    animation_delay: [],
+    animation_iteration_count: [],
+    animation_direction: [],
+    animation_fill_mode: [],
+    animation_play_state: [],
+    transition_property: [],
+    transition_duration: [],
+    transition_timing_function: [],
+    transition_delay: [],
     has_filter: false,
     zoom: 1.0,
     border_spacing: 0.0,

@@ -1,15 +1,18 @@
 import {
   "moonbitlang/core/cmp",
   "moonbitlang/core/math",
+  "moonbitlang/core/double",
   "moonbitlang/core/string",
   "mizchi/css/cascade",
   "mizchi/css/parser",
   "mizchi/css/style",
+  "mizchi/css/animation",
   "mizchi/css/values" @types,
 }
 
 import {
   "mizchi/css/selector",
+  "mizchi/css/animation",
 } for "test"
 
 import {

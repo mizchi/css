@@ -131,6 +131,77 @@ pub(all) enum GridTemplateKind {
 } derive(Debug, Eq)
 
 ///|
+/// `animation-direction` value.
+pub(all) enum AnimationDirection {
+  Normal
+  Reverse
+  Alternate
+  AlternateReverse
+} derive(Debug, Eq)
+
+///|
+/// `animation-fill-mode` value.
+pub(all) enum AnimationFillMode {
+  None
+  Forwards
+  Backwards
+  Both
+} derive(Debug, Eq)
+
+///|
+/// `animation-play-state` value.
+pub(all) enum AnimationPlayState {
+  Running
+  Paused
+} derive(Debug, Eq)
+
+///|
+/// `animation-iteration-count` value (`<number>` or `infinite`).
+pub(all) enum AnimationIterationCount {
+  Count(Double)
+  Infinite
+} derive(Debug, Eq)
+
+///|
+pub impl Show for AnimationDirection with output(self, logger) {
+  let name = match self {
+    Normal => "Normal"
+    Reverse => "Reverse"
+    Alternate => "Alternate"
+    AlternateReverse => "AlternateReverse"
+  }
+  logger.write_string(name)
+}
+
+///|
+pub impl Show for AnimationFillMode with output(self, logger) {
+  let name = match self {
+    None => "None"
+    Forwards => "Forwards"
+    Backwards => "Backwards"
+    Both => "Both"
+  }
+  logger.write_string(name)
+}
+
+///|
+pub impl Show for AnimationPlayState with output(self, logger) {
+  let name = match self {
+    Running => "Running"
+    Paused => "Paused"
+  }
+  logger.write_string(name)
+}
+
+///|
+pub impl Show for AnimationIterationCount with output(self, logger) {
+  match self {
+    Count(v) => logger.write_string("Count(\{v})")
+    Infinite => logger.write_string("Infinite")
+  }
+}
+
+///|
 /// Grid line placement for grid items
 pub(all) enum GridPlacement {
   Auto
