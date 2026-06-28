@@ -884,7 +884,7 @@ pub struct BoxShadow {
   blur_radius : Double
   spread_radius : Double
   color : @types.Color
-}
+} derive(Debug, Eq)
 
 ///|
 pub fn BoxShadow::new(
@@ -1064,7 +1064,7 @@ pub(all) struct Style {
   // Letter/word spacing
   mut letter_spacing : Double // in pixels, 0 = normal
   mut word_spacing : Double // in pixels, 0 = normal
-}
+} derive(Debug, Eq)
 
 ///|
 pub fn Style::default() -> Style {

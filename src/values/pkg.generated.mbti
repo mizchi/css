@@ -58,7 +58,7 @@ pub impl Show for Alignment
 pub(all) enum BackgroundImage {
   None
   Gradient(LinearGradient)
-}
+} derive(Eq, @debug.Debug)
 pub impl Show for BackgroundImage
 
 pub(all) struct BoundingRect {
@@ -92,7 +92,7 @@ pub impl Show for Clear
 pub(all) enum ClipRect {
   Auto
   Rect(top~ : Double, right~ : Double, bottom~ : Double, left~ : Double)
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn ClipRect::default() -> Self
 pub impl Show for ClipRect
 
@@ -101,7 +101,7 @@ pub(all) struct Color {
   g : Int
   b : Int
   a : Double
-}
+} derive(@debug.Debug)
 pub fn Color::black() -> Self
 pub fn Color::is_opaque(Self) -> Bool
 pub fn Color::is_transparent(Self) -> Bool
@@ -123,7 +123,7 @@ pub(all) enum Dimension {
   FitContent(Double)
   Calc(Double, Double)
   MathFn(MathOp, Array[(Double, Double)])
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 pub fn Dimension::eq_length(Self, Double) -> Bool
 pub fn Dimension::eq_percent(Self, Double) -> Bool
 pub fn Dimension::is_definite(Self) -> Bool
@@ -238,7 +238,7 @@ pub impl Show for Float
 pub(all) struct GradientStop {
   color : Color
   position : Double
-}
+} derive(Eq, @debug.Debug)
 pub impl Show for GradientStop
 
 pub(all) enum GridAutoFlow {
@@ -280,7 +280,7 @@ pub impl Show for LinearEasingPoint
 pub(all) struct LinearGradient {
   angle_deg : Double
   stops : Array[GradientStop]
-}
+} derive(Eq, @debug.Debug)
 pub impl Show for LinearGradient
 
 pub(all) enum MathOp {
@@ -339,7 +339,7 @@ pub(all) struct Rect[T] {
   right : T
   top : T
   bottom : T
-}
+} derive(Eq, @debug.Debug)
 pub fn[T] Rect::all(T) -> Self[T]
 pub fn Rect::horizontal_sum(Self[Double]) -> Double
 pub fn[T, U] Rect::map(Self[T], (T) -> U) -> Self[U]
@@ -402,4 +402,3 @@ pub impl Show for TrackSizingFunction
 // Type aliases
 
 // Traits
-

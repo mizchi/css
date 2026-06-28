@@ -39,7 +39,7 @@ pub struct BoxShadow {
   blur_radius : Double
   spread_radius : Double
   color : @values.Color
-}
+} derive(Eq, @debug.Debug)
 pub fn BoxShadow::new(Bool, Double, Double, Double, Double, @values.Color) -> Self
 
 pub(all) enum BreakBefore {
@@ -256,7 +256,7 @@ pub(all) struct Style {
   mut text_decoration_overline : Bool
   mut letter_spacing : Double
   mut word_spacing : Double
-}
+} derive(Eq, @debug.Debug)
 pub fn Style::contained_intrinsic_height_fallback(Self) -> Double
 pub fn Style::contained_intrinsic_width_fallback(Self) -> Double
 pub fn Style::default() -> Self
@@ -364,4 +364,3 @@ pub impl Show for ZIndex
 // Type aliases
 
 // Traits
-

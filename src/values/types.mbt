@@ -94,7 +94,7 @@ pub(all) struct Rect[T] {
   right : T
   top : T
   bottom : T
-}
+} derive(Debug, Eq)
 
 ///|
 pub fn[T] Rect::new(left : T, right : T, top : T, bottom : T) -> Rect[T] {
@@ -1098,7 +1098,7 @@ pub(all) enum Dimension {
   // be ordered until a containing-block basis is known. Each argument is a
   // linear (px, percent_ratio) form. Resolved at layout time like Calc.
   MathFn(MathOp, Array[(Double, Double)])
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 /// Check if dimension equals a specific length value
@@ -1485,7 +1485,7 @@ pub(all) enum ClipRect {
   /// clip: rect(top, right, bottom, left)
   /// Values are offsets from the element's edges
   Rect(top~ : Double, right~ : Double, bottom~ : Double, left~ : Double)
-} derive(Eq)
+} derive(Debug, Eq)
 
 ///|
 pub impl Show for ClipRect with fn output(self, logger) {

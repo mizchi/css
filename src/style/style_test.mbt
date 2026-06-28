@@ -7,6 +7,15 @@ test "Style::default" {
 }
 
 ///|
+test "Style::Eq compares all fields" {
+  let base = Style::default()
+  let same = Style::default()
+  let changed = { ..Style::default(), width: @types.Length(120.0) }
+  assert_true(base == same)
+  assert_false(base == changed)
+}
+
+///|
 test "Style::has_multicol_true_for_column_count_one" {
   let style = { ..Style::default(), column_count: Some(1) }
   assert_true(style.has_multicol())
