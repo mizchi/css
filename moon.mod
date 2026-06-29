@@ -1,6 +1,6 @@
 name = "mizchi/css"
 
-version = "0.7.1"
+version = "0.7.2"
 
 readme = "README.md"
 
