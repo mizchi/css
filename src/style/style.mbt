@@ -1067,6 +1067,101 @@ pub(all) struct Style {
 } derive(Debug, Eq)
 
 ///|
+/// Compare only fields that can affect layout results.
+///
+/// Paint-only fields such as colors, backgrounds, shadows, opacity,
+/// pointer-events, z-index, and clipping are intentionally ignored so callers
+/// can distinguish layout invalidation from repaint-only changes.
+pub fn Style::layout_eq(self : Style, other : Style) -> Bool {
+  self.display == other.display &&
+  self.position == other.position &&
+  self.float == other.float &&
+  self.clear == other.clear &&
+  self.box_sizing == other.box_sizing &&
+  self.overflow_x == other.overflow_x &&
+  self.overflow_y == other.overflow_y &&
+  self.width == other.width &&
+  self.height == other.height &&
+  self.min_width == other.min_width &&
+  self.min_height == other.min_height &&
+  self.max_width == other.max_width &&
+  self.max_height == other.max_height &&
+  self.margin == other.margin &&
+  self.padding == other.padding &&
+  self.border == other.border &&
+  self.border_style == other.border_style &&
+  self.margin_trim == other.margin_trim &&
+  self.flex_direction == other.flex_direction &&
+  self.flex_wrap == other.flex_wrap &&
+  self.justify_content == other.justify_content &&
+  self.align_items == other.align_items &&
+  self.align_content == other.align_content &&
+  self.justify_content_unsafe == other.justify_content_unsafe &&
+  self.align_content_unsafe == other.align_content_unsafe &&
+  self.align_self == other.align_self &&
+  self.flex_grow == other.flex_grow &&
+  self.flex_shrink == other.flex_shrink &&
+  self.flex_basis == other.flex_basis &&
+  self.order == other.order &&
+  self.row_gap == other.row_gap &&
+  self.column_gap == other.column_gap &&
+  self.column_gap_is_normal == other.column_gap_is_normal &&
+  self.column_count == other.column_count &&
+  self.column_width == other.column_width &&
+  self.column_fill == other.column_fill &&
+  self.aspect_ratio == other.aspect_ratio &&
+  self.inset == other.inset &&
+  self.grid_template_rows == other.grid_template_rows &&
+  self.grid_template_columns == other.grid_template_columns &&
+  self.grid_auto_rows == other.grid_auto_rows &&
+  self.grid_auto_columns == other.grid_auto_columns &&
+  self.grid_auto_flow == other.grid_auto_flow &&
+  self.grid_template_column_line_names ==
+  other.grid_template_column_line_names &&
+  self.grid_template_row_line_names == other.grid_template_row_line_names &&
+  self.grid_template_columns_kind == other.grid_template_columns_kind &&
+  self.grid_template_rows_kind == other.grid_template_rows_kind &&
+  self.grid_template_areas == other.grid_template_areas &&
+  self.grid_row == other.grid_row &&
+  self.grid_column == other.grid_column &&
+  self.grid_area == other.grid_area &&
+  self.justify_items == other.justify_items &&
+  self.justify_self == other.justify_self &&
+  self.font_size == other.font_size &&
+  self.font_weight == other.font_weight &&
+  self.font_family == other.font_family &&
+  self.line_height == other.line_height &&
+  self.text_align == other.text_align &&
+  self.white_space == other.white_space &&
+  self.text_overflow == other.text_overflow &&
+  self.writing_mode == other.writing_mode &&
+  self.direction == other.direction &&
+  self.vertical_align == other.vertical_align &&
+  self.visibility == other.visibility &&
+  self.contain == other.contain &&
+  self.break_before == other.break_before &&
+  self.break_after == other.break_after &&
+  self.break_inside == other.break_inside &&
+  self.column_span == other.column_span &&
+  self.contain_intrinsic_inline_size ==
+  other.contain_intrinsic_inline_size &&
+  self.contain_intrinsic_block_size == other.contain_intrinsic_block_size &&
+  self.transform == other.transform &&
+  self.individual_transform == other.individual_transform &&
+  self.has_filter == other.has_filter &&
+  self.zoom == other.zoom &&
+  self.border_spacing == other.border_spacing &&
+  self.border_spacing_vertical == other.border_spacing_vertical &&
+  self.border_collapse == other.border_collapse &&
+  self.table_layout == other.table_layout &&
+  self.caption_side == other.caption_side &&
+  self.rowspan == other.rowspan &&
+  self.colspan == other.colspan &&
+  self.letter_spacing == other.letter_spacing &&
+  self.word_spacing == other.word_spacing
+}
+
+///|
 pub fn Style::default() -> Style {
   {
     display: @types.Block,

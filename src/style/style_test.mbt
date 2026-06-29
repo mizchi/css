@@ -16,6 +16,29 @@ test "Style::Eq compares all fields" {
 }
 
 ///|
+test "Style::layout_eq compares layout fields only" {
+  let base = Style::default()
+  let same = Style::default()
+  let layout_changed = { ..Style::default(), width: @types.Length(120.0) }
+  let paint_changed = {
+    ..Style::default(),
+    color: @types.Color::white(),
+    background_color: @types.Color::rgba(10, 20, 30, 0.5),
+    box_shadows: [
+      BoxShadow::new(false, 1.0, 2.0, 3.0, 4.0, @types.Color::black()),
+    ],
+  }
+  let containing_block_changed = {
+    ..Style::default(),
+    transform: { ..Transform::none(), translate_x: TranslateValue::Length(1.0) },
+  }
+  assert_true(base.layout_eq(same))
+  assert_false(base.layout_eq(layout_changed))
+  assert_true(base.layout_eq(paint_changed))
+  assert_false(base.layout_eq(containing_block_changed))
+}
+
+///|
 test "Style::has_multicol_true_for_column_count_one" {
   let style = { ..Style::default(), column_count: Some(1) }
   assert_true(style.has_multicol())

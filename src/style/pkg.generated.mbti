@@ -261,6 +261,7 @@ pub fn Style::contained_intrinsic_height_fallback(Self) -> Double
 pub fn Style::contained_intrinsic_width_fallback(Self) -> Double
 pub fn Style::default() -> Self
 pub fn Style::has_multicol(Self) -> Bool
+pub fn Style::layout_eq(Self, Self) -> Bool
 pub fn Style::suppresses_intrinsic_height(Self) -> Bool
 pub fn Style::suppresses_intrinsic_width(Self) -> Bool
 
