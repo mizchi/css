@@ -79,7 +79,7 @@ pub(all) enum AlignSelf {
 
 ///|
 /// CSS float property
-pub(all) enum Float {
+pub(all) enum CssFloat {
   None
   Left
   Right
@@ -386,7 +386,7 @@ pub impl Show for AlignSelf with output(self, logger) {
 }
 
 ///|
-pub impl Show for Float with output(self, logger) {
+pub impl Show for CssFloat with output(self, logger) {
   let name = match self {
     None => "None"
     Left => "Left"

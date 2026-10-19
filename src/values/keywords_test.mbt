@@ -72,10 +72,10 @@ test "Show for AlignSelf" {
 }
 
 ///|
-test "Show for Float, Clear, Overflow, BoxSizing" {
-  inspect(Float::None, content="None")
-  inspect(Float::Left, content="Left")
-  inspect(Float::Right, content="Right")
+test "Show for CssFloat, Clear, Overflow, BoxSizing" {
+  inspect(CssFloat::None, content="None")
+  inspect(CssFloat::Left, content="Left")
+  inspect(CssFloat::Right, content="Right")
   inspect(Clear::None, content="None")
   inspect(Clear::Both, content="Both")
   inspect(Overflow::Visible, content="Visible")

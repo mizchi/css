@@ -351,12 +351,12 @@ pub fn parse_position(value : String) -> @types.Position {
 
 ///|
 /// Parse float value
-pub fn parse_float(value : String) -> @types.Float {
+pub fn parse_float(value : String) -> @types.CssFloat {
   match value.trim().to_lower() {
-    "left" => @types.Float::Left
-    "right" => @types.Float::Right
-    "none" => @types.Float::None
-    _ => @types.Float::None
+    "left" => @types.CssFloat::Left
+    "right" => @types.CssFloat::Right
+    "none" => @types.CssFloat::None
+    _ => @types.CssFloat::None
   }
 }
 
@@ -364,19 +364,19 @@ pub fn parse_float(value : String) -> @types.Float {
 pub fn parse_float_with_direction(
   value : String,
   direction : @style.Direction,
-) -> @types.Float {
+) -> @types.CssFloat {
   match value.trim().to_lower() {
     "inline-start" =>
       if direction.is_rtl() {
-        @types.Float::Right
+        @types.CssFloat::Right
       } else {
-        @types.Float::Left
+        @types.CssFloat::Left
       }
     "inline-end" =>
       if direction.is_rtl() {
-        @types.Float::Left
+        @types.CssFloat::Left
       } else {
-        @types.Float::Right
+        @types.CssFloat::Right
       }
     _ => parse_float(value)
   }

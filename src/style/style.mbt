@@ -904,7 +904,7 @@ pub fn BoxShadow::new(
 pub(all) struct Style {
   mut display : @types.Display
   mut position : @types.Position
-  mut float : @types.Float
+  mut float : @types.CssFloat
   mut clear : @types.Clear
   // Box sizing
   mut box_sizing : @types.BoxSizing
@@ -1166,7 +1166,7 @@ pub fn Style::default() -> Style {
   {
     display: @types.Block,
     position: @types.Static,
-    float: @types.Float::None,
+    float: @types.CssFloat::None,
     clear: @types.Clear::None,
     box_sizing: @types.ContentBox,
     overflow_x: @types.Visible,

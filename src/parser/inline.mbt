@@ -567,34 +567,34 @@ fn parse_position(tokens : ArrayView[@token.Token]) -> @types.Position? {
 fn parse_float(
   tokens : ArrayView[@token.Token],
   direction : @style.Direction,
-) -> @types.Float? {
+) -> @types.CssFloat? {
   if tokens.length() == 0 {
     return None
   }
   match tokens[0] {
     @token.Token::Ident(s) =>
       if s == "left" {
-        Some(@types.Float::Left)
+        Some(@types.CssFloat::Left)
       } else if s == "right" {
-        Some(@types.Float::Right)
+        Some(@types.CssFloat::Right)
       } else if s == "inline-start" {
         Some(
           if direction.is_rtl() {
-            @types.Float::Right
+            @types.CssFloat::Right
           } else {
-            @types.Float::Left
+            @types.CssFloat::Left
           },
         )
       } else if s == "inline-end" {
         Some(
           if direction.is_rtl() {
-            @types.Float::Left
+            @types.CssFloat::Left
           } else {
-            @types.Float::Right
+            @types.CssFloat::Right
           },
         )
       } else if s == "none" {
-        Some(@types.Float::None)
+        Some(@types.CssFloat::None)
       } else {
         None
       }

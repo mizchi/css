@@ -146,7 +146,7 @@ pub fn ComputeContext::with_viewport(
 priv struct StyleBuilder {
   mut display : @types.Display
   mut position : @types.Position
-  mut float : @types.Float
+  mut float : @types.CssFloat
   mut clear : @types.Clear
   mut box_sizing : @types.BoxSizing
   mut overflow_x : @types.Overflow
@@ -308,7 +308,7 @@ fn StyleBuilder::new() -> StyleBuilder {
   {
     display: @types.Display::Block,
     position: @types.Position::Static,
-    float: @types.Float::None,
+    float: @types.CssFloat::None,
     clear: @types.Clear::None,
     box_sizing: @types.BoxSizing::ContentBox,
     overflow_x: @types.Overflow::Visible,
