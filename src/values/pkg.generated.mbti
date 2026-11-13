@@ -20,6 +20,8 @@ pub fn min(Double, Double) -> Double
 
 pub fn parse_easing(String) -> Easing?
 
+pub fn parse_flex_flow(String) -> (FlexDirection, FlexWrap)?
+
 pub fn parse_flex_shorthand(String) -> FlexShorthand?
 
 pub fn resolve_dimensions_with_aspect_ratio(Double?, Double?, Double?, Double, Double, Double, Double) -> (Double?, Double?)

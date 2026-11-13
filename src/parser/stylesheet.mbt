@@ -1418,6 +1418,7 @@ fn is_valid_declaration(property : String, value : String) -> Bool {
   }
   match property.to_lower() {
     "flex" => @types.parse_flex_shorthand(value) is Some(_)
+    "flex-flow" => @types.parse_flex_flow(value) is Some(_)
     _ => true
   }
 }

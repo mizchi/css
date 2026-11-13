@@ -181,3 +181,16 @@ test "flex-basis content is the content size, not auto" {
   inspect(leaf(".b { flex: content 2 }").flex_basis, content="MaxContent")
   inspect(leaf(".b { flex-basis: auto }").flex_basis, content="Auto")
 }
+
+///|
+test "flex-flow resets the omitted longhand to its initial value" {
+  let s = leaf(".b.b { flex-flow: column } .b { flex-wrap: wrap-reverse }")
+  inspect(s.flex_direction, content="Column")
+  inspect(s.flex_wrap, content="NoWrap")
+  let t = leaf(".b { flex-direction: column } .b { flex-flow: wrap }")
+  inspect(t.flex_direction, content="Row")
+  inspect(t.flex_wrap, content="Wrap")
+  let u = leaf(".b { flex-flow: column wrap } .b { flex-flow: row column }")
+  inspect(u.flex_direction, content="Column")
+  inspect(u.flex_wrap, content="Wrap")
+}

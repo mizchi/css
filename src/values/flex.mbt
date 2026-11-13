@@ -149,3 +149,36 @@ pub fn parse_flex_shorthand(value : String) -> FlexShorthand? {
     basis: basis.unwrap_or("0%"),
   })
 }
+
+///|
+/// `flex-flow: <'flex-direction'> || <'flex-wrap'>`. An omitted component is
+/// its initial value (row, nowrap). Returns None for an invalid value.
+pub fn parse_flex_flow(value : String) -> (FlexDirection, FlexWrap)? {
+  let mut direction : FlexDirection? = None
+  let mut wrap : FlexWrap? = None
+  let tokens = top_level_tokens(value.trim().to_lower().to_owned())
+  if tokens.is_empty() {
+    return None
+  }
+  for token in tokens {
+    let d : FlexDirection? = match token {
+      "row" => Some(Row)
+      "row-reverse" => Some(RowReverse)
+      "column" => Some(Column)
+      "column-reverse" => Some(ColumnReverse)
+      _ => None
+    }
+    let w : FlexWrap? = match token {
+      "nowrap" => Some(NoWrap)
+      "wrap" => Some(Wrap)
+      "wrap-reverse" => Some(WrapReverse)
+      _ => None
+    }
+    match (d, w) {
+      (Some(_), _) if direction is None => direction = d
+      (_, Some(_)) if wrap is None => wrap = w
+      _ => return None
+    }
+  }
+  Some((direction.unwrap_or(Row), wrap.unwrap_or(NoWrap)))
+}

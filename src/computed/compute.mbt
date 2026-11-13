@@ -2168,33 +2168,15 @@ fn apply_property(
         None => ()
       }
     // flex-flow shorthand: <flex-direction> || <flex-wrap>
-    "flex-flow" => {
-      let parts : Array[StringView] = value
-        .trim()
-        .split(" ")
-        .filter(fn(s) { !s.is_empty() })
-        .collect()
-      for part in parts {
-        let p = part.to_owned()
-        // Check flex-direction values
-        if p == "row" {
-          builder.flex_direction = @types.FlexDirection::Row
-        } else if p == "row-reverse" {
-          builder.flex_direction = @types.FlexDirection::RowReverse
-        } else if p == "column" {
-          builder.flex_direction = @types.FlexDirection::Column
-        } else if p == "column-reverse" {
-          builder.flex_direction = @types.FlexDirection::ColumnReverse
-          // Check flex-wrap values
-        } else if p == "nowrap" {
-          builder.flex_wrap = @types.FlexWrap::NoWrap
-        } else if p == "wrap" {
-          builder.flex_wrap = @types.FlexWrap::Wrap
-        } else if p == "wrap-reverse" {
-          builder.flex_wrap = @types.FlexWrap::WrapReverse
+    "flex-flow" =>
+      // Both longhands are set; an omitted one takes its initial value.
+      match @types.parse_flex_flow(value) {
+        Some((direction, wrap)) => {
+          builder.flex_direction = direction
+          builder.flex_wrap = wrap
         }
+        None => ()
       }
-    }
     // Gap (grid-gap is legacy alias)
     "gap" | "grid-gap" => {
       let parts : Array[StringView] = value
