@@ -814,8 +814,8 @@ test "is_inherited" {
 
 ///|
 test "initial_value" {
-  inspect(@computed.initial_value("display"), content="block")
-  inspect(@computed.initial_value("position"), content="relative")
+  inspect(@computed.initial_value("display"), content="inline")
+  inspect(@computed.initial_value("position"), content="static")
   inspect(@computed.initial_value("flex-direction"), content="row")
   inspect(@computed.initial_value("flex-grow"), content="0")
   inspect(@computed.initial_value("flex-shrink"), content="1")
@@ -2470,7 +2470,7 @@ test "compute_inline initial keyword resets to default" {
   let ctx = @computed.ComputeContext::new()
   let style = @computed.compute_inline("display: flex; display: initial", ctx)
   // initial resets back to block (the initial value for display)
-  inspect(style.display, content="Block")
+  inspect(style.display, content="Inline")
 }
 
 ///|
@@ -3359,8 +3359,8 @@ test "Initial keyword - all properties" {
     ]),
     ctx,
   )
-  inspect(s.display, content="Block") // initial display
-  inspect(s.position, content="Relative")
+  inspect(s.display, content="Inline") // initial display
+  inspect(s.position, content="Static")
 }
 
 ///|
@@ -3399,7 +3399,7 @@ test "Unset keyword on non-inherited property uses initial" {
   }
   let s = @computed.compute(@cascade.cascade([decl]), ctx)
   // display is non-inherited, so unset → initial → block
-  inspect(s.display, content="Block")
+  inspect(s.display, content="Inline")
 }
 
 ///|
@@ -3414,7 +3414,7 @@ test "Revert keyword falls back to initial" {
     source_order: 0,
   }
   let s = @computed.compute(@cascade.cascade([decl]), ctx)
-  inspect(s.display, content="Block")
+  inspect(s.display, content="Inline")
 }
 
 ///|
@@ -3521,5 +3521,5 @@ test "RevertLayer keyword falls back to initial" {
     source_order: 0,
   }
   let s = @computed.compute(@cascade.cascade([decl]), ctx)
-  inspect(s.position, content="Relative")
+  inspect(s.position, content="Static")
 }

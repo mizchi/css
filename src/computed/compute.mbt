@@ -589,7 +589,27 @@ fn StyleBuilder::from_style(style : @style.Style) -> StyleBuilder {
 }
 
 ///|
+/// CSS Overflow 3: if one axis is neither visible nor clip, visible computes
+/// to auto and clip computes to hidden on the other axis.
+fn coerce_overflow(
+  value : @types.Overflow,
+  other : @types.Overflow,
+) -> @types.Overflow {
+  match other {
+    @types.Overflow::Visible | @types.Overflow::Clip => value
+    _ =>
+      match value {
+        @types.Overflow::Visible => @types.Overflow::Auto
+        @types.Overflow::Clip => @types.Overflow::Hidden
+        v => v
+      }
+  }
+}
+
+///|
 fn StyleBuilder::build(self : StyleBuilder) -> @style.Style {
+  self.overflow_x = coerce_overflow(self.overflow_x, self.overflow_y)
+  self.overflow_y = coerce_overflow(self.overflow_y, self.overflow_x)
   {
     display: self.display,
     position: self.position,
@@ -826,6 +846,50 @@ fn get_style_value_as_string(property : String, style : @style.Style) -> String 
         @types.FlexWrap::Wrap => "wrap"
         @types.FlexWrap::WrapReverse => "wrap-reverse"
       }
+    "box-sizing" =>
+      match style.box_sizing {
+        @types.BoxSizing::BorderBox => "border-box"
+        @types.BoxSizing::ContentBox => "content-box"
+      }
+    "overflow-x" => overflow_to_string(style.overflow_x)
+    "overflow-y" => overflow_to_string(style.overflow_y)
+    "overflow" =>
+      overflow_to_string(style.overflow_x) +
+      " " +
+      overflow_to_string(style.overflow_y)
+    "row-gap" => dimension_to_string(style.row_gap)
+    "column-gap" =>
+      if style.column_gap_is_normal {
+        "normal"
+      } else {
+        dimension_to_string(style.column_gap)
+      }
+    "gap" =>
+      dimension_to_string(style.row_gap) +
+      " " +
+      (if style.column_gap_is_normal {
+        "normal"
+      } else {
+        dimension_to_string(style.column_gap)
+      })
+    "padding" =>
+      [
+        style.padding.top,
+        style.padding.right,
+        style.padding.bottom,
+        style.padding.left,
+      ]
+      .map(dimension_to_string)
+      .join(" ")
+    "margin" =>
+      [
+        style.margin.top,
+        style.margin.right,
+        style.margin.bottom,
+        style.margin.left,
+      ]
+      .map(dimension_to_string)
+      .join(" ")
     "width" => dimension_to_string(style.width)
     "height" => dimension_to_string(style.height)
     "min-width" => dimension_to_string(style.min_width)
@@ -969,6 +1033,17 @@ fn get_style_value_as_string(property : String, style : @style.Style) -> String 
 }
 
 ///|
+fn overflow_to_string(value : @types.Overflow) -> String {
+  match value {
+    @types.Overflow::Visible => "visible"
+    @types.Overflow::Hidden => "hidden"
+    @types.Overflow::Clip => "clip"
+    @types.Overflow::Scroll => "scroll"
+    @types.Overflow::Auto => "auto"
+  }
+}
+
+///|
 /// Convert dimension to string
 fn dimension_to_string(dim : @types.Dimension) -> String {
   match dim {
@@ -1065,13 +1140,7 @@ pub fn compute(
 
   // First pass: collect custom properties (--*)
   // Custom properties are stored in the context for var() resolution
-  cascaded.each(fn(prop, decl) {
-    if starts_with(prop, "--") {
-      let value = resolve_keyword(prop, decl.value, ctx)
-      // Store custom property in context
-      ctx.custom_properties[prop] = value
-    }
-  })
+  collect_custom_properties(cascaded, ctx)
   seed_effective_color_scheme(cascaded, ctx)
 
   seed_direction(builder, cascaded, ctx)
@@ -1082,9 +1151,9 @@ pub fn compute(
   let font_ctx = seed_font_metrics(builder, cascaded, ctx)
 
   // Second pass: apply regular properties with var() resolution
-  for item in regular_declarations_in_source_order(cascaded) {
+  for item in regular_declarations_in_cascade_order(cascaded) {
     let (prop, decl) = item
-    let value = resolve_keyword(prop, decl.value, font_ctx)
+    let value = specified_to_applied(prop, decl.value, font_ctx)
     apply_property(builder, prop, value, font_ctx)
   }
 
@@ -1103,12 +1172,7 @@ pub fn compute_with_vars(
   let builder = StyleBuilder::new()
 
   // First pass: collect custom properties (--*)
-  cascaded.each(fn(prop, decl) {
-    if starts_with(prop, "--") {
-      let value = resolve_keyword(prop, decl.value, ctx)
-      ctx.custom_properties[prop] = value
-    }
-  })
+  collect_custom_properties(cascaded, ctx)
   seed_effective_color_scheme(cascaded, ctx)
 
   // Seed writing-mode before applying logical properties.
@@ -1117,9 +1181,9 @@ pub fn compute_with_vars(
   let font_ctx = seed_font_metrics(builder, cascaded, ctx)
 
   // Second pass: apply regular properties
-  for item in regular_declarations_in_source_order(cascaded) {
+  for item in regular_declarations_in_cascade_order(cascaded) {
     let (prop, decl) = item
-    let value = resolve_keyword(prop, decl.value, font_ctx)
+    let value = specified_to_applied(prop, decl.value, font_ctx)
     apply_property(builder, prop, value, font_ctx)
   }
 
@@ -1221,9 +1285,82 @@ fn is_preseeded_font_property(property : String) -> Bool {
 }
 
 ///|
-/// Return regular declarations in CSS source order. CascadedValues is a map,
-/// so applying it directly loses relative shorthand/longhand order.
-fn regular_declarations_in_source_order(
+/// Store this element's custom properties with var() already substituted
+/// (CSS Variables 1 section 3: children inherit the computed value). A
+/// reference that cannot be resolved makes the property guaranteed-invalid,
+/// so it is removed instead of inherited or re-resolved by a descendant.
+fn collect_custom_properties(
+  cascaded : @cascade.CascadedValues,
+  ctx : ComputeContext,
+) -> Unit {
+  let own : Array[String] = []
+  cascaded.each(fn(prop, decl) {
+    if starts_with(prop, "--") {
+      ctx.custom_properties[prop] = resolve_keyword(prop, decl.value, ctx)
+      own.push(prop)
+    }
+  })
+  let resolved : Map[String, String?] = Map([])
+  for prop in own {
+    let raw = ctx.custom_properties.get(prop).unwrap_or("")
+    resolved[prop] = if raw.contains("var(") {
+      resolve_all_vars_opt(raw, ctx)
+    } else {
+      Some(raw)
+    }
+  }
+  resolved.each(fn(prop, value) {
+    match value {
+      Some(v) => ctx.custom_properties[prop] = v
+      None => ctx.custom_properties.remove(prop)
+    }
+  })
+}
+
+///|
+fn css_wide_keyword(value : String) -> @cascade.PropertyValue? {
+  match value.trim().to_lower() {
+    "inherit" => Some(@cascade.PropertyValue::Inherit)
+    "initial" => Some(@cascade.PropertyValue::Initial)
+    "unset" => Some(@cascade.PropertyValue::Unset)
+    "revert" => Some(@cascade.PropertyValue::Revert)
+    "revert-layer" => Some(@cascade.PropertyValue::RevertLayer)
+    _ => None
+  }
+}
+
+///|
+/// Substitute var() once for the whole value (so shorthands split resolved
+/// tokens), treat an unresolvable reference as unset, and resolve CSS-wide
+/// keywords written as plain stylesheet values.
+fn specified_to_applied(
+  property : String,
+  value : @cascade.PropertyValue,
+  ctx : ComputeContext,
+) -> String {
+  match value {
+    @cascade.PropertyValue::Value(raw) => {
+      let substituted = if raw.contains("var(") {
+        guard resolve_all_vars_opt(raw, ctx) is Some(v) else {
+          return resolve_keyword(property, @cascade.PropertyValue::Unset, ctx)
+        }
+        v
+      } else {
+        raw
+      }
+      match css_wide_keyword(substituted) {
+        Some(keyword) => resolve_keyword(property, keyword, ctx)
+        None => substituted
+      }
+    }
+    keyword => resolve_keyword(property, keyword, ctx)
+  }
+}
+
+///|
+/// Return regular declarations in ascending cascade precedence. CascadedValues
+/// is a map, so applying it directly loses relative shorthand/longhand order.
+fn regular_declarations_in_cascade_order(
   cascaded : @cascade.CascadedValues,
 ) -> Array[(String, @cascade.Declaration)] {
   let declarations : Array[(String, @cascade.Declaration)] = []
@@ -1232,7 +1369,11 @@ fn regular_declarations_in_source_order(
       declarations.push((prop, decl))
     }
   })
-  declarations.sort_by(fn(a, b) { a.1.source_order - b.1.source_order })
+  // Each property key holds its own cascade winner, but shorthands and their
+  // longhands use different keys and overlap at apply time. Applying winners
+  // in ascending cascade precedence (not plain source order) makes the
+  // highest-precedence write of every longhand the last one applied.
+  declarations.sort_by(fn(a, b) { a.1.compare_precedence(b.1) })
   declarations
 }
 
@@ -1396,6 +1537,22 @@ fn resolve_logical_pair(
     }
     1 => (dims[0], dims[0])
     _ => (dims[0], dims[1])
+  }
+}
+
+///|
+/// `normal` is a used gap of 0 for Grid/Flex; column-gap keeps the keyword
+/// for multi-column layout.
+fn is_normal_gap(value : String) -> Bool {
+  value.trim().to_lower() == "normal"
+}
+
+///|
+fn gap_dimension(value : String, ctx : ComputeContext) -> @types.Dimension {
+  if is_normal_gap(value) {
+    @types.Dimension::Length(0.0)
+  } else {
+    resolve_dimension_with_calc_percent_fallback(value, ctx)
   }
 }
 
@@ -2111,22 +2268,14 @@ fn apply_property(
       builder.column_gap_is_normal = false
       match parts.length() {
         1 => {
-          let dim = resolve_dimension_with_calc_percent_fallback(
-            parts[0].to_owned(),
-            ctx,
-          )
-          builder.row_gap = dim
-          builder.column_gap = dim
+          builder.row_gap = gap_dimension(parts[0].to_owned(), ctx)
+          builder.column_gap = gap_dimension(parts[0].to_owned(), ctx)
+          builder.column_gap_is_normal = is_normal_gap(parts[0].to_owned())
         }
         2 => {
-          builder.row_gap = resolve_dimension_with_calc_percent_fallback(
-            parts[0].to_owned(),
-            ctx,
-          )
-          builder.column_gap = resolve_dimension_with_calc_percent_fallback(
-            parts[1].to_owned(),
-            ctx,
-          )
+          builder.row_gap = gap_dimension(parts[0].to_owned(), ctx)
+          builder.column_gap = gap_dimension(parts[1].to_owned(), ctx)
+          builder.column_gap_is_normal = is_normal_gap(parts[1].to_owned())
         }
         _ => {
           let dim = resolve_dimension_with_calc_percent_fallback(value, ctx)
@@ -2135,13 +2284,10 @@ fn apply_property(
         }
       }
     }
-    "row-gap" | "grid-row-gap" =>
-      builder.row_gap = resolve_dimension_with_calc_percent_fallback(value, ctx)
+    "row-gap" | "grid-row-gap" => builder.row_gap = gap_dimension(value, ctx)
     "column-gap" | "grid-column-gap" => {
-      builder.column_gap = resolve_dimension_with_calc_percent_fallback(
-        value, ctx,
-      )
-      builder.column_gap_is_normal = false
+      builder.column_gap = gap_dimension(value, ctx)
+      builder.column_gap_is_normal = is_normal_gap(value)
     }
     // Multi-column
     "column-count" => builder.column_count = parse_column_count(value)
@@ -4026,10 +4172,13 @@ fn resolve_dimension_with_mixed_calc_fallback(
 ///|
 /// Resolve CSS var() function with context lookup
 /// Looks up variable in context, falls back to provided fallback value if not found
-fn resolve_var(value : String, ctx : ComputeContext) -> String {
+let var_resolution_depth : Ref[Int32] = { val: 0, }
+
+///|
+fn resolve_var_opt(value : String, ctx : ComputeContext) -> String? {
   let v = value.trim().to_owned()
   if !v.has_prefix("var(") || !v.has_suffix(")") {
-    return v
+    return Some(v)
   }
   // Extract content inside var(...) - skip "var(" (4 chars) and ")" (1 char)
   let inner : String = view_to_string(
@@ -4062,9 +4211,16 @@ fn resolve_var(value : String, ctx : ComputeContext) -> String {
     Some(var_value) =>
       // Variable found - recursively resolve if it contains var()
       if var_value.contains("var(") {
-        resolve_all_vars(var_value, ctx)
+        // A reference cycle is guaranteed-invalid.
+        if var_resolution_depth.val >= 32 {
+          return None
+        }
+        var_resolution_depth.val += 1
+        let resolved = resolve_all_vars_opt(var_value, ctx)
+        var_resolution_depth.val -= 1
+        resolved
       } else {
-        var_value
+        Some(var_value)
       }
     None =>
       // Variable not found - use fallback if available
@@ -4075,21 +4231,30 @@ fn resolve_var(value : String, ctx : ComputeContext) -> String {
         )
         let fallback = fallback_slice.trim().to_owned()
         // Recursively resolve fallback (it may also contain var())
-        resolve_all_vars(fallback, ctx)
+        resolve_all_vars_opt(fallback, ctx)
       } else {
-        // No fallback and no variable - return empty (invalid value)
-        ""
+        // No fallback and no variable: guaranteed-invalid
+        None
       }
   }
 }
 
 ///|
 /// Resolve all var() references in a value string
+
+///|
+/// Substitute every var(); None when a reference is guaranteed-invalid.
+/// An empty custom property value (`--x: ;`) substitutes as empty.
 fn resolve_all_vars(value : String, ctx : ComputeContext) -> String {
+  resolve_all_vars_opt(value, ctx).unwrap_or("")
+}
+
+///|
+fn resolve_all_vars_opt(value : String, ctx : ComputeContext) -> String? {
   let v = value.trim()
   // If no var() in value, return as-is
   if !v.contains("var(") {
-    return v.to_owned()
+    return Some(v.to_owned())
   }
   // Simple case: entire value is a var()
   if v.has_prefix("var(") && v.has_suffix(")") {
@@ -4110,7 +4275,7 @@ fn resolve_all_vars(value : String, ctx : ComputeContext) -> String {
     }
     if end_pos == v.length() - 1 {
       // Entire value is a single var()
-      return resolve_var(v.to_owned(), ctx)
+      return resolve_var_opt(v.to_owned(), ctx)
     }
   }
   // Complex case: var() embedded in value like "10px var(--gap) 20px"
@@ -4136,7 +4301,10 @@ fn resolve_all_vars(value : String, ctx : ComputeContext) -> String {
         }
         // Extract and resolve the var()
         let var_expr = view_to_string(v.clamped_view(start=i, end=j))
-        let resolved = resolve_var(var_expr, ctx)
+        // One invalid reference invalidates the whole value.
+        guard resolve_var_opt(var_expr, ctx) is Some(resolved) else {
+          return None
+        }
         result.write_string(resolved)
         i = j
         continue
@@ -4145,7 +4313,7 @@ fn resolve_all_vars(value : String, ctx : ComputeContext) -> String {
     result.write_char(v[i].to_int().unsafe_to_char())
     i += 1
   }
-  result.to_string()
+  Some(result.to_string())
 }
 
 ///|
@@ -4868,7 +5036,8 @@ pub fn compute_inline_raw(
     if colon_pos > 0 {
       let prop = view_to_string(pair_str.clamped_view(end=colon_pos)).trim()
       let val = view_to_string(pair_str.clamped_view(start=colon_pos + 1)).trim()
-      if !prop.is_empty() && !val.is_empty() {
+      // An empty custom property value (`--x: ;`) is valid and substitutes as empty.
+      if !prop.is_empty() && (!val.is_empty() || prop.has_prefix("--")) {
         let (value, importance) = strip_inline_important_marker(val.to_owned())
         decls.push(
           @cascade.Declaration::with_metadata(

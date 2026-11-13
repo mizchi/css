@@ -33,8 +33,8 @@ pub fn is_inherited(property : String) -> Bool {
 pub fn initial_value(property : String) -> String {
   match property {
     // Display
-    "display" => "block"
-    "position" => "relative"
+    "display" => "inline"
+    "position" => "static"
     "float" => "none"
     "clear" => "none"
     // Overflow
@@ -79,7 +79,7 @@ pub fn initial_value(property : String) -> String {
     | "column-gap"
     | "grid-gap"
     | "grid-row-gap"
-    | "grid-column-gap" => "0"
+    | "grid-column-gap" => "normal"
     "columns" | "column-count" | "column-width" => "auto"
     "column-fill" => "balance"
     "break-before" | "break-after" | "break-inside" | "page-break-inside" =>

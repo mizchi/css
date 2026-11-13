@@ -178,6 +178,16 @@ fn cascade_precedence(origin : Origin, importance : Importance) -> Int32 {
 }
 
 ///|
+/// Cascade order of two declarations: positive when `self` wins over `other`
+/// (origin + importance, then specificity, then source order).
+pub fn Declaration::compare_precedence(
+  self : Declaration,
+  other : Declaration,
+) -> Int32 {
+  compare_declarations(self, other)
+}
+
+///|
 /// Compare two declarations for cascade ordering
 /// Returns positive if a wins, negative if b wins, 0 if equal
 fn compare_declarations(a : Declaration, b : Declaration) -> Int32 {
