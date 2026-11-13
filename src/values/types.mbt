@@ -33,7 +33,7 @@ pub struct Size[T] {
 
 ///|
 pub fn[T] Size::new(width : T, height : T) -> Size[T] {
-  { width, height }
+  { width, height, }
 }
 
 ///|
@@ -46,13 +46,16 @@ pub impl[T : Show] Show for Size[T] with fn output(self, logger) {
 }
 
 ///|
+pub extend Size with Show::{to_string, output}
+
+///|
 pub fn Size::zero() -> Size[Double] {
-  { width: 0.0, height: 0.0 }
+  { width: 0.0, height: 0.0, }
 }
 
 ///|
 pub fn[T, U] Size::map(self : Size[T], f : (T) -> U) -> Size[U] {
-  { width: f(self.width), height: f(self.height) }
+  { width: f(self.width), height: f(self.height), }
 }
 
 ///|
@@ -64,7 +67,7 @@ pub struct Point[T] {
 
 ///|
 pub fn[T] Point::new(x : T, y : T) -> Point[T] {
-  { x, y }
+  { x, y, }
 }
 
 ///|
@@ -77,28 +80,38 @@ pub impl[T : Show] Show for Point[T] with fn output(self, logger) {
 }
 
 ///|
+pub extend Point with Show::{to_string, output}
+
+///|
 pub fn Point::zero() -> Point[Double] {
-  { x: 0.0, y: 0.0 }
+  { x: 0.0, y: 0.0, }
 }
 
 ///|
 pub fn[T, U] Point::map(self : Point[T], f : (T) -> U) -> Point[U] {
-  { x: f(self.x), y: f(self.y) }
+  { x: f(self.x), y: f(self.y), }
 }
 
 ///|
 /// Rectangle with left, right, top, bottom edges
 /// Used for margin, padding, border, inset
+#derive(Debug, Eq)
 pub(all) struct Rect[T] {
   left : T
   right : T
   top : T
   bottom : T
-} derive(Debug, Eq)
+}
+
+///|
+pub extend Rect with @debug.Debug::{to_repr}
+
+///|
+pub extend Rect with Eq::{not_equal, equal}
 
 ///|
 pub fn[T] Rect::new(left : T, right : T, top : T, bottom : T) -> Rect[T] {
-  { left, right, top, bottom }
+  { left, right, top, bottom, }
 }
 
 ///|
@@ -115,14 +128,17 @@ pub impl[T : Show] Show for Rect[T] with fn output(self, logger) {
 }
 
 ///|
+pub extend Rect with Show::{to_string, output}
+
+///|
 pub fn Rect::zero() -> Rect[Double] {
-  { left: 0.0, right: 0.0, top: 0.0, bottom: 0.0 }
+  { left: 0.0, right: 0.0, top: 0.0, bottom: 0.0, }
 }
 
 ///|
 /// Create a rect with all sides set to the same value
 pub fn[T] Rect::all(value : T) -> Rect[T] {
-  { left: value, right: value, top: value, bottom: value }
+  { left: value, right: value, top: value, bottom: value, }
 }
 
 ///|
@@ -156,7 +172,7 @@ pub struct Line[T] {
 
 ///|
 pub fn[T] Line::new(start : T, end : T) -> Line[T] {
-  { start, end }
+  { start, end, }
 }
 
 ///|
@@ -173,13 +189,23 @@ pub impl[T : Show] Show for Line[T] with fn output(self, logger) {
 // =============================================================================
 
 ///|
+pub extend Line with Show::{to_string, output}
+
+///|
 /// Step timing function jump position.
+#derive(Debug, Eq)
 pub(all) enum StepPosition {
   Start
   End
   JumpNone
   JumpBoth
-} derive(Debug, Eq)
+}
+
+///|
+pub extend StepPosition with @debug.Debug::{to_repr}
+
+///|
+pub extend StepPosition with Eq::{not_equal, equal}
 
 ///|
 pub impl Show for StepPosition with fn output(self, logger) {
@@ -192,32 +218,46 @@ pub impl Show for StepPosition with fn output(self, logger) {
 }
 
 ///|
+pub extend StepPosition with Show::{to_string, output}
+
+///|
 /// One point in a CSS `linear()` easing function.
+#derive(Debug, Eq)
 pub(all) struct LinearEasingPoint {
   input : Double
   output : Double
-} derive(Debug, Eq)
+}
+
+///|
+pub extend LinearEasingPoint with @debug.Debug::{to_repr}
+
+///|
+pub extend LinearEasingPoint with Eq::{not_equal, equal}
 
 ///|
 pub impl Show for LinearEasingPoint with fn output(self, logger) {
   logger.write_string("LinearEasingPoint { input: ")
-  self.input.output(logger)
+  Show::output(self.input, logger)
   logger.write_string(", output: ")
-  self.output.output(logger)
+  Show::output(self.output, logger)
   logger.write_string(" }")
 }
+
+///|
+pub extend LinearEasingPoint with Show::{to_string, output}
 
 ///|
 pub fn LinearEasingPoint::new(
   input : Double,
   output : Double,
 ) -> LinearEasingPoint {
-  { input, output }
+  { input, output, }
 }
 
 ///|
 /// CSS easing/timing-function value without binding it to transitions or
 /// animations. Consumers can sample it against normalized progress `[0, 1]`.
+#derive(Debug, Eq)
 pub(all) enum Easing {
   Linear
   Ease
@@ -256,8 +296,14 @@ pub(all) enum Easing {
   EaseInOutBounce
   LinearFunction(Array[LinearEasingPoint])
   CubicBezier(Double, Double, Double, Double)
-  Steps(Int, StepPosition)
-} derive(Debug, Eq)
+  Steps(Int32, StepPosition)
+}
+
+///|
+pub extend Easing with @debug.Debug::{to_repr}
+
+///|
+pub extend Easing with Eq::{not_equal, equal}
 
 ///|
 /// Eased value at one point in an interpolation sequence.
@@ -270,13 +316,16 @@ pub(all) struct EasingFrame {
 ///|
 pub impl Show for EasingFrame with fn output(self, logger) {
   logger.write_string("EasingFrame { progress: ")
-  self.progress.output(logger)
+  Show::output(self.progress, logger)
   logger.write_string(", eased_progress: ")
-  self.eased_progress.output(logger)
+  Show::output(self.eased_progress, logger)
   logger.write_string(", value: ")
-  self.value.output(logger)
+  Show::output(self.value, logger)
   logger.write_string(" }")
 }
+
+///|
+pub extend EasingFrame with Show::{to_string, output}
 
 ///|
 fn easing_variant_name(easing : Easing) -> String? {
@@ -340,18 +389,18 @@ pub impl Show for Easing with fn output(self, logger) {
         }
         CubicBezier(x1, y1, x2, y2) => {
           logger.write_string("CubicBezier(")
-          x1.output(logger)
+          Show::output(x1, logger)
           logger.write_string(", ")
-          y1.output(logger)
+          Show::output(y1, logger)
           logger.write_string(", ")
-          x2.output(logger)
+          Show::output(x2, logger)
           logger.write_string(", ")
-          y2.output(logger)
+          Show::output(y2, logger)
           logger.write_string(")")
         }
         Steps(count, position) => {
           logger.write_string("Steps(")
-          count.output(logger)
+          Show::output(count, logger)
           logger.write_string(", ")
           position.output(logger)
           logger.write_string(")")
@@ -360,6 +409,9 @@ pub impl Show for Easing with fn output(self, logger) {
       }
   }
 }
+
+///|
+pub extend Easing with Show::{to_string, output}
 
 ///|
 pub fn Easing::cubic_bezier(
@@ -372,7 +424,7 @@ pub fn Easing::cubic_bezier(
 }
 
 ///|
-pub fn Easing::steps(count : Int, position : StepPosition) -> Easing {
+pub fn Easing::steps(count : Int32, position : StepPosition) -> Easing {
   Steps(count, position)
 }
 
@@ -515,7 +567,7 @@ fn sample_linear_function(
 }
 
 ///|
-fn sample_steps(count : Int, position : StepPosition, t : Double) -> Double {
+fn sample_steps(count : Int32, position : StepPosition, t : Double) -> Double {
   if count <= 0 || (position == StepPosition::JumpNone && count <= 1) {
     return t
   }
@@ -696,7 +748,7 @@ pub fn Easing::frames(
   self : Easing,
   start_value : Double,
   end_value : Double,
-  count : Int,
+  count : Int32,
 ) -> Array[EasingFrame] {
   let frames : Array[EasingFrame] = []
   if count <= 0 {
@@ -723,7 +775,7 @@ fn parse_easing_number(value : String) -> Double? {
 }
 
 ///|
-fn parse_easing_int(value : String) -> Int? {
+fn parse_easing_int(value : String) -> Int32? {
   Some(@string.parse_int(value.trim().to_owned())) catch {
     _ => None
   }
@@ -792,7 +844,7 @@ fn parse_linear_stop(value : String) -> LinearStop? {
     return None
   }
   match output {
-    Some(output) => Some({ output, inputs })
+    Some(output) => Some({ output, inputs, })
     None => None
   }
 }
@@ -856,7 +908,7 @@ fn create_linear_easing_function(stops : Array[LinearStop]) -> Easing? {
       } else {
         stop.inputs[0]
       }
-      pending.push({ input: Some(input), output: stop.output })
+      pending.push({ input: Some(input), output: stop.output, })
       largest_input = input
       has_largest_input = true
       if stop.inputs.length() == 2 {
@@ -865,11 +917,11 @@ fn create_linear_easing_function(stops : Array[LinearStop]) -> Easing? {
         } else {
           stop.inputs[1]
         }
-        pending.push({ input: Some(input), output: stop.output })
+        pending.push({ input: Some(input), output: stop.output, })
         largest_input = input
       }
     } else if i == 0 {
-      pending.push({ input: Some(0.0), output: stop.output })
+      pending.push({ input: Some(0.0), output: stop.output, })
       largest_input = 0.0
       has_largest_input = true
     } else if i == last_stop_index {
@@ -878,9 +930,9 @@ fn create_linear_easing_function(stops : Array[LinearStop]) -> Easing? {
       } else {
         1.0
       }
-      pending.push({ input: Some(input), output: stop.output })
+      pending.push({ input: Some(input), output: stop.output, })
     } else {
-      pending.push({ input: None, output: stop.output })
+      pending.push({ input: None, output: stop.output, })
     }
   }
   match resolve_pending_linear_points(pending) {
@@ -1034,11 +1086,18 @@ pub fn parse_easing(value : String) -> Easing? {
 
 ///|
 /// CSS comparison/math function selector for min() / max() / clamp().
+#derive(Eq, Debug)
 pub(all) enum MathOp {
   Min
   Max
   Clamp
-} derive(Eq, Debug)
+}
+
+///|
+pub extend MathOp with Eq::{not_equal, equal}
+
+///|
+pub extend MathOp with @debug.Debug::{to_repr}
 
 ///|
 /// Apply a min()/max()/clamp() reduction over already-resolved scalar values.
@@ -1082,6 +1141,7 @@ pub fn apply_math_op(op : MathOp, vals : Array[Double]) -> Double {
 
 ///|
 /// CSS dimension value: length, percentage, auto, or intrinsic sizing keywords
+#derive(Debug, Eq)
 pub(all) enum Dimension {
   Length(Double)
   Percent(Double) // 0.0 to 1.0
@@ -1098,7 +1158,13 @@ pub(all) enum Dimension {
   // be ordered until a containing-block basis is known. Each argument is a
   // linear (px, percent_ratio) form. Resolved at layout time like Calc.
   MathFn(MathOp, Array[(Double, Double)])
-} derive(Debug, Eq)
+}
+
+///|
+pub extend Dimension with @debug.Debug::{to_repr}
+
+///|
+pub extend Dimension with Eq::{not_equal, equal}
 
 ///|
 /// Check if dimension equals a specific length value
@@ -1123,12 +1189,12 @@ pub impl Show for Dimension with fn output(self, logger) {
   match self {
     Length(v) => {
       logger.write_string("Length(")
-      v.output(logger)
+      Show::output(v, logger)
       logger.write_string(")")
     }
     Percent(v) => {
       logger.write_string("Percent(")
-      v.output(logger)
+      Show::output(v, logger)
       logger.write_string(")")
     }
     Auto => logger.write_string("Auto")
@@ -1136,14 +1202,14 @@ pub impl Show for Dimension with fn output(self, logger) {
     MaxContent => logger.write_string("MaxContent")
     FitContent(v) => {
       logger.write_string("FitContent(")
-      v.output(logger)
+      Show::output(v, logger)
       logger.write_string(")")
     }
     Calc(px, pct) => {
       logger.write_string("Calc(")
-      px.output(logger)
+      Show::output(px, logger)
       logger.write_string(", ")
-      pct.output(logger)
+      Show::output(pct, logger)
       logger.write_string(")")
     }
     MathFn(op, args) => {
@@ -1162,15 +1228,18 @@ pub impl Show for Dimension with fn output(self, logger) {
         }
         let (px, pct) = args[i]
         logger.write_string("(")
-        px.output(logger)
+        Show::output(px, logger)
         logger.write_string(", ")
-        pct.output(logger)
+        Show::output(pct, logger)
         logger.write_string(")")
       }
       logger.write_string("])")
     }
   }
 }
+
+///|
+pub extend Dimension with Show::{to_string, output}
 
 ///|
 /// Resolve dimension to concrete value
@@ -1328,25 +1397,28 @@ pub fn BoundingRect::new(
   width : Double,
   height : Double,
 ) -> BoundingRect {
-  { x, y, width, height }
+  { x, y, width, height, }
 }
 
 ///|
 pub impl Show for BoundingRect with fn output(self, logger) {
   logger.write_string("BoundingRect { x: ")
-  self.x.output(logger)
+  Show::output(self.x, logger)
   logger.write_string(", y: ")
-  self.y.output(logger)
+  Show::output(self.y, logger)
   logger.write_string(", width: ")
-  self.width.output(logger)
+  Show::output(self.width, logger)
   logger.write_string(", height: ")
-  self.height.output(logger)
+  Show::output(self.height, logger)
   logger.write_string(" }")
 }
 
 ///|
+pub extend BoundingRect with Show::{to_string, output}
+
+///|
 pub fn BoundingRect::zero() -> BoundingRect {
-  { x: 0.0, y: 0.0, width: 0.0, height: 0.0 }
+  { x: 0.0, y: 0.0, width: 0.0, height: 0.0, }
 }
 
 ///|
@@ -1377,7 +1449,7 @@ pub fn BoundingRect::union(
   let y = min(self.y, other.y)
   let right = max(self.right(), other.right())
   let bottom = max(self.bottom(), other.bottom())
-  { x, y, width: right - x, height: bottom - y }
+  { x, y, width: right - x, height: bottom - y, }
 }
 
 // ============================================================================
@@ -1479,13 +1551,20 @@ pub fn clamp(value : Double, min_val : Double, max_val : Double) -> Double {
 /// CSS clip property value
 /// clip: rect(top, right, bottom, left) or auto
 /// Note: This is a deprecated property, but still widely used for accessibility
+#derive(Debug, Eq)
 pub(all) enum ClipRect {
   /// clip: auto (no clipping)
   Auto
   /// clip: rect(top, right, bottom, left)
   /// Values are offsets from the element's edges
   Rect(top~ : Double, right~ : Double, bottom~ : Double, left~ : Double)
-} derive(Debug, Eq)
+}
+
+///|
+pub extend ClipRect with @debug.Debug::{to_repr}
+
+///|
+pub extend ClipRect with Eq::{not_equal, equal}
 
 ///|
 pub impl Show for ClipRect with fn output(self, logger) {
@@ -1493,17 +1572,20 @@ pub impl Show for ClipRect with fn output(self, logger) {
     Auto => logger.write_string("auto")
     Rect(top~, right~, bottom~, left~) => {
       logger.write_string("rect(")
-      top.output(logger)
+      Show::output(top, logger)
       logger.write_string(", ")
-      right.output(logger)
+      Show::output(right, logger)
       logger.write_string(", ")
-      bottom.output(logger)
+      Show::output(bottom, logger)
       logger.write_string(", ")
-      left.output(logger)
+      Show::output(left, logger)
       logger.write_string(")")
     }
   }
 }
+
+///|
+pub extend ClipRect with Show::{to_string, output}
 
 ///|
 pub fn ClipRect::default() -> ClipRect {

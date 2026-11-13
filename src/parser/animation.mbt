@@ -16,10 +16,11 @@ fn split_top_level_commas(
     match tokens[i] {
       @token.Token::Function(_) | @token.Token::LeftParen => depth = depth + 1
       @token.Token::RightParen => if depth > 0 { depth = depth - 1 }
-      @token.Token::Comma => if depth == 0 {
-        segments.push(tokens[start:i])
-        start = i + 1
-      }
+      @token.Token::Comma =>
+        if depth == 0 {
+          segments.push(tokens[start:i])
+          start = i + 1
+        }
       _ => ()
     }
   }
@@ -32,7 +33,7 @@ fn split_top_level_commas(
 /// as `parse_easing`). Only the token kinds that appear in animation/transition
 /// values are handled.
 fn reconstruct_css(tokens : ArrayView[@token.Token]) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < tokens.length(); i = i + 1 {
     match tokens[i] {
       @token.Token::Ident(s) => sb.write_string(s)
@@ -111,9 +112,7 @@ fn parse_time_list(tokens : ArrayView[@token.Token]) -> Array[Double] {
 
 ///|
 /// Parse a comma-separated list of `<easing>` values.
-fn parse_easing_list(
-  tokens : ArrayView[@token.Token],
-) -> Array[@types.Easing] {
+fn parse_easing_list(tokens : ArrayView[@token.Token]) -> Array[@types.Easing] {
   let result : Array[@types.Easing] = []
   for seg in split_top_level_commas(tokens) {
     let text = reconstruct_css(seg).trim().to_owned()
@@ -276,7 +275,7 @@ priv struct AnimationItem {
   mut direction : @types.AnimationDirection
   mut fill : @types.AnimationFillMode
   mut play_state : @types.AnimationPlayState
-  mut time_count : Int
+  mut time_count : Int32
 }
 
 ///|
@@ -297,8 +296,8 @@ pub struct AnimationShorthand {
 /// easing and the index just past it, or None.
 fn try_parse_easing_at(
   seg : ArrayView[@token.Token],
-  i : Int,
-) -> (@types.Easing, Int)? {
+  i : Int32,
+) -> (@types.Easing, Int32)? {
   match seg[i] {
     @token.Token::Function(_) => {
       // Consume through the matching RightParen.
@@ -481,7 +480,7 @@ priv struct TransitionItem {
   mut duration : Double
   mut timing : @types.Easing
   mut delay : Double
-  mut time_count : Int
+  mut time_count : Int32
 }
 
 ///|
@@ -561,7 +560,7 @@ pub fn parse_transition_shorthand(
     timing_functions.push(item.timing)
     delays.push(item.delay)
   }
-  { properties, durations, timing_functions, delays }
+  { properties, durations, timing_functions, delays, }
 }
 
 // ---- Longhand string entry points (used by the cascade/computed path) ----
@@ -577,9 +576,7 @@ pub fn parse_time_list_from_string(value : String) -> Array[Double] {
 }
 
 ///|
-pub fn parse_easing_list_from_string(
-  value : String,
-) -> Array[@types.Easing] {
+pub fn parse_easing_list_from_string(value : String) -> Array[@types.Easing] {
   parse_easing_list(@token.tokenize(value)[:])
 }
 

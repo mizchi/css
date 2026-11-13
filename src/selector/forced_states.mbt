@@ -4,16 +4,23 @@
 /// on a target element.
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ForcedPseudoStates {
   hover : Bool
   focus : Bool
   active : Bool
   focus_visible : Bool
   focus_within : Bool
-} derive(Eq, Debug)
+}
 
 ///|
-pub impl Show for ForcedPseudoStates with output(self, logger) {
+pub extend ForcedPseudoStates with Eq::{not_equal, equal}
+
+///|
+pub extend ForcedPseudoStates with @debug.Debug::{to_repr}
+
+///|
+pub impl Show for ForcedPseudoStates with fn output(self, logger) {
   logger.write_string("{hover: ")
   logger.write_string(self.hover.to_string())
   logger.write_string(", focus: ")
@@ -26,6 +33,9 @@ pub impl Show for ForcedPseudoStates with output(self, logger) {
   logger.write_string(self.focus_within.to_string())
   logger.write_string("}")
 }
+
+///|
+pub extend ForcedPseudoStates with Show::{to_string, output}
 
 ///|
 pub fn ForcedPseudoStates::none() -> ForcedPseudoStates {

@@ -3,7 +3,7 @@
 
 ///|
 test "wpt parse-part.html: valid ::part(--foo)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(--foo)",
     "::part(--foo)",
     ["::part(--foo)"],
@@ -13,7 +13,7 @@ test "wpt parse-part.html: valid ::part(--foo)" {
 
 ///|
 test "wpt parse-part.html: valid ::part(bar)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(bar)",
     "::part(bar)",
     ["::part(bar)"],
@@ -23,7 +23,7 @@ test "wpt parse-part.html: valid ::part(bar)" {
 
 ///|
 test "wpt parse-part.html: valid ::part(--)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(--)",
     "::part(--)",
     ["::part(--)"],
@@ -33,7 +33,7 @@ test "wpt parse-part.html: valid ::part(--)" {
 
 ///|
 test "wpt parse-part.html: valid ::part(--0)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(--0)",
     "::part(--0)",
     ["::part(--0)"],
@@ -43,7 +43,7 @@ test "wpt parse-part.html: valid ::part(--0)" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo bar)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo bar)",
     "::part(foo bar)",
     ["::part(foo bar)"],
@@ -53,7 +53,7 @@ test "wpt parse-part.html: valid ::part(foo bar)" {
 
 ///|
 test "wpt parse-part.html: valid ::part(-foo bar)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(-foo bar)",
     "::part(-foo bar)",
     ["::part(-foo bar)"],
@@ -63,7 +63,7 @@ test "wpt parse-part.html: valid ::part(-foo bar)" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo):focus" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo):focus",
     "::part(foo):focus",
     ["::part(foo):focus"],
@@ -73,7 +73,7 @@ test "wpt parse-part.html: valid ::part(foo):focus" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo):hover" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo):hover",
     "::part(foo):hover",
     ["::part(foo):hover"],
@@ -83,7 +83,7 @@ test "wpt parse-part.html: valid ::part(foo):hover" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo):focus-within" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo):focus-within",
     "::part(foo):focus-within",
     ["::part(foo):focus-within"],
@@ -93,7 +93,7 @@ test "wpt parse-part.html: valid ::part(foo):focus-within" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo)::before" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo)::before",
     "::part(foo)::before",
     ["::part(foo)::before"],
@@ -103,7 +103,7 @@ test "wpt parse-part.html: valid ::part(foo)::before" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo)::after" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo)::after",
     "::part(foo)::after",
     ["::part(foo)::after"],
@@ -113,7 +113,7 @@ test "wpt parse-part.html: valid ::part(foo)::after" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo)::placeholder" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo)::placeholder",
     "::part(foo)::placeholder",
     ["::part(foo)::placeholder"],
@@ -123,7 +123,7 @@ test "wpt parse-part.html: valid ::part(foo)::placeholder" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo)::first-line" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo)::first-line",
     "::part(foo)::first-line",
     ["::part(foo)::first-line"],
@@ -133,7 +133,7 @@ test "wpt parse-part.html: valid ::part(foo)::first-line" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo)::first-letter" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo)::first-letter",
     "::part(foo)::first-letter",
     ["::part(foo)::first-letter"],
@@ -143,7 +143,7 @@ test "wpt parse-part.html: valid ::part(foo)::first-letter" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo)::file-selector-button" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo)::file-selector-button",
     "::part(foo)::file-selector-button",
     ["::part(foo)::file-selector-button"],
@@ -153,7 +153,7 @@ test "wpt parse-part.html: valid ::part(foo)::file-selector-button" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo):is(:focus)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo):is(:focus)",
     "::part(foo):is(:focus)",
     ["::part(foo):is(:focus)"],
@@ -163,7 +163,7 @@ test "wpt parse-part.html: valid ::part(foo):is(:focus)" {
 
 ///|
 test "wpt parse-part.html: valid :lang(en)::part(foo)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid :lang(en)::part(foo)",
     ":lang(en)::part(foo)",
     [":lang(en)::part(foo)"],
@@ -173,7 +173,7 @@ test "wpt parse-part.html: valid :lang(en)::part(foo)" {
 
 ///|
 test "wpt parse-part.html: valid :dir(ltr)::part(foo)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid :dir(ltr)::part(foo)",
     ":dir(ltr)::part(foo)",
     [":dir(ltr)::part(foo)"],
@@ -183,7 +183,7 @@ test "wpt parse-part.html: valid :dir(ltr)::part(foo)" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo):lang(en)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo):lang(en)",
     "::part(foo):lang(en)",
     ["::part(foo):lang(en)"],
@@ -193,7 +193,7 @@ test "wpt parse-part.html: valid ::part(foo):lang(en)" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo):dir(ltr)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo):dir(ltr)",
     "::part(foo):dir(ltr)",
     ["::part(foo):dir(ltr)"],
@@ -203,7 +203,7 @@ test "wpt parse-part.html: valid ::part(foo):dir(ltr)" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo):disabled" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo):disabled",
     "::part(foo):disabled",
     ["::part(foo):disabled"],
@@ -213,7 +213,7 @@ test "wpt parse-part.html: valid ::part(foo):disabled" {
 
 ///|
 test "wpt parse-part.html: valid ::part(foo):checked" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-part.html: valid ::part(foo):checked",
     "::part(foo):checked",
     ["::part(foo):checked"],
@@ -223,31 +223,35 @@ test "wpt parse-part.html: valid ::part(foo):checked" {
 
 ///|
 test "wpt parse-part.html: invalid :part()" {
-  wpt_assert_invalid("wpt parse-part.html: invalid :part()", ":part()", false)
+  @wpt.wpt_assert_invalid(
+    "wpt parse-part.html: invalid :part()", ":part()", false,
+  )
 }
 
 ///|
 test "wpt parse-part.html: invalid :part(0)" {
-  wpt_assert_invalid("wpt parse-part.html: invalid :part(0)", ":part(0)", false)
+  @wpt.wpt_assert_invalid(
+    "wpt parse-part.html: invalid :part(0)", ":part(0)", false,
+  )
 }
 
 ///|
 test "wpt parse-part.html: invalid :part('foo')" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-part.html: invalid :part('foo')", ":part('foo')", false,
   )
 }
 
 ///|
 test "wpt parse-part.html: invalid :part([foo])" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-part.html: invalid :part([foo])", ":part([foo])", false,
   )
 }
 
 ///|
 test "wpt parse-part.html: invalid ::part(foo) + ::part(bar)" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-part.html: invalid ::part(foo) + ::part(bar)", "::part(foo) + ::part(bar)",
     false,
   )
@@ -255,7 +259,7 @@ test "wpt parse-part.html: invalid ::part(foo) + ::part(bar)" {
 
 ///|
 test "wpt parse-part.html: invalid ::part(foo):has(li)" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-part.html: invalid ::part(foo):has(li)", "::part(foo):has(li)", false,
   )
 }

@@ -4,34 +4,56 @@
 
 ///|
 /// Media type (screen, print, all, etc.)
+#derive(Eq, Debug)
 pub enum MediaType {
   All
   Screen
   Print
   Speech
-} derive(Eq, Debug)
+}
+
+///|
+pub extend MediaType with Eq::{not_equal, equal}
+
+///|
+pub extend MediaType with @debug.Debug::{to_repr}
 
 ///|
 /// Comparison operator for range queries
+#derive(Eq, Debug)
 pub enum RangeOp {
   Eq // =
   Lt // <
   Le // <=
   Gt // >
   Ge // >=
-} derive(Eq, Debug)
+}
+
+///|
+pub extend RangeOp with Eq::{not_equal, equal}
+
+///|
+pub extend RangeOp with @debug.Debug::{to_repr}
 
 ///|
 /// Media feature value
+#derive(Eq, Debug)
 pub enum MediaValue {
   Number(Double)
   Dimension(Double, String) // value and unit (e.g., 768px, 2dppx)
-  Ratio(Int, Int) // e.g., 16/9
+  Ratio(Int32, Int32) // e.g., 16/9
   Ident(String) // e.g., landscape, portrait
-} derive(Eq, Debug)
+}
+
+///|
+pub extend MediaValue with Eq::{not_equal, equal}
+
+///|
+pub extend MediaValue with @debug.Debug::{to_repr}
 
 ///|
 /// Media feature (e.g., width, height, color, etc.)
+#derive(Eq, Debug)
 pub enum MediaFeature {
   // Boolean features (no value)
   Color
@@ -66,10 +88,17 @@ pub enum MediaFeature {
   PrefersReducedMotion(String) // reduce | no-preference
   // Generic feature for unknown features
   Custom(String, MediaValue?)
-} derive(Eq, Debug)
+}
+
+///|
+pub extend MediaFeature with Eq::{not_equal, equal}
+
+///|
+pub extend MediaFeature with @debug.Debug::{to_repr}
 
 ///|
 /// A complete media query
+#derive(Eq, Debug)
 pub struct MediaQuery {
   /// "not" modifier
   negated : Bool
@@ -79,24 +108,37 @@ pub struct MediaQuery {
   media_type : MediaType?
   /// The conditions (features)
   conditions : Array[MediaFeature]
-} derive(Eq, Debug)
+}
+
+///|
+pub extend MediaQuery with Eq::{not_equal, equal}
+
+///|
+pub extend MediaQuery with @debug.Debug::{to_repr}
 
 ///|
 /// Create a default media query (matches all)
 pub fn MediaQuery::default() -> MediaQuery {
-  { negated: false, only: false, media_type: None, conditions: [] }
+  { negated: false, only: false, media_type: None, conditions: [], }
 }
 
 ///|
 /// A list of media queries (comma-separated in CSS)
+#derive(Eq, Debug)
 pub struct MediaQueryList {
   queries : Array[MediaQuery]
-} derive(Eq, Debug)
+}
+
+///|
+pub extend MediaQueryList with Eq::{not_equal, equal}
+
+///|
+pub extend MediaQueryList with @debug.Debug::{to_repr}
 
 ///|
 /// Create an empty media query list
 pub fn MediaQueryList::new() -> MediaQueryList {
-  { queries: [] }
+  { queries: [], }
 }
 
 ///|
@@ -107,12 +149,12 @@ pub fn MediaQueryList::is_empty(self : MediaQueryList) -> Bool {
 
 ///|
 /// Get the number of queries
-pub fn MediaQueryList::length(self : MediaQueryList) -> Int {
+pub fn MediaQueryList::length(self : MediaQueryList) -> Int32 {
   self.queries.length()
 }
 
 ///|
-pub impl Show for MediaType with output(self, logger) {
+pub impl Show for MediaType with fn output(self, logger) {
   let name = match self {
     All => "All"
     Screen => "Screen"
@@ -123,7 +165,10 @@ pub impl Show for MediaType with output(self, logger) {
 }
 
 ///|
-pub impl Show for RangeOp with output(self, logger) {
+pub extend MediaType with Show::{to_string, output}
+
+///|
+pub impl Show for RangeOp with fn output(self, logger) {
   let name = match self {
     Eq => "Eq"
     Lt => "Lt"
@@ -135,7 +180,10 @@ pub impl Show for RangeOp with output(self, logger) {
 }
 
 ///|
-pub impl Show for MediaValue with output(self, logger) {
+pub extend RangeOp with Show::{to_string, output}
+
+///|
+pub impl Show for MediaValue with fn output(self, logger) {
   match self {
     Number(v) => logger.write_string("Number(\{v})")
     Dimension(v, unit) => {
@@ -159,7 +207,10 @@ pub impl Show for MediaValue with output(self, logger) {
 }
 
 ///|
-pub impl Show for MediaFeature with output(self, logger) {
+pub extend MediaValue with Show::{to_string, output}
+
+///|
+pub impl Show for MediaFeature with fn output(self, logger) {
   match self {
     Color => logger.write_string("Color")
     ColorGamut => logger.write_string("ColorGamut")
@@ -172,28 +223,28 @@ pub impl Show for MediaFeature with output(self, logger) {
     Update => logger.write_string("Update")
     Width(value) => {
       logger.write_string("Width(")
-      logger.write_object(to_repr(value))
+      logger.write_object(@debug.Repr(value))
       logger.write_string(")")
     }
     MinWidth(value) => logger.write_string("MinWidth(\{value})")
     MaxWidth(value) => logger.write_string("MaxWidth(\{value})")
     Height(value) => {
       logger.write_string("Height(")
-      logger.write_object(to_repr(value))
+      logger.write_object(@debug.Repr(value))
       logger.write_string(")")
     }
     MinHeight(value) => logger.write_string("MinHeight(\{value})")
     MaxHeight(value) => logger.write_string("MaxHeight(\{value})")
     AspectRatio(value) => {
       logger.write_string("AspectRatio(")
-      logger.write_object(to_repr(value))
+      logger.write_object(@debug.Repr(value))
       logger.write_string(")")
     }
     MinAspectRatio(value) => logger.write_string("MinAspectRatio(\{value})")
     MaxAspectRatio(value) => logger.write_string("MaxAspectRatio(\{value})")
     Resolution(value) => {
       logger.write_string("Resolution(")
-      logger.write_object(to_repr(value))
+      logger.write_object(@debug.Repr(value))
       logger.write_string(")")
     }
     MinResolution(value) => logger.write_string("MinResolution(\{value})")
@@ -235,28 +286,37 @@ pub impl Show for MediaFeature with output(self, logger) {
       logger.write_string(name)
       logger.write_string("\"")
       logger.write_string(", ")
-      logger.write_object(to_repr(value))
+      logger.write_object(@debug.Repr(value))
       logger.write_string(")")
     }
   }
 }
 
 ///|
-pub impl Show for MediaQuery with output(self, logger) {
+pub extend MediaFeature with Show::{to_string, output}
+
+///|
+pub impl Show for MediaQuery with fn output(self, logger) {
   logger.write_string("{negated: ")
   logger.write_string(self.negated.to_string())
   logger.write_string(", only: ")
   logger.write_string(self.only.to_string())
   logger.write_string(", media_type: ")
-  logger.write_object(to_repr(self.media_type))
+  logger.write_object(@debug.Repr(self.media_type))
   logger.write_string(", conditions: ")
-  logger.write_object(to_repr(self.conditions))
+  logger.write_object(@debug.Repr(self.conditions))
   logger.write_string("}")
 }
 
 ///|
-pub impl Show for MediaQueryList with output(self, logger) {
+pub extend MediaQuery with Show::{to_string, output}
+
+///|
+pub impl Show for MediaQueryList with fn output(self, logger) {
   logger.write_string("{queries: ")
-  logger.write_object(to_repr(self.queries))
+  logger.write_object(@debug.Repr(self.queries))
   logger.write_string("}")
 }
+
+///|
+pub extend MediaQueryList with Show::{to_string, output}

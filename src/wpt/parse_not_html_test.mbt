@@ -3,7 +3,7 @@
 
 ///|
 test "wpt parse-not.html: valid button:not([disabled])" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid button:not([disabled])",
     "button:not([disabled])",
     ["button:not([disabled])"],
@@ -13,7 +13,7 @@ test "wpt parse-not.html: valid button:not([disabled])" {
 
 ///|
 test "wpt parse-not.html: valid *:not(foo)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid *:not(foo)",
     "*:not(foo)",
     ["*:not(foo)", ":not(foo)"],
@@ -23,7 +23,7 @@ test "wpt parse-not.html: valid *:not(foo)" {
 
 ///|
 test "wpt parse-not.html: valid :not(:link):not(:visited)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(:link):not(:visited)",
     ":not(:link):not(:visited)",
     [":not(:link):not(:visited)"],
@@ -33,7 +33,7 @@ test "wpt parse-not.html: valid :not(:link):not(:visited)" {
 
 ///|
 test "wpt parse-not.html: valid *|*:not(*)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid *|*:not(*)",
     "*|*:not(*)",
     [":not(*)"],
@@ -43,7 +43,7 @@ test "wpt parse-not.html: valid *|*:not(*)" {
 
 ///|
 test "wpt parse-not.html: valid :not(:hover)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(:hover)",
     ":not(:hover)",
     [":not(:hover)"],
@@ -53,7 +53,7 @@ test "wpt parse-not.html: valid :not(:hover)" {
 
 ///|
 test "wpt parse-not.html: valid :not(*|*)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(*|*)",
     ":not(*|*)",
     [":not(*)"],
@@ -63,7 +63,7 @@ test "wpt parse-not.html: valid :not(*|*)" {
 
 ///|
 test "wpt parse-not.html: valid foo:not(bar)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid foo:not(bar)",
     "foo:not(bar)",
     ["foo:not(bar)"],
@@ -73,7 +73,7 @@ test "wpt parse-not.html: valid foo:not(bar)" {
 
 ///|
 test "wpt parse-not.html: valid :not(:not(foo))" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(:not(foo))",
     ":not(:not(foo))",
     [":not(:not(foo))"],
@@ -83,7 +83,7 @@ test "wpt parse-not.html: valid :not(:not(foo))" {
 
 ///|
 test "wpt parse-not.html: valid :not(.a .b)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(.a .b)",
     ":not(.a .b)",
     [":not(.a .b)"],
@@ -93,7 +93,7 @@ test "wpt parse-not.html: valid :not(.a .b)" {
 
 ///|
 test "wpt parse-not.html: valid :not(.a + .b)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(.a + .b)",
     ":not(.a + .b)",
     [":not(.a + .b)"],
@@ -103,7 +103,7 @@ test "wpt parse-not.html: valid :not(.a + .b)" {
 
 ///|
 test "wpt parse-not.html: valid :not(.a .b ~ c)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(.a .b ~ c)",
     ":not(.a .b ~ c)",
     [":not(.a .b ~ c)"],
@@ -113,7 +113,7 @@ test "wpt parse-not.html: valid :not(.a .b ~ c)" {
 
 ///|
 test "wpt parse-not.html: valid :not(span.a, div.b)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(span.a, div.b)",
     ":not(span.a, div.b)",
     [":not(span.a, div.b)"],
@@ -123,7 +123,7 @@ test "wpt parse-not.html: valid :not(span.a, div.b)" {
 
 ///|
 test "wpt parse-not.html: valid :not(.a .b ~ c, .d .e)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(.a .b ~ c, .d .e)",
     ":not(.a .b ~ c, .d .e)",
     [":not(.a .b ~ c, .d .e)"],
@@ -133,7 +133,7 @@ test "wpt parse-not.html: valid :not(.a .b ~ c, .d .e)" {
 
 ///|
 test "wpt parse-not.html: valid :not(:host)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(:host)",
     ":not(:host)",
     [":not(:host)"],
@@ -143,7 +143,7 @@ test "wpt parse-not.html: valid :not(:host)" {
 
 ///|
 test "wpt parse-not.html: valid :not(:host(.a))" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(:host(.a))",
     ":not(:host(.a))",
     [":not(:host(.a))"],
@@ -153,7 +153,7 @@ test "wpt parse-not.html: valid :not(:host(.a))" {
 
 ///|
 test "wpt parse-not.html: valid :host(:not(.a))" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :host(:not(.a))",
     ":host(:not(.a))",
     [":host(:not(.a))"],
@@ -163,7 +163,7 @@ test "wpt parse-not.html: valid :host(:not(.a))" {
 
 ///|
 test "wpt parse-not.html: valid :not(:host(:not(.a)))" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not(:host(:not(.a)))",
     ":not(:host(:not(.a)))",
     [":not(:host(:not(.a)))"],
@@ -173,7 +173,7 @@ test "wpt parse-not.html: valid :not(:host(:not(.a)))" {
 
 ///|
 test "wpt parse-not.html: valid :not([disabled][selected])" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not([disabled][selected])",
     ":not([disabled][selected])",
     [":not([disabled][selected])"],
@@ -183,7 +183,7 @@ test "wpt parse-not.html: valid :not([disabled][selected])" {
 
 ///|
 test "wpt parse-not.html: valid :not([disabled],[selected])" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-not.html: valid :not([disabled],[selected])",
     ":not([disabled],[selected])",
     [":not([disabled], [selected])"],
@@ -193,33 +193,33 @@ test "wpt parse-not.html: valid :not([disabled],[selected])" {
 
 ///|
 test "wpt parse-not.html: invalid :not()" {
-  wpt_assert_invalid("wpt parse-not.html: invalid :not()", ":not()", false)
+  @wpt.wpt_assert_invalid("wpt parse-not.html: invalid :not()", ":not()", false)
 }
 
 ///|
 test "wpt parse-not.html: invalid :not(:not())" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-not.html: invalid :not(:not())", ":not(:not())", false,
   )
 }
 
 ///|
 test "wpt parse-not.html: invalid :not(::before)" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-not.html: invalid :not(::before)", ":not(::before)", false,
   )
 }
 
 ///|
 test "wpt parse-not.html: invalid :not(:unknownpseudo)" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-not.html: invalid :not(:unknownpseudo)", ":not(:unknownpseudo)", false,
   )
 }
 
 ///|
 test "wpt parse-not.html: invalid :not(.a, :unknownpseudo)" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-not.html: invalid :not(.a, :unknownpseudo)", ":not(.a, :unknownpseudo)",
     false,
   )
@@ -227,7 +227,7 @@ test "wpt parse-not.html: invalid :not(.a, :unknownpseudo)" {
 
 ///|
 test "wpt parse-not.html: invalid :not(:unknownpseudo, .a)" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-not.html: invalid :not(:unknownpseudo, .a)", ":not(:unknownpseudo, .a)",
     false,
   )
@@ -235,7 +235,7 @@ test "wpt parse-not.html: invalid :not(:unknownpseudo, .a)" {
 
 ///|
 test "wpt parse-not.html: invalid :host(:not(.a .b))" {
-  wpt_assert_invalid(
+  @wpt.wpt_assert_invalid(
     "wpt parse-not.html: invalid :host(:not(.a .b))", ":host(:not(.a .b))", false,
   )
 }

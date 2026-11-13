@@ -259,7 +259,7 @@ pub fn extract_border_width(value : String) -> @types.Dimension {
 /// Split string by whitespace into parts
 fn split_whitespace(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for c in s {
     if c == ' ' || c == '\t' || c == '\n' {
       if current.to_string().length() > 0 {
@@ -474,8 +474,8 @@ fn parse_alignment_keyword(value : String) -> @types.Alignment {
 ///|
 fn parse_alignment_segment(
   tokens : Array[String],
-  start : Int,
-) -> (String, Int)? {
+  start : Int32,
+) -> (String, Int32)? {
   if start >= tokens.length() {
     return None
   }
@@ -695,7 +695,7 @@ pub fn parse_scroll_snap_type(value : String) -> @style.ScrollSnapType {
     strictness == @style.ScrollSnapStrictness::None {
     @style.ScrollSnapType::none()
   } else {
-    { axis, strictness }
+    { axis, strictness, }
   }
 }
 
@@ -824,7 +824,7 @@ pub fn parse_grid_line_shorthand(
 pub fn find_grid_named_line(
   name : String,
   line_names : Array[Array[String]],
-) -> Int? {
+) -> Int32? {
   for i = 0; i < line_names.length(); i = i + 1 {
     let group = line_names[i]
     for j = 0; j < group.length(); j = j + 1 {
@@ -842,11 +842,11 @@ pub fn find_grid_named_line(
 /// from the end (n=-1 is the last). Returns None if there is no such line.
 pub fn find_grid_named_line_nth(
   name : String,
-  n : Int,
+  n : Int32,
   line_names : Array[Array[String]],
-) -> Int? {
+) -> Int32? {
   // Collect the 1-based line numbers carrying `name`, in document order.
-  let hits : Array[Int] = []
+  let hits : Array[Int32] = []
   for i = 0; i < line_names.length(); i = i + 1 {
     let group = line_names[i]
     for j = 0; j < group.length(); j = j + 1 {
@@ -875,7 +875,7 @@ fn resolve_named_grid_side(
   name : String,
   is_start : Bool,
   line_names : Array[Array[String]],
-) -> Int? {
+) -> Int32? {
   // 1. An explicit line declared with this exact name wins.
   match find_grid_named_line(name, line_names) {
     Some(n) => return Some(n)
@@ -897,7 +897,7 @@ pub fn resolve_grid_line_placement(
   start : @types.GridPlacement,
   end : @types.GridPlacement,
   line_names : Array[Array[String]],
-) -> (Int?, Int?) {
+) -> (Int32?, Int32?) {
   let start_line = match start {
     @types.GridPlacement::Line(n) => Some(n)
     @types.GridPlacement::Named(name) =>
@@ -969,7 +969,7 @@ pub fn parse_number(value : String) -> Double {
 
 ///|
 /// Parse an integer value
-pub fn parse_integer(value : String) -> Int {
+pub fn parse_integer(value : String) -> Int32 {
   @string.parse_int(value.trim().to_owned()) catch {
     _ => 0
   }
@@ -1099,7 +1099,7 @@ pub fn parse_grid_template_areas_value(value : String) -> Array[String] {
         end = end + 1
       }
       if end > i + 1 {
-        let row_str = view_to_string(v.view(start_offset=i + 1, end_offset=end))
+        let row_str = view_to_string(v.clamped_view(start=i + 1, end~))
         result.push(row_str.to_string())
       }
       i = end + 1
@@ -1152,8 +1152,8 @@ pub fn parse_aspect_ratio(value : String) -> Double? {
     }
     if slash_pos > 0 {
       // Use view slicing
-      let width_str = view_to_string(v.view(end_offset=slash_pos)).trim()
-      let height_str = view_to_string(v.view(start_offset=slash_pos + 1)).trim()
+      let width_str = view_to_string(v.clamped_view(end=slash_pos)).trim()
+      let height_str = view_to_string(v.clamped_view(start=slash_pos + 1)).trim()
       let w = @string.parse_double(width_str.to_owned()) catch {
         _ => return None
       }
@@ -1183,19 +1183,17 @@ pub fn parse_clip(value : String) -> @types.ClipRect {
   // Parse rect(top, right, bottom, left)
   if v.has_prefix("rect(") && v.has_suffix(")") {
     // Extract the content inside rect()
-    let content = view_to_string(
-      v.view(start_offset=5, end_offset=v.length() - 1),
-    ).trim()
+    let content = view_to_string(v.clamped_view(start=5, end=v.length() - 1)).trim()
     // Split by comma or space (both are valid in CSS)
     let parts : Array[String] = []
-    let mut current = StringBuilder::new()
+    let mut current = StringBuilder()
     for c in content.iter() {
       if c == ',' || c == ' ' {
         let s = current.to_string().trim().to_owned()
         if !s.is_empty() {
           parts.push(s)
         }
-        current = StringBuilder::new()
+        current = StringBuilder()
       } else {
         current.write_char(c)
       }
@@ -1226,7 +1224,7 @@ pub fn parse_clip_path(value : String) -> @style.ClipPath {
   }
   if v.has_prefix("inset(") && v.has_suffix(")") {
     let raw_content = view_to_string(
-        v.view(start_offset=6, end_offset=v.length() - 1),
+        v.clamped_view(start=6, end=v.length() - 1),
       )
       .trim()
       .to_owned()
@@ -1268,16 +1266,14 @@ pub fn parse_clip_path(value : String) -> @style.ClipPath {
     }
   }
   if v.has_prefix("rect(") && v.has_suffix(")") {
-    let content = view_to_string(
-        v.view(start_offset=5, end_offset=v.length() - 1),
-      )
+    let content = view_to_string(v.clamped_view(start=5, end=v.length() - 1))
       .trim()
       .to_owned()
     return parse_clip_path_rect(content)
   }
   if v.has_prefix("xywh(") && v.has_suffix(")") {
     let raw_content = view_to_string(
-        v.view(start_offset=5, end_offset=v.length() - 1),
+        v.clamped_view(start=5, end=v.length() - 1),
       )
       .trim()
       .to_owned()
@@ -1289,32 +1285,26 @@ pub fn parse_clip_path(value : String) -> @style.ClipPath {
     return parse_clip_path_xywh(content)
   }
   if v.has_prefix("circle(") && v.has_suffix(")") {
-    let content = view_to_string(
-        v.view(start_offset=7, end_offset=v.length() - 1),
-      )
+    let content = view_to_string(v.clamped_view(start=7, end=v.length() - 1))
       .trim()
       .to_owned()
     return parse_clip_path_circle(content)
   }
   if v.has_prefix("ellipse(") && v.has_suffix(")") {
-    let content = view_to_string(
-        v.view(start_offset=8, end_offset=v.length() - 1),
-      )
+    let content = view_to_string(v.clamped_view(start=8, end=v.length() - 1))
       .trim()
       .to_owned()
     return parse_clip_path_ellipse(content)
   }
   if v.has_prefix("polygon(") && v.has_suffix(")") {
-    let content = view_to_string(
-        v.view(start_offset=8, end_offset=v.length() - 1),
-      )
+    let content = view_to_string(v.clamped_view(start=8, end=v.length() - 1))
       .trim()
       .to_owned()
     return parse_clip_path_polygon(content)
   }
   if v.has_prefix("path(") && v.has_suffix(")") {
     let content = view_to_string(
-        raw_v.view(start_offset=5, end_offset=raw_v.length() - 1),
+        raw_v.clamped_view(start=5, end=raw_v.length() - 1),
       )
       .trim()
       .to_owned()
@@ -1516,7 +1506,7 @@ fn extract_clip_path_path_string_with_quote(
   content : String,
   quote : Char,
 ) -> String? {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   let mut in_quote = false
   for c in content.iter() {
     if in_quote {
@@ -1946,7 +1936,7 @@ fn parse_clip_path_path_data(path_data : String) -> @style.ClipPath {
 ///|
 fn tokenize_clip_path_path_data(path_data : String) -> Array[String] {
   let tokens : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for c in path_data.iter() {
     if is_clip_path_path_command_char(c) {
       flush_clip_path_path_token(tokens, current)
@@ -2142,7 +2132,7 @@ fn clip_path_angle_between(
 }
 
 ///|
-fn clip_path_max_int(a : Int, b : Int) -> Int {
+fn clip_path_max_int(a : Int32, b : Int32) -> Int32 {
   if a > b {
     a
   } else {
@@ -2200,7 +2190,7 @@ fn is_clip_path_path_command_char(c : Char) -> Bool {
 
 ///|
 fn clip_path_path_char_to_string(c : Char) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   sb.write_char(c)
   sb.to_string()
 }
@@ -2214,14 +2204,14 @@ fn parse_clip_path_path_number(token : String) -> Double? {
 ///|
 fn split_clip_path_values(content : String) -> Array[String] {
   let parts : Array[String] = []
-  let mut current = StringBuilder::new()
+  let mut current = StringBuilder()
   for c in content.iter() {
     if c == ',' || c == ' ' || c == '\t' || c == '\n' {
       let s = current.to_string().trim().to_owned()
       if !s.is_empty() {
         parts.push(s)
       }
-      current = StringBuilder::new()
+      current = StringBuilder()
     } else {
       current.write_char(c)
     }

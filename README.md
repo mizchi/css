@@ -37,6 +37,34 @@ such as `ease-in-sine`, `easeOutBack`, and `ease_in_out_bounce`. `sample`
 clamps input progress to `[0, 1]`; overshooting curves such as back/elastic can
 still produce eased progress outside that range.
 
+## Development
+
+Validated with MoonBit `v0.10.20+65efd5b93` (2026-11-05). Run `moon upgrade`
+to install the current stable toolchain. The source uses `#derive`, explicit
+trait method extensions, and the `Int32` / `UInt32` type names.
+
+With [just](https://just.systems) installed:
+
+```sh
+just check          # formatting + warning-free checks on all backends
+just test           # JavaScript tests
+just test-all       # JavaScript, Native, Wasm, Wasm GC tests
+just bench          # Native public pipeline benchmarks
+just bench js       # JavaScript public pipeline benchmarks
+just bench native simd_bench_test.mbt # long scans + attribute searches
+just wpt-gen        # regenerate WPT tests from committed fixtures
+```
+
+Benchmarks run sequentially within each backend. Run before/after measurements
+on the same machine without other benchmark or build processes running.
+See [BENCHMARKS.md](BENCHMARKS.md) for measured parser improvements.
+
+The tokenizer scans long names, whitespace, strings and comments eight UTF-16
+code units at a time on Native and Wasm. JavaScript and Wasm GC use scalar
+scanners; JavaScript uses its native string search for long comments and
+attribute substrings. Short prefixes and suffixes keep their scalar path.
+The experimental `core/v128` dependency is isolated in private scanner code.
+
 ## Web Animations
 
 `mizchi/css/animation` provides a small, DOM-independent subset of the Web
@@ -61,8 +89,8 @@ specific interpolation, and timeline scheduling are left to higher layers.
 `wpt/` ships a runner that converts upstream WPT selector-parsing tests
 (`css/selectors/parsing/**`) into MoonBit test cases. After
 `node wpt/extract.mjs && node wpt/gen-mbt.mjs`, the suite is exercised
-with `moon test --package mizchi/css/wpt` — **215 / 215 tests passing
-(100%)** against upstream WPT. See `wpt/README.md`.
+with `moon test --package mizchi/css/wpt` — **302 / 302 tests passing
+(100%)** across selector parsing and An+B. See `wpt/README.md`.
 
 ## License
 

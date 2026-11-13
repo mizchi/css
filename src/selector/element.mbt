@@ -32,9 +32,9 @@ pub(all) struct Element {
   /// Child elements
   children : Array[Element]
   /// Index among siblings (1-based for :nth-child)
-  sibling_index : Int
+  sibling_index : Int32
   /// Total number of siblings (for :last-child, :nth-last-child)
-  sibling_count : Int
+  sibling_count : Int32
 }
 
 ///|
@@ -131,7 +131,7 @@ pub fn Element::is_last_child(self : Element) -> Bool {
 ///|
 /// Builder for creating elements with fluent API
 pub fn Element::set_id(self : Element, id : String) -> Element {
-  { ..self, id: Some(id) }
+  { ..self, id: Some(id), }
 }
 
 ///|
@@ -148,7 +148,7 @@ pub fn Element::set_attribute(
   value : String,
 ) -> Element {
   let attributes = self.attributes.copy()
-  attributes.push({ name, value })
+  attributes.push({ name, value, })
   { ..self, attributes, }
 }
 
@@ -162,13 +162,13 @@ pub fn Element::add_custom_state(self : Element, state : String) -> Element {
 ///|
 pub fn Element::set_sibling_info(
   self : Element,
-  index : Int,
-  count : Int,
+  index : Int32,
+  count : Int32,
 ) -> Element {
-  { ..self, sibling_index: index, sibling_count: count }
+  { ..self, sibling_index: index, sibling_count: count, }
 }
 
 ///|
 pub fn Element::set_parent(self : Element, parent : Element) -> Element {
-  { ..self, parent: Some(parent) }
+  { ..self, parent: Some(parent), }
 }

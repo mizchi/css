@@ -12,18 +12,18 @@
 /// - Universal selectors (matched against all elements)
 pub(all) struct SelectorIndex {
   /// Rules indexed by ID (rightmost ID in head)
-  by_id : Map[String, Array[Int]]
+  by_id : Map[String, Array[Int32]]
   /// Rules indexed by class (rightmost class in head)
-  by_class : Map[String, Array[Int]]
+  by_class : Map[String, Array[Int32]]
   /// Rules indexed by tag name (rightmost type in head)
-  by_tag : Map[String, Array[Int]]
+  by_tag : Map[String, Array[Int32]]
   /// Rules with universal selector (*) or no specific key
-  universal : Array[Int]
+  universal : Array[Int32]
 }
 
 ///|
 pub fn SelectorIndex::new() -> SelectorIndex {
-  { by_id: {}, by_class: {}, by_tag: {}, universal: [] }
+  { by_id: {}, by_class: {}, by_tag: {}, universal: [], }
 }
 
 ///|
@@ -105,8 +105,8 @@ pub fn SelectorIndex::from_stylesheet(stylesheet : Stylesheet) -> SelectorIndex 
 pub fn SelectorIndex::get_candidates(
   self : SelectorIndex,
   element : @selector.Element,
-) -> Array[Int] {
-  let candidates : Array[Int] = []
+) -> Array[Int32] {
+  let candidates : Array[Int32] = []
   // Check ID index
   match element.id {
     Some(id) =>
@@ -158,7 +158,7 @@ pub struct IndexedStylesheet {
 ///|
 pub fn IndexedStylesheet::new(stylesheet : Stylesheet) -> IndexedStylesheet {
   let index = SelectorIndex::from_stylesheet(stylesheet)
-  { stylesheet, index }
+  { stylesheet, index, }
 }
 
 ///|
@@ -192,8 +192,8 @@ fn cascade_indexed_stylesheet_matches_into(
   stylesheet : IndexedStylesheet,
   element : @selector.Element,
   media_env : @media.MediaEnvironment?,
-  source_order_offset : Int,
-) -> Int {
+  source_order_offset : Int32,
+) -> Int32 {
   let mut max_so = source_order_offset - 1
   let candidates = stylesheet.index.get_candidates(element)
   for rule_idx in candidates {

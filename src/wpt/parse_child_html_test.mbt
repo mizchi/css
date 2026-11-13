@@ -3,7 +3,7 @@
 
 ///|
 test "wpt parse-child.html: valid body > p" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-child.html: valid body > p",
     "body > p",
     ["body > p"],
@@ -13,7 +13,7 @@ test "wpt parse-child.html: valid body > p" {
 
 ///|
 test "wpt parse-child.html: valid div ol>li p" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-child.html: valid div ol>li p",
     "div ol>li p",
     ["div ol > li p"],

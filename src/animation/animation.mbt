@@ -1,11 +1,18 @@
 ///|
+#derive(Debug, Eq)
 pub(all) enum FillMode {
   None
   Forwards
   Backwards
   Both
   Auto
-} derive(Debug, Eq)
+}
+
+///|
+pub extend FillMode with @debug.Debug::{to_repr}
+
+///|
+pub extend FillMode with Eq::{not_equal, equal}
 
 ///|
 pub impl Show for FillMode with fn output(self, logger) {
@@ -19,12 +26,22 @@ pub impl Show for FillMode with fn output(self, logger) {
 }
 
 ///|
+pub extend FillMode with Show::{to_string, output}
+
+///|
+#derive(Debug, Eq)
 pub(all) enum PlaybackDirection {
   Normal
   Reverse
   Alternate
   AlternateReverse
-} derive(Debug, Eq)
+}
+
+///|
+pub extend PlaybackDirection with @debug.Debug::{to_repr}
+
+///|
+pub extend PlaybackDirection with Eq::{not_equal, equal}
 
 ///|
 pub impl Show for PlaybackDirection with fn output(self, logger) {
@@ -38,11 +55,21 @@ pub impl Show for PlaybackDirection with fn output(self, logger) {
 }
 
 ///|
+pub extend PlaybackDirection with Show::{to_string, output}
+
+///|
+#derive(Debug, Eq)
 pub(all) enum AnimationPhase {
   Before
   Active
   After
-} derive(Debug, Eq)
+}
+
+///|
+pub extend AnimationPhase with @debug.Debug::{to_repr}
+
+///|
+pub extend AnimationPhase with Eq::{not_equal, equal}
 
 ///|
 pub impl Show for AnimationPhase with fn output(self, logger) {
@@ -54,11 +81,21 @@ pub impl Show for AnimationPhase with fn output(self, logger) {
 }
 
 ///|
+pub extend AnimationPhase with Show::{to_string, output}
+
+///|
+#derive(Debug, Eq)
 pub(all) enum CompositeOperation {
   Replace
   Add
   Accumulate
-} derive(Debug, Eq)
+}
+
+///|
+pub extend CompositeOperation with @debug.Debug::{to_repr}
+
+///|
+pub extend CompositeOperation with Eq::{not_equal, equal}
 
 ///|
 pub impl Show for CompositeOperation with fn output(self, logger) {
@@ -70,10 +107,20 @@ pub impl Show for CompositeOperation with fn output(self, logger) {
 }
 
 ///|
+pub extend CompositeOperation with Show::{to_string, output}
+
+///|
+#derive(Debug, Eq)
 pub(all) enum IterationCompositeOperation {
   Replace
   Accumulate
-} derive(Debug, Eq)
+}
+
+///|
+pub extend IterationCompositeOperation with @debug.Debug::{to_repr}
+
+///|
+pub extend IterationCompositeOperation with Eq::{not_equal, equal}
 
 ///|
 pub impl Show for IterationCompositeOperation with fn output(self, logger) {
@@ -84,6 +131,10 @@ pub impl Show for IterationCompositeOperation with fn output(self, logger) {
 }
 
 ///|
+pub extend IterationCompositeOperation with Show::{to_string, output}
+
+///|
+#derive(Debug, Eq)
 pub(all) struct EffectTiming {
   delay : Double
   end_delay : Double
@@ -93,9 +144,16 @@ pub(all) struct EffectTiming {
   duration : Double
   direction : PlaybackDirection
   easing : @values.Easing
-} derive(Debug, Eq)
+}
 
 ///|
+pub extend EffectTiming with @debug.Debug::{to_repr}
+
+///|
+pub extend EffectTiming with Eq::{not_equal, equal}
+
+///|
+#derive(Debug, Eq)
 pub(all) struct ComputedEffectTiming {
   phase : AnimationPhase
   active_duration : Double
@@ -103,26 +161,46 @@ pub(all) struct ComputedEffectTiming {
   local_time : Double
   active_time : Double?
   progress : Double?
-  current_iteration : Int?
+  current_iteration : Int32?
   directed_progress : Double?
   transformed_progress : Double?
-} derive(Debug, Eq)
+}
 
 ///|
+pub extend ComputedEffectTiming with @debug.Debug::{to_repr}
+
+///|
+pub extend ComputedEffectTiming with Eq::{not_equal, equal}
+
+///|
+#derive(Debug, Eq)
 pub(all) struct NumericKeyframe {
   offset : Double
   value : Double
   easing : @values.Easing
   composite : CompositeOperation?
-} derive(Debug, Eq)
+}
 
 ///|
+pub extend NumericKeyframe with @debug.Debug::{to_repr}
+
+///|
+pub extend NumericKeyframe with Eq::{not_equal, equal}
+
+///|
+#derive(Debug, Eq)
 pub(all) struct NumericKeyframeEffect {
   keyframes : Array[NumericKeyframe]
   timing : EffectTiming
   composite : CompositeOperation
   iteration_composite : IterationCompositeOperation
-} derive(Debug, Eq)
+}
+
+///|
+pub extend NumericKeyframeEffect with @debug.Debug::{to_repr}
+
+///|
+pub extend NumericKeyframeEffect with Eq::{not_equal, equal}
 
 ///|
 fn max_double(a : Double, b : Double) -> Double {
@@ -152,7 +230,7 @@ fn fill_allows_after(fill : FillMode) -> Bool {
 ///|
 fn is_reverse_iteration(
   direction : PlaybackDirection,
-  current_iteration : Int,
+  current_iteration : Int32,
 ) -> Bool {
   match direction {
     PlaybackDirection::Normal => false
@@ -179,7 +257,7 @@ fn compute_progress(
   phase : AnimationPhase,
   active_time : Double,
   active_duration : Double,
-) -> (Double, Int, Double) {
+) -> (Double, Int32, Double) {
   if active_duration <= 0.0 || timing.duration <= 0.0 {
     let progress = if phase == AnimationPhase::Before { 0.0 } else { 1.0 }
     let current_iteration = 0
@@ -299,7 +377,7 @@ pub fn EffectTiming::at(
 
 ///|
 pub fn NumericKeyframe::new(offset : Double, value : Double) -> NumericKeyframe {
-  { offset, value, easing: @values.Easing::Linear, composite: None }
+  { offset, value, easing: @values.Easing::Linear, composite: None, }
 }
 
 ///|
@@ -308,7 +386,7 @@ pub fn NumericKeyframe::with_easing(
   value : Double,
   easing : @values.Easing,
 ) -> NumericKeyframe {
-  { offset, value, easing, composite: None }
+  { offset, value, easing, composite: None, }
 }
 
 ///|
@@ -318,7 +396,7 @@ pub fn NumericKeyframe::with_composite(
   easing : @values.Easing,
   composite : CompositeOperation,
 ) -> NumericKeyframe {
-  { offset, value, easing, composite: Some(composite) }
+  { offset, value, easing, composite: Some(composite), }
 }
 
 ///|
@@ -399,7 +477,7 @@ pub fn NumericKeyframeEffect::with_composite(
   if !validate_numeric_keyframes(keyframes) {
     return None
   }
-  Some({ keyframes: keyframes.copy(), timing, composite, iteration_composite })
+  Some({ keyframes: keyframes.copy(), timing, composite, iteration_composite, })
 }
 
 ///|
@@ -415,7 +493,7 @@ pub fn NumericKeyframeEffect::sample_progress_with_underlying(
   self : NumericKeyframeEffect,
   progress : Double,
   underlying_value : Double,
-  current_iteration : Int,
+  current_iteration : Int32,
 ) -> Double {
   let progress = clamp_unit(progress)
   let keyframes = self.keyframes

@@ -54,6 +54,9 @@ pub impl Show for CssColorValue with fn output(self, logger) {
 }
 
 ///|
+pub extend CssColorValue with Show::{to_string, output}
+
+///|
 /// Resolve CSS var() function for colors - extracts fallback value if present
 /// This is the legacy version without context - only uses fallback values
 fn resolve_color_var_fallback(value : String) -> String {
@@ -62,7 +65,7 @@ fn resolve_color_var_fallback(value : String) -> String {
     return v.to_owned()
   }
   // Extract content inside var(...)
-  let inner = view_to_string(v.view(start_offset=4, end_offset=v.length() - 1))
+  let inner = view_to_string(v.clamped_view(start=4, end=v.length() - 1))
   // Find the comma separating variable name from fallback
   let mut paren_depth = 0
   let mut comma_pos = -1
@@ -221,12 +224,12 @@ fn parse_color_value(v : String) -> CssColorValue {
 }
 
 ///|
-fn char_at(s : String, i : Int) -> Char {
+fn char_at(s : String, i : Int32) -> Char {
   s[i].to_int().unsafe_to_char()
 }
 
 ///|
-fn hex_digit(c : Char) -> Int {
+fn hex_digit(c : Char) -> Int32 {
   let code = c.to_int()
   if code >= '0'.to_int() && code <= '9'.to_int() {
     code - '0'.to_int()
@@ -247,12 +250,12 @@ fn parse_hex_color(value : String) -> @types.Color? {
   }
   // Skip the '#' prefix
   let len = value.length() - 1
-  fn hex1(idx : Int) -> Int {
+  fn hex1(idx : Int32) -> Int32 {
     let d = hex_digit(char_at(value, idx))
     d * 16 + d
   }
 
-  fn hex2(idx1 : Int, idx2 : Int) -> Int {
+  fn hex2(idx1 : Int32, idx2 : Int32) -> Int32 {
     hex_digit(char_at(value, idx1)) * 16 + hex_digit(char_at(value, idx2))
   }
 
@@ -293,7 +296,7 @@ fn parse_hex_color(value : String) -> @types.Color? {
 
 ///|
 /// Find first index of character in string
-fn find_char(s : String, c : Char) -> Int {
+fn find_char(s : String, c : Char) -> Int32 {
   for i = 0; i < s.length(); i = i + 1 {
     if char_at(s, i) == c {
       return i
@@ -304,7 +307,7 @@ fn find_char(s : String, c : Char) -> Int {
 
 ///|
 /// Find last index of character in string
-fn find_char_last(s : String, c : Char) -> Int {
+fn find_char_last(s : String, c : Char) -> Int32 {
   let mut last = -1
   for i = 0; i < s.length(); i = i + 1 {
     if char_at(s, i) == c {
@@ -316,8 +319,8 @@ fn find_char_last(s : String, c : Char) -> Int {
 
 ///|
 /// Extract substring
-fn substr(s : String, start : Int, end : Int) -> String {
-  let sb = StringBuilder::new()
+fn substr(s : String, start : Int32, end : Int32) -> String {
+  let sb = StringBuilder()
   for i = start; i < end && i < s.length(); i = i + 1 {
     sb.write_char(char_at(s, i))
   }
@@ -355,7 +358,7 @@ fn parse_rgb_function(value : String) -> @types.Color? {
 /// Split color function arguments (handles comma and space separation)
 fn split_color_args(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for c in s {
     if c == ',' || c == '/' || c == ' ' {
       let part = current.to_string().trim()
@@ -635,12 +638,12 @@ pub fn parse_linear_gradient(value : String) -> @types.BackgroundImage {
   for i = color_start; i < parts.length(); i = i + 1 {
     let part = parts[i].trim().to_owned()
     let (color, pos) = parse_gradient_stop(part, i - color_start, num_colors)
-    stops.push({ color, position: pos })
+    stops.push({ color, position: pos, })
   }
   if stops.length() < 2 {
     return @types.None
   }
-  @types.Gradient({ angle_deg: angle, stops })
+  @types.Gradient({ angle_deg: angle, stops, })
 }
 
 ///|
@@ -670,8 +673,8 @@ fn parse_direction_keyword(dir : String) -> Double {
 ///|
 fn parse_gradient_stop(
   part : String,
-  index : Int,
-  total : Int,
+  index : Int32,
+  total : Int32,
 ) -> (@types.Color, Double) {
   // A stop can be "color" or "color position%"
   // Try to find a percentage at the end
@@ -717,7 +720,7 @@ fn resolve_gradient_color(s : String) -> @types.Color {
 }
 
 ///|
-fn find_last_space(s : String) -> Int {
+fn find_last_space(s : String) -> Int32 {
   let mut last = -1
   let mut depth = 0
   for i = 0; i < s.length(); i = i + 1 {

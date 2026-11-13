@@ -3,7 +3,7 @@
 
 ///|
 test "wpt parse-focus-visible.html: valid :focus-visible" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-focus-visible.html: valid :focus-visible",
     ":focus-visible",
     [":focus-visible"],
@@ -13,7 +13,7 @@ test "wpt parse-focus-visible.html: valid :focus-visible" {
 
 ///|
 test "wpt parse-focus-visible.html: valid a:focus-visible" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-focus-visible.html: valid a:focus-visible",
     "a:focus-visible",
     ["a:focus-visible"],
@@ -23,7 +23,7 @@ test "wpt parse-focus-visible.html: valid a:focus-visible" {
 
 ///|
 test "wpt parse-focus-visible.html: valid :focus:not(:focus-visible)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-focus-visible.html: valid :focus:not(:focus-visible)",
     ":focus:not(:focus-visible)",
     [":focus:not(:focus-visible)"],

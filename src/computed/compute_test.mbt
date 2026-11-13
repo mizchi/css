@@ -311,14 +311,18 @@ test "compute_inline MDN page shell: named lines resolve grid-column" {
   inspect(sidebar.grid_column.start, content="Named(left-sidebar)")
   inspect(sidebar.grid_column.end, content="Named(left-sidebar)")
   let (s, e) = @computed.resolve_grid_line_placement(
-    sidebar.grid_column.start, sidebar.grid_column.end, col_names,
+    sidebar.grid_column.start,
+    sidebar.grid_column.end,
+    col_names,
   )
   debug_inspect(s, content="Some(1)")
   debug_inspect(e, content="Some(2)")
   // Another item placed in the content column.
   let content = @computed.compute_inline("grid-column: content", ctx)
   let (cs, ce) = @computed.resolve_grid_line_placement(
-    content.grid_column.start, content.grid_column.end, col_names,
+    content.grid_column.start,
+    content.grid_column.end,
+    col_names,
   )
   debug_inspect(cs, content="Some(2)")
   debug_inspect(ce, content="Some(3)")
@@ -351,9 +355,7 @@ test "build_keyframe_track fills implicit endpoint from base and interpolates co
     #|@keyframes redden { to { color: rgb(255, 0, 0); } }
   let sheet = @parser.parse_stylesheet(css)
   let rule = sheet.find_keyframes("redden").unwrap()
-  let track = @computed.build_keyframe_track(
-    rule, "color", "rgb(0, 0, 0)", ctx,
-  )
+  let track = @computed.build_keyframe_track(rule, "color", "rgb(0, 0, 0)", ctx)
   inspect(track.length(), content="2")
   let effect = @animation.AnimatableKeyframeEffect::new(
     track,
@@ -479,8 +481,7 @@ test "end-to-end: @keyframes + animation drive a sampled value" {
 test "compute_inline animation and transition shorthands" {
   let ctx = @computed.ComputeContext::new()
   let s = @computed.compute_inline(
-    "animation: fade 1s ease-in 0.2s 3 reverse; transition: width 0.5s linear",
-    ctx,
+    "animation: fade 1s ease-in 0.2s 3 reverse; transition: width 0.5s linear", ctx,
   )
   debug_inspect(s.animation_name, content="[\"fade\"]")
   debug_inspect(s.animation_duration, content="[1]")
@@ -1139,7 +1140,7 @@ test "compute_inline ch and ex units" {
 ///|
 test "compute_inline ch units use square advance for inherited Ahem" {
   let ctx : @computed.ComputeContext = {
-    parent_style: Some({ ..@style.Style::default(), font_family: "Ahem" }),
+    parent_style: Some({ ..@style.Style::default(), font_family: "Ahem", }),
     root_font_size: 16.0,
     font_size: 16.0,
     viewport_width: 1920.0,
@@ -1272,7 +1273,10 @@ test "compute_inline math functions reject invalid arguments to match parser" {
   // compute layer just like the parser layer (parser/compute parity).
   let ctx = @computed.ComputeContext::new()
   // non-zero unitless number is not a valid length argument
-  inspect(@computed.compute_inline("width: min(5, 100px)", ctx).width, content="Auto")
+  inspect(
+    @computed.compute_inline("width: min(5, 100px)", ctx).width,
+    content="Auto",
+  )
   // unknown unit is not a valid length argument
   inspect(
     @computed.compute_inline("width: min(10foo, 100px)", ctx).width,
@@ -1935,7 +1939,7 @@ test "ComputeContext::with_viewport overrides dimensions" {
 
 ///|
 test "ComputeContext::with_parent inherits font size from parent" {
-  let parent : @style.Style = { ..@style.Style::default(), font_size: 24.0 }
+  let parent : @style.Style = { ..@style.Style::default(), font_size: 24.0, }
   let ctx = @computed.ComputeContext::with_parent(parent)
   assert_true(ctx.parent_style is Some(_))
 }
@@ -1943,7 +1947,7 @@ test "ComputeContext::with_parent inherits font size from parent" {
 ///|
 test "ComputeContext::with_parent_and_vars copies custom properties" {
   let parent = @style.Style::default()
-  let vars : Map[String, String] = {}
+  let vars : Map[String, String] = Map([])
   vars["--brand"] = "red"
   vars["--spacing"] = "8px"
   let ctx = @computed.ComputeContext::with_parent_and_vars(parent, vars)
@@ -2333,7 +2337,7 @@ test "compute preserves border shorthand and longhand source order" {
     @cascade.Value("10px solid transparent"),
     @cascade.Author,
     @cascade.Normal,
-    { a: 0, b: 1, c: 0 },
+    { a: 0, b: 1, c: 0, },
     0,
   )
   let left_decl = @cascade.Declaration::with_metadata(
@@ -2341,7 +2345,7 @@ test "compute preserves border shorthand and longhand source order" {
     @cascade.Value("100px"),
     @cascade.Author,
     @cascade.Normal,
-    { a: 0, b: 1, c: 0 },
+    { a: 0, b: 1, c: 0, },
     1,
   )
   let style = @computed.compute(@cascade.cascade([border_decl, left_decl]), ctx)
@@ -2355,7 +2359,7 @@ test "compute preserves border shorthand and longhand source order" {
     @cascade.Value("100px"),
     @cascade.Author,
     @cascade.Normal,
-    { a: 0, b: 1, c: 0 },
+    { a: 0, b: 1, c: 0, },
     0,
   )
   let border_second_decl = @cascade.Declaration::with_metadata(
@@ -2363,7 +2367,7 @@ test "compute preserves border shorthand and longhand source order" {
     @cascade.Value("10px solid transparent"),
     @cascade.Author,
     @cascade.Normal,
-    { a: 0, b: 1, c: 0 },
+    { a: 0, b: 1, c: 0, },
     1,
   )
   let style2 = @computed.compute(
@@ -3005,7 +3009,7 @@ test "compute - explicit inherit keyword forces inheritance" {
     value: @cascade.Inherit,
     origin: @cascade.Author,
     importance: @cascade.Normal,
-    specificity: { a: 0, b: 0, c: 0 },
+    specificity: { a: 0, b: 0, c: 0, },
     source_order: 0,
   }
   let style = @computed.compute(@cascade.cascade([decl]), ctx)
@@ -3030,7 +3034,7 @@ fn compute_inheriting(prop : String, parent : @style.Style) -> @style.Style {
     value: @cascade.Inherit,
     origin: @cascade.Author,
     importance: @cascade.Normal,
-    specificity: { a: 0, b: 0, c: 0 },
+    specificity: { a: 0, b: 0, c: 0, },
     source_order: 0,
   }
   @computed.compute(@cascade.cascade([decl]), ctx)
@@ -3060,7 +3064,7 @@ test "Inherit - display variants" {
       @types.Contents,
       @types.FlowRoot,
     ] {
-    let parent : @style.Style = { ..@style.Style::default(), display: d }
+    let parent : @style.Style = { ..@style.Style::default(), display: d, }
     let s = compute_inheriting("display", parent)
     inspect(s.display, content=d.to_string())
   }
@@ -3074,7 +3078,7 @@ test "Inherit - position variants" {
       @types.Position::Absolute,
       @types.Position::Fixed,
     ] {
-    let parent : @style.Style = { ..@style.Style::default(), position: p }
+    let parent : @style.Style = { ..@style.Style::default(), position: p, }
     let s = compute_inheriting("position", parent)
     inspect(s.position, content=p.to_string())
   }
@@ -3084,7 +3088,10 @@ test "Inherit - position variants" {
 test "Inherit - flex-direction variants" {
   for
     d in [@types.RowReverse, @types.FlexDirection::Column, @types.ColumnReverse] {
-    let parent : @style.Style = { ..@style.Style::default(), flex_direction: d }
+    let parent : @style.Style = {
+      ..@style.Style::default(),
+      flex_direction: d,
+    }
     let s = compute_inheriting("flex-direction", parent)
     inspect(s.flex_direction, content=d.to_string())
   }
@@ -3093,7 +3100,7 @@ test "Inherit - flex-direction variants" {
 ///|
 test "Inherit - flex-wrap variants" {
   for w in [@types.Wrap, @types.WrapReverse] {
-    let parent : @style.Style = { ..@style.Style::default(), flex_wrap: w }
+    let parent : @style.Style = { ..@style.Style::default(), flex_wrap: w, }
     let s = compute_inheriting("flex-wrap", parent)
     inspect(s.flex_wrap, content=w.to_string())
   }
@@ -3192,7 +3199,7 @@ test "Inherit - margin-trim variants" {
       @style.MarginTrim::InlineEnd,
       @style.MarginTrim::Inline,
     ] {
-    let parent : @style.Style = { ..@style.Style::default(), margin_trim: mt }
+    let parent : @style.Style = { ..@style.Style::default(), margin_trim: mt, }
     let s = compute_inheriting("margin-trim", parent)
     inspect(s.margin_trim, content=mt.to_string())
   }
@@ -3339,7 +3346,7 @@ test "Initial keyword - all properties" {
       value: @cascade.Initial,
       origin: @cascade.Author,
       importance: @cascade.Normal,
-      specificity: { a: 0, b: 0, c: 0 },
+      specificity: { a: 0, b: 0, c: 0, },
       source_order: 0,
     }
     d
@@ -3368,7 +3375,7 @@ test "Unset keyword on inherited property uses parent" {
     value: @cascade.Unset,
     origin: @cascade.Author,
     importance: @cascade.Normal,
-    specificity: { a: 0, b: 0, c: 0 },
+    specificity: { a: 0, b: 0, c: 0, },
     source_order: 0,
   }
   let s = @computed.compute(@cascade.cascade([decl]), ctx)
@@ -3387,7 +3394,7 @@ test "Unset keyword on non-inherited property uses initial" {
     value: @cascade.Unset,
     origin: @cascade.Author,
     importance: @cascade.Normal,
-    specificity: { a: 0, b: 0, c: 0 },
+    specificity: { a: 0, b: 0, c: 0, },
     source_order: 0,
   }
   let s = @computed.compute(@cascade.cascade([decl]), ctx)
@@ -3403,7 +3410,7 @@ test "Revert keyword falls back to initial" {
     value: @cascade.Revert,
     origin: @cascade.Author,
     importance: @cascade.Normal,
-    specificity: { a: 0, b: 0, c: 0 },
+    specificity: { a: 0, b: 0, c: 0, },
     source_order: 0,
   }
   let s = @computed.compute(@cascade.cascade([decl]), ctx)
@@ -3510,7 +3517,7 @@ test "RevertLayer keyword falls back to initial" {
     value: @cascade.RevertLayer,
     origin: @cascade.Author,
     importance: @cascade.Normal,
-    specificity: { a: 0, b: 0, c: 0 },
+    specificity: { a: 0, b: 0, c: 0, },
     source_order: 0,
   }
   let s = @computed.compute(@cascade.cascade([decl]), ctx)

@@ -1,5 +1,6 @@
 ///|
 /// CSS border-style values, ordered by conflict resolution priority (higher wins).
+#derive(Debug, Eq)
 pub(all) enum BorderStyle {
   None // 0 - lowest priority
   Inset // 1
@@ -11,10 +12,16 @@ pub(all) enum BorderStyle {
   Solid // 7
   Double // 8
   Hidden // 9 - highest priority (suppresses border)
-} derive(Debug, Eq)
+}
 
 ///|
-pub fn BorderStyle::priority(self : BorderStyle) -> Int {
+pub extend BorderStyle with @debug.Debug::{to_repr}
+
+///|
+pub extend BorderStyle with Eq::{not_equal, equal}
+
+///|
+pub fn BorderStyle::priority(self : BorderStyle) -> Int32 {
   match self {
     None => 0
     Inset => 1
@@ -31,49 +38,91 @@ pub fn BorderStyle::priority(self : BorderStyle) -> Int {
 
 ///|
 /// CSS border-collapse property (for tables)
+#derive(Debug, Eq)
 pub(all) enum BorderCollapse {
   Separate // Default - borders have spacing
   Collapse // Adjacent borders merge
-} derive(Debug, Eq)
+}
+
+///|
+pub extend BorderCollapse with @debug.Debug::{to_repr}
+
+///|
+pub extend BorderCollapse with Eq::{not_equal, equal}
 
 ///|
 /// Table layout algorithm
+#derive(Debug, Eq)
 pub(all) enum TableLayout {
   Auto // Default - column widths based on content
   Fixed // Column widths based on first row only
-} derive(Debug, Eq)
+}
+
+///|
+pub extend TableLayout with @debug.Debug::{to_repr}
+
+///|
+pub extend TableLayout with Eq::{not_equal, equal}
 
 ///|
 /// CSS caption-side property (for table captions)
+#derive(Debug, Eq)
 pub(all) enum CaptionSide {
   Top // Caption above the table (default)
   Bottom // Caption below the table
-} derive(Debug, Eq)
+}
+
+///|
+pub extend CaptionSide with @debug.Debug::{to_repr}
+
+///|
+pub extend CaptionSide with Eq::{not_equal, equal}
 
 ///|
 /// CSS white-space property (for text wrapping)
+#derive(Debug, Eq)
 pub(all) enum WhiteSpace {
   Normal // Default - collapse whitespace, wrap text
   Nowrap // Collapse whitespace, no wrapping
   Pre // Preserve whitespace, only wrap at newlines
   PreWrap // Preserve whitespace, wrap when needed
   PreLine // Collapse whitespace, wrap at newlines
-} derive(Debug, Eq)
+}
+
+///|
+pub extend WhiteSpace with @debug.Debug::{to_repr}
+
+///|
+pub extend WhiteSpace with Eq::{not_equal, equal}
 
 ///|
 /// CSS text-overflow property.
+#derive(Debug, Eq)
 pub(all) enum TextOverflow {
   Clip
   Ellipsis
-} derive(Debug, Eq)
+}
+
+///|
+pub extend TextOverflow with @debug.Debug::{to_repr}
+
+///|
+pub extend TextOverflow with Eq::{not_equal, equal}
 
 ///|
 /// CSS writing-mode property (for text direction and flow)
+#derive(Debug, Eq)
 pub(all) enum WritingMode {
   HorizontalTb // Default - left-to-right, top-to-bottom
   VerticalRl // Top-to-bottom, right-to-left (e.g., traditional Japanese)
   VerticalLr // Top-to-bottom, left-to-right (e.g., Mongolian)
-} derive(Debug, Eq)
+}
+
+///|
+pub extend WritingMode with @debug.Debug::{to_repr}
+
+///|
+pub extend WritingMode with Eq::{not_equal, equal}
 
 ///|
 /// Check if writing mode is vertical
@@ -96,10 +145,17 @@ pub fn WritingMode::is_block_rtl(self : WritingMode) -> Bool {
 
 ///|
 /// CSS direction property (for inline text direction)
+#derive(Debug, Eq)
 pub(all) enum Direction {
   Ltr // Left-to-right (default)
   Rtl // Right-to-left (e.g., Arabic, Hebrew)
-} derive(Debug, Eq)
+}
+
+///|
+pub extend Direction with @debug.Debug::{to_repr}
+
+///|
+pub extend Direction with Eq::{not_equal, equal}
 
 ///|
 /// Check if direction is right-to-left
@@ -112,6 +168,7 @@ pub fn Direction::is_rtl(self : Direction) -> Bool {
 
 ///|
 /// CSS text-align property
+#derive(Debug, Eq)
 pub(all) enum TextAlign {
   Start
   End
@@ -119,31 +176,58 @@ pub(all) enum TextAlign {
   Right
   Center
   Justify
-} derive(Debug, Eq)
+}
+
+///|
+pub extend TextAlign with @debug.Debug::{to_repr}
+
+///|
+pub extend TextAlign with Eq::{not_equal, equal}
 
 ///|
 /// CSS scroll-snap-type axis
+#derive(Debug, Eq)
 pub(all) enum ScrollSnapAxis {
   None
   X
   Y
   Both
-} derive(Debug, Eq)
+}
+
+///|
+pub extend ScrollSnapAxis with @debug.Debug::{to_repr}
+
+///|
+pub extend ScrollSnapAxis with Eq::{not_equal, equal}
 
 ///|
 /// CSS scroll-snap-type strictness
+#derive(Debug, Eq)
 pub(all) enum ScrollSnapStrictness {
   None
   Mandatory
   Proximity
-} derive(Debug, Eq)
+}
+
+///|
+pub extend ScrollSnapStrictness with @debug.Debug::{to_repr}
+
+///|
+pub extend ScrollSnapStrictness with Eq::{not_equal, equal}
 
 ///|
 /// CSS scroll-snap-type value
+#derive(Debug, Eq)
 pub(all) struct ScrollSnapType {
   axis : ScrollSnapAxis
   strictness : ScrollSnapStrictness
-} derive(Debug, Eq)
+}
+
+///|
+pub extend ScrollSnapType with @debug.Debug::{to_repr}
+
+///|
+pub extend ScrollSnapType with Eq::{not_equal, equal}
 
 ///|
 let scroll_snap_type_none : ScrollSnapType = {
@@ -179,30 +263,52 @@ pub fn ScrollSnapType::snaps_y(self : ScrollSnapType) -> Bool {
 
 ///|
 /// CSS scroll-snap-align keywords
+#derive(Debug, Eq)
 pub(all) enum ScrollSnapAlign {
   None
   Start
   End
   Center
-} derive(Debug, Eq)
+}
+
+///|
+pub extend ScrollSnapAlign with @debug.Debug::{to_repr}
+
+///|
+pub extend ScrollSnapAlign with Eq::{not_equal, equal}
 
 ///|
 /// CSS visibility property
+#derive(Debug, Eq)
 pub(all) enum Visibility {
   Visible // Element is visible (default)
   Hidden // Element is invisible but takes up space
   Collapse // Same as hidden for most elements
-} derive(Debug, Eq)
+}
+
+///|
+pub extend Visibility with @debug.Debug::{to_repr}
+
+///|
+pub extend Visibility with Eq::{not_equal, equal}
 
 ///|
 /// CSS pointer-events property (minimum subset for browser hit testing).
+#derive(Debug, Eq)
 pub(all) enum PointerEvents {
   Auto
   None
-} derive(Debug, Eq)
+}
+
+///|
+pub extend PointerEvents with @debug.Debug::{to_repr}
+
+///|
+pub extend PointerEvents with Eq::{not_equal, equal}
 
 ///|
 /// CSS margin-trim property
+#derive(Debug, Eq)
 pub(all) enum MarginTrim {
   None
   BlockStart
@@ -211,36 +317,70 @@ pub(all) enum MarginTrim {
   InlineStart
   InlineEnd
   Inline
-} derive(Debug, Eq)
+}
+
+///|
+pub extend MarginTrim with @debug.Debug::{to_repr}
+
+///|
+pub extend MarginTrim with Eq::{not_equal, equal}
 
 ///|
 /// CSS multi-column column-fill property.
+#derive(Debug, Eq)
 pub(all) enum ColumnFill {
   Balance
   Auto
-} derive(Debug, Eq)
+}
+
+///|
+pub extend ColumnFill with @debug.Debug::{to_repr}
+
+///|
+pub extend ColumnFill with Eq::{not_equal, equal}
 
 ///|
 /// CSS break-before property (minimum subset for multicol tests).
+#derive(Debug, Eq)
 pub(all) enum BreakBefore {
   Auto
   Column
   Avoid
-} derive(Debug, Eq)
+}
+
+///|
+pub extend BreakBefore with @debug.Debug::{to_repr}
+
+///|
+pub extend BreakBefore with Eq::{not_equal, equal}
 
 ///|
 /// CSS break-inside property (minimum subset for multicol tests).
+#derive(Debug, Eq)
 pub(all) enum BreakInside {
   Auto
   Avoid
-} derive(Debug, Eq)
+}
+
+///|
+pub extend BreakInside with @debug.Debug::{to_repr}
+
+///|
+pub extend BreakInside with Eq::{not_equal, equal}
 
 ///|
 /// CSS column-span property.
+#derive(Debug, Eq)
 pub(all) enum ColumnSpan {
   None
   All
-} derive(Debug, Eq)
+}
+
+///|
+pub extend ColumnSpan with @debug.Debug::{to_repr}
+
+///|
+pub extend ColumnSpan with Eq::{not_equal, equal}
 
 ///|
 pub fn MarginTrim::trim_block_start(self : MarginTrim) -> Bool {
@@ -260,21 +400,36 @@ pub fn MarginTrim::trim_block_end(self : MarginTrim) -> Bool {
 
 ///|
 /// CSS z-index property
+#derive(Debug, Eq)
 pub(all) enum ZIndex {
   Auto // Stacking order determined by DOM order
-  Value(Int) // Explicit stacking level
-} derive(Debug, Eq)
+  Value(Int32) // Explicit stacking level
+}
+
+///|
+pub extend ZIndex with @debug.Debug::{to_repr}
+
+///|
+pub extend ZIndex with Eq::{not_equal, equal}
 
 ///|
 /// CSS transform translate value (can be length or percent)
+#derive(Debug, Eq)
 pub(all) enum TranslateValue {
   Length(Double) // Fixed length in pixels
   Percent(Double) // Percentage of element's own dimension (0.0 - 1.0)
-} derive(Debug, Eq)
+}
+
+///|
+pub extend TranslateValue with @debug.Debug::{to_repr}
+
+///|
+pub extend TranslateValue with Eq::{not_equal, equal}
 
 ///|
 /// CSS transform property - list of transform functions
 /// Supports a 2D subset for visual hit testing.
+#derive(Debug, Eq)
 pub(all) struct Transform {
   translate_x : TranslateValue // translateX or first arg of translate()
   translate_y : TranslateValue // translateY or second arg of translate()
@@ -293,7 +448,13 @@ pub(all) struct Transform {
   // matrix3d(): a 16-element column-major 4x4 matrix, or [] when not a 3D
   // matrix. Layout consumers that are 2D-only can ignore this.
   matrix3d : Array[Double]
-} derive(Debug, Eq)
+}
+
+///|
+pub extend Transform with @debug.Debug::{to_repr}
+
+///|
+pub extend Transform with Eq::{not_equal, equal}
 
 ///|
 /// Whether this transform carries an explicit `matrix3d()`.
@@ -378,7 +539,7 @@ pub fn Transform::has_affine_matrix(self : Transform) -> Bool {
 
 ///|
 /// Return a quarter-turn rotation count (0..3), or -1 for other angles.
-pub fn Transform::quarter_turns(self : Transform) -> Int {
+pub fn Transform::quarter_turns(self : Transform) -> Int32 {
   let raw_turns = (self.rotate_degrees / 90.0).round().to_int()
   let snapped_degrees = raw_turns.to_double() * 90.0
   if (self.rotate_degrees - snapped_degrees).abs() > 0.0001 {
@@ -418,6 +579,7 @@ pub fn Transform::compute_translate_y(
 ///|
 /// CSS clip-path property subset used by paint and hit testing.
 /// Shape values are pixels; negative values encode percentages as fractions.
+#derive(Debug, Eq)
 pub(all) enum ClipPath {
   None
   Inset(Double, Double, Double, Double) // top, right, bottom, left
@@ -426,7 +588,13 @@ pub(all) enum ClipPath {
   Circle(Double, Double, Double) // radius, center-x, center-y
   Ellipse(Double, Double, Double, Double) // radius-x, radius-y, center-x, center-y
   Polygon(Array[(Double, Double)])
-} derive(Debug, Eq)
+}
+
+///|
+pub extend ClipPath with @debug.Debug::{to_repr}
+
+///|
+pub extend ClipPath with Eq::{not_equal, equal}
 
 ///|
 pub fn ClipPath::none() -> ClipPath {
@@ -436,13 +604,20 @@ pub fn ClipPath::none() -> ClipPath {
 ///|
 /// CSS contain property - uses flags since multiple values can be combined
 /// e.g., "contain: layout paint" or "contain: strict"
+#derive(Debug, Eq)
 pub(all) struct Contain {
   size : Bool // Size containment - element size computed independently
   inline_size : Bool // Inline-size containment only (mutually exclusive with size)
   layout : Bool // Layout containment - isolates internal layout
   paint : Bool // Paint containment - clips overflow, creates stacking context
   style : Bool // Style containment - scopes counters/quotes
-} derive(Debug, Eq)
+}
+
+///|
+pub extend Contain with @debug.Debug::{to_repr}
+
+///|
+pub extend Contain with Eq::{not_equal, equal}
 
 ///|
 /// Shared immutable `Contain` sentinels. `Contain` has no mutable fields, so a
@@ -565,6 +740,7 @@ pub fn Style::has_multicol(self : Style) -> Bool {
 
 ///|
 /// Vertical alignment for inline elements
+#derive(Debug, Eq)
 pub(all) enum VerticalAlign {
   Baseline // Align baseline (default, simplified to bottom for now)
   Top // Align to top of line box
@@ -574,7 +750,13 @@ pub(all) enum VerticalAlign {
   TextBottom // Align to bottom of parent's font (simplified to Bottom)
   Sub // Subscript position
   Super // Superscript position
-} derive(Debug, Eq)
+}
+
+///|
+pub extend VerticalAlign with @debug.Debug::{to_repr}
+
+///|
+pub extend VerticalAlign with Eq::{not_equal, equal}
 
 ///|
 pub impl Show for BorderStyle with fn output(self, logger) {
@@ -594,6 +776,9 @@ pub impl Show for BorderStyle with fn output(self, logger) {
 }
 
 ///|
+pub extend BorderStyle with Show::{to_string, output}
+
+///|
 pub impl Show for BorderCollapse with fn output(self, logger) {
   let name = match self {
     Separate => "Separate"
@@ -601,6 +786,9 @@ pub impl Show for BorderCollapse with fn output(self, logger) {
   }
   logger.write_string(name)
 }
+
+///|
+pub extend BorderCollapse with Show::{to_string, output}
 
 ///|
 pub impl Show for TableLayout with fn output(self, logger) {
@@ -612,6 +800,9 @@ pub impl Show for TableLayout with fn output(self, logger) {
 }
 
 ///|
+pub extend TableLayout with Show::{to_string, output}
+
+///|
 pub impl Show for CaptionSide with fn output(self, logger) {
   let name = match self {
     Top => "Top"
@@ -619,6 +810,9 @@ pub impl Show for CaptionSide with fn output(self, logger) {
   }
   logger.write_string(name)
 }
+
+///|
+pub extend CaptionSide with Show::{to_string, output}
 
 ///|
 pub impl Show for WhiteSpace with fn output(self, logger) {
@@ -633,6 +827,9 @@ pub impl Show for WhiteSpace with fn output(self, logger) {
 }
 
 ///|
+pub extend WhiteSpace with Show::{to_string, output}
+
+///|
 pub impl Show for TextOverflow with fn output(self, logger) {
   let name = match self {
     Clip => "Clip"
@@ -640,6 +837,9 @@ pub impl Show for TextOverflow with fn output(self, logger) {
   }
   logger.write_string(name)
 }
+
+///|
+pub extend TextOverflow with Show::{to_string, output}
 
 ///|
 pub impl Show for WritingMode with fn output(self, logger) {
@@ -652,6 +852,9 @@ pub impl Show for WritingMode with fn output(self, logger) {
 }
 
 ///|
+pub extend WritingMode with Show::{to_string, output}
+
+///|
 pub impl Show for Direction with fn output(self, logger) {
   let name = match self {
     Ltr => "Ltr"
@@ -659,6 +862,9 @@ pub impl Show for Direction with fn output(self, logger) {
   }
   logger.write_string(name)
 }
+
+///|
+pub extend Direction with Show::{to_string, output}
 
 ///|
 pub impl Show for TextAlign with fn output(self, logger) {
@@ -674,6 +880,9 @@ pub impl Show for TextAlign with fn output(self, logger) {
 }
 
 ///|
+pub extend TextAlign with Show::{to_string, output}
+
+///|
 pub impl Show for ScrollSnapAxis with fn output(self, logger) {
   let name = match self {
     None => "None"
@@ -683,6 +892,9 @@ pub impl Show for ScrollSnapAxis with fn output(self, logger) {
   }
   logger.write_string(name)
 }
+
+///|
+pub extend ScrollSnapAxis with Show::{to_string, output}
 
 ///|
 pub impl Show for ScrollSnapStrictness with fn output(self, logger) {
@@ -695,6 +907,9 @@ pub impl Show for ScrollSnapStrictness with fn output(self, logger) {
 }
 
 ///|
+pub extend ScrollSnapStrictness with Show::{to_string, output}
+
+///|
 pub impl Show for ScrollSnapType with fn output(self, logger) {
   logger.write_string("{axis: ")
   logger.write_string(self.axis.to_string())
@@ -702,6 +917,9 @@ pub impl Show for ScrollSnapType with fn output(self, logger) {
   logger.write_string(self.strictness.to_string())
   logger.write_string("}")
 }
+
+///|
+pub extend ScrollSnapType with Show::{to_string, output}
 
 ///|
 pub impl Show for ScrollSnapAlign with fn output(self, logger) {
@@ -715,6 +933,9 @@ pub impl Show for ScrollSnapAlign with fn output(self, logger) {
 }
 
 ///|
+pub extend ScrollSnapAlign with Show::{to_string, output}
+
+///|
 pub impl Show for Visibility with fn output(self, logger) {
   let name = match self {
     Visible => "Visible"
@@ -725,6 +946,9 @@ pub impl Show for Visibility with fn output(self, logger) {
 }
 
 ///|
+pub extend Visibility with Show::{to_string, output}
+
+///|
 pub impl Show for PointerEvents with fn output(self, logger) {
   let name = match self {
     Auto => "Auto"
@@ -732,6 +956,9 @@ pub impl Show for PointerEvents with fn output(self, logger) {
   }
   logger.write_string(name)
 }
+
+///|
+pub extend PointerEvents with Show::{to_string, output}
 
 ///|
 pub impl Show for MarginTrim with fn output(self, logger) {
@@ -748,6 +975,9 @@ pub impl Show for MarginTrim with fn output(self, logger) {
 }
 
 ///|
+pub extend MarginTrim with Show::{to_string, output}
+
+///|
 pub impl Show for ColumnFill with fn output(self, logger) {
   let name = match self {
     Balance => "Balance"
@@ -755,6 +985,9 @@ pub impl Show for ColumnFill with fn output(self, logger) {
   }
   logger.write_string(name)
 }
+
+///|
+pub extend ColumnFill with Show::{to_string, output}
 
 ///|
 pub impl Show for BreakBefore with fn output(self, logger) {
@@ -767,6 +1000,9 @@ pub impl Show for BreakBefore with fn output(self, logger) {
 }
 
 ///|
+pub extend BreakBefore with Show::{to_string, output}
+
+///|
 pub impl Show for BreakInside with fn output(self, logger) {
   let name = match self {
     Auto => "Auto"
@@ -774,6 +1010,9 @@ pub impl Show for BreakInside with fn output(self, logger) {
   }
   logger.write_string(name)
 }
+
+///|
+pub extend BreakInside with Show::{to_string, output}
 
 ///|
 pub impl Show for ColumnSpan with fn output(self, logger) {
@@ -785,6 +1024,9 @@ pub impl Show for ColumnSpan with fn output(self, logger) {
 }
 
 ///|
+pub extend ColumnSpan with Show::{to_string, output}
+
+///|
 pub impl Show for ZIndex with fn output(self, logger) {
   let text = match self {
     Auto => "Auto"
@@ -794,6 +1036,9 @@ pub impl Show for ZIndex with fn output(self, logger) {
 }
 
 ///|
+pub extend ZIndex with Show::{to_string, output}
+
+///|
 pub impl Show for TranslateValue with fn output(self, logger) {
   let text = match self {
     Length(v) => "Length(\{v})"
@@ -801,6 +1046,9 @@ pub impl Show for TranslateValue with fn output(self, logger) {
   }
   logger.write_string(text)
 }
+
+///|
+pub extend TranslateValue with Show::{to_string, output}
 
 ///|
 pub impl Show for Transform with fn output(self, logger) {
@@ -847,6 +1095,9 @@ pub impl Show for Transform with fn output(self, logger) {
 }
 
 ///|
+pub extend Transform with Show::{to_string, output}
+
+///|
 pub impl Show for Contain with fn output(self, logger) {
   logger.write_string("{size: ")
   logger.write_string(self.size.to_string())
@@ -860,6 +1111,9 @@ pub impl Show for Contain with fn output(self, logger) {
   logger.write_string(self.style.to_string())
   logger.write_string("}")
 }
+
+///|
+pub extend Contain with Show::{to_string, output}
 
 ///|
 pub impl Show for VerticalAlign with fn output(self, logger) {
@@ -877,6 +1131,10 @@ pub impl Show for VerticalAlign with fn output(self, logger) {
 }
 
 ///|
+pub extend VerticalAlign with Show::{to_string, output}
+
+///|
+#derive(Debug, Eq)
 pub struct BoxShadow {
   inset : Bool
   offset_x : Double
@@ -884,7 +1142,13 @@ pub struct BoxShadow {
   blur_radius : Double
   spread_radius : Double
   color : @types.Color
-} derive(Debug, Eq)
+}
+
+///|
+pub extend BoxShadow with @debug.Debug::{to_repr}
+
+///|
+pub extend BoxShadow with Eq::{not_equal, equal}
 
 ///|
 pub fn BoxShadow::new(
@@ -895,12 +1159,13 @@ pub fn BoxShadow::new(
   spread_radius : Double,
   color : @types.Color,
 ) -> BoxShadow {
-  { inset, offset_x, offset_y, blur_radius, spread_radius, color }
+  { inset, offset_x, offset_y, blur_radius, spread_radius, color, }
 }
 
 ///|
 /// CSS Style definition for layout computation
 /// All fields are mutable to support Yoga-like setter API
+#derive(Debug, Eq)
 pub(all) struct Style {
   mut display : @types.Display
   mut position : @types.Position
@@ -943,13 +1208,13 @@ pub(all) struct Style {
   mut flex_grow : Double
   mut flex_shrink : Double
   mut flex_basis : @types.Dimension
-  mut order : Int // Flex item order (default 0)
+  mut order : Int32 // Flex item order (default 0)
   // Gap
   mut row_gap : @types.Dimension
   mut column_gap : @types.Dimension
   mut column_gap_is_normal : Bool
   // Multi-column layout
-  mut column_count : Int? // None = auto
+  mut column_count : Int32? // None = auto
   mut column_width : @types.Dimension // auto or fixed width
   mut column_fill : ColumnFill
   // Aspect ratio (width / height)
@@ -1050,8 +1315,8 @@ pub(all) struct Style {
   mut table_layout : TableLayout // table-layout: auto | fixed
   mut caption_side : CaptionSide // caption-side: top | bottom
   // Table cell properties (from HTML attributes)
-  mut rowspan : Int // rowspan attribute (default 1)
-  mut colspan : Int // colspan attribute (default 1)
+  mut rowspan : Int32 // rowspan attribute (default 1)
+  mut colspan : Int32 // colspan attribute (default 1)
   // Border radius (computed px values for rounded corners)
   mut border_top_left_radius : Double
   mut border_top_right_radius : Double
@@ -1064,7 +1329,13 @@ pub(all) struct Style {
   // Letter/word spacing
   mut letter_spacing : Double // in pixels, 0 = normal
   mut word_spacing : Double // in pixels, 0 = normal
-} derive(Debug, Eq)
+}
+
+///|
+pub extend Style with @debug.Debug::{to_repr}
+
+///|
+pub extend Style with Eq::{not_equal, equal}
 
 ///|
 /// Compare only fields that can affect layout results.
@@ -1116,8 +1387,7 @@ pub fn Style::layout_eq(self : Style, other : Style) -> Bool {
   self.grid_auto_rows == other.grid_auto_rows &&
   self.grid_auto_columns == other.grid_auto_columns &&
   self.grid_auto_flow == other.grid_auto_flow &&
-  self.grid_template_column_line_names ==
-  other.grid_template_column_line_names &&
+  self.grid_template_column_line_names == other.grid_template_column_line_names &&
   self.grid_template_row_line_names == other.grid_template_row_line_names &&
   self.grid_template_columns_kind == other.grid_template_columns_kind &&
   self.grid_template_rows_kind == other.grid_template_rows_kind &&
@@ -1143,8 +1413,7 @@ pub fn Style::layout_eq(self : Style, other : Style) -> Bool {
   self.break_after == other.break_after &&
   self.break_inside == other.break_inside &&
   self.column_span == other.column_span &&
-  self.contain_intrinsic_inline_size ==
-  other.contain_intrinsic_inline_size &&
+  self.contain_intrinsic_inline_size == other.contain_intrinsic_inline_size &&
   self.contain_intrinsic_block_size == other.contain_intrinsic_block_size &&
   self.transform == other.transform &&
   self.individual_transform == other.individual_transform &&
@@ -1186,7 +1455,7 @@ pub fn Style::default() -> Style {
       top: @types.Length(0.0),
       bottom: @types.Length(0.0),
     },
-    border_style: { left: None, right: None, top: None, bottom: None },
+    border_style: { left: None, right: None, top: None, bottom: None, },
     border_color: {
       left: @types.Color::transparent(),
       right: @types.Color::transparent(),

@@ -3,7 +3,7 @@
 
 ///|
 test "wpt parse-descendant.html: valid h1 em" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-descendant.html: valid h1 em",
     "h1 em",
     ["h1 em"],
@@ -13,7 +13,7 @@ test "wpt parse-descendant.html: valid h1 em" {
 
 ///|
 test "wpt parse-descendant.html: valid div * p" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-descendant.html: valid div * p",
     "div * p",
     ["div * p"],
@@ -23,7 +23,7 @@ test "wpt parse-descendant.html: valid div * p" {
 
 ///|
 test "wpt parse-descendant.html: valid div p *[href]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-descendant.html: valid div p *[href]",
     "div p *[href]",
     ["div p *[href]", "div p [href]"],

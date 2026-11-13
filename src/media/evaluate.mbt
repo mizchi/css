@@ -4,10 +4,17 @@
 
 ///|
 /// Color scheme preference
+#derive(Eq, Debug)
 pub(all) enum ColorScheme {
   Light
   Dark
-} derive(Eq, Debug)
+}
+
+///|
+pub extend ColorScheme with Eq::{not_equal, equal}
+
+///|
+pub extend ColorScheme with @debug.Debug::{to_repr}
 
 ///|
 pub impl Show for ColorScheme with fn output(self, logger) {
@@ -18,6 +25,9 @@ pub impl Show for ColorScheme with fn output(self, logger) {
     },
   )
 }
+
+///|
+pub extend ColorScheme with Show::{to_string, output}
 
 ///|
 /// Environment for evaluating media queries
@@ -49,7 +59,7 @@ pub fn MediaEnvironment::with_color_scheme(
   viewport_height : Double,
   color_scheme : ColorScheme,
 ) -> MediaEnvironment {
-  { viewport_width, viewport_height, device_pixel_ratio: 1.0, color_scheme }
+  { viewport_width, viewport_height, device_pixel_ratio: 1.0, color_scheme, }
 }
 
 ///|

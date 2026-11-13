@@ -32,8 +32,8 @@ fn cascade_stylesheet_forced_into(
   element : @selector.Element,
   media_env : @media.MediaEnvironment?,
   forced : @selector.ForcedPseudoStates,
-  source_order_offset : Int,
-) -> Int {
+  source_order_offset : Int32,
+) -> Int32 {
   cascade_stylesheet_into(
     result,
     stylesheet,

@@ -24,7 +24,7 @@ let internal_effective_color_scheme_key = "--crater-effective-color-scheme"
 
 ///|
 fn view_to_string(v : StringView) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   sb.write_stringview(v)
   sb.to_string()
 }
@@ -111,7 +111,7 @@ pub fn ComputeContext::with_parent_and_vars(
   parent_vars : Map[String, String],
 ) -> ComputeContext {
   // Copy parent vars for inheritance (custom properties inherit by default)
-  let vars : Map[String, String] = {}
+  let vars : Map[String, String] = Map([])
   for k, v in parent_vars {
     vars[k] = v
   }
@@ -194,11 +194,11 @@ priv struct StyleBuilder {
   mut flex_grow : Double
   mut flex_shrink : Double
   mut flex_basis : @types.Dimension
-  mut order : Int
+  mut order : Int32
   mut row_gap : @types.Dimension
   mut column_gap : @types.Dimension
   mut column_gap_is_normal : Bool
-  mut column_count : Int?
+  mut column_count : Int32?
   mut column_width : @types.Dimension
   mut column_fill : @style.ColumnFill
   mut aspect_ratio : Double?
@@ -289,8 +289,8 @@ priv struct StyleBuilder {
   mut table_layout : @style.TableLayout
   mut caption_side : @style.CaptionSide
   // Table cell properties (not mutable via CSS, set from HTML attributes)
-  rowspan : Int
-  colspan : Int
+  rowspan : Int32
+  colspan : Int32
   // Border radius
   mut border_top_left_radius : Double
   mut border_top_right_radius : Double
@@ -673,8 +673,8 @@ fn StyleBuilder::build(self : StyleBuilder) -> @style.Style {
     grid_template_columns_kind: self.grid_template_columns_kind,
     grid_template_rows_kind: self.grid_template_rows_kind,
     grid_template_areas: self.grid_template_areas,
-    grid_row: { start: self.grid_row_start, end: self.grid_row_end },
-    grid_column: { start: self.grid_column_start, end: self.grid_column_end },
+    grid_row: { start: self.grid_row_start, end: self.grid_row_end, },
+    grid_column: { start: self.grid_column_start, end: self.grid_column_end, },
     grid_area: self.grid_area,
     justify_items: self.justify_items,
     justify_self: self.justify_self,
@@ -1044,7 +1044,7 @@ fn text_decoration_to_string(
   if values.is_empty() {
     "none"
   } else {
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     for i, value in values {
       if i > 0 {
         buf.write_string(" ")
@@ -1372,7 +1372,7 @@ fn seed_font_metrics(
   builder.line_height = seeded_line_height
   builder.font_weight = seeded_font_weight
   builder.font_family = seeded_font_family
-  { ..ctx, font_size: seeded_font_size }
+  { ..ctx, font_size: seeded_font_size, }
 }
 
 ///|
@@ -2679,7 +2679,7 @@ fn parse_font_family(value : String) -> String {
 ///|
 fn split_css_top_level(input : String, delimiter : Char) -> Array[String] {
   let parts : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   let mut depth = 0
   for ch in input {
     if ch == '(' {
@@ -2714,7 +2714,7 @@ fn split_css_top_level(input : String, delimiter : Char) -> Array[String] {
 ///|
 fn split_css_whitespace_preserving_functions(input : String) -> Array[String] {
   let parts : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   let mut depth = 0
   for ch in input {
     if ch == '(' {
@@ -3138,17 +3138,13 @@ fn parse_css_value_to_px(value : String, ctx : ComputeContext) -> Double? {
 
   // Handle nested calc()
   if v.has_prefix("calc(") && v.has_suffix(")") {
-    let inner = view_to_string(
-      v.view(start_offset=5, end_offset=v.length() - 1),
-    )
+    let inner = view_to_string(v.clamped_view(start=5, end=v.length() - 1))
     return parse_simple_calc_expr(inner, ctx)
   }
 
   // Handle nested min()
   if v.has_prefix("min(") && v.has_suffix(")") {
-    let inner = view_to_string(
-      v.view(start_offset=4, end_offset=v.length() - 1),
-    )
+    let inner = view_to_string(v.clamped_view(start=4, end=v.length() - 1))
     let args = split_css_args(inner)
     let mut min_val : Double? = None
     for arg in args {
@@ -3166,9 +3162,7 @@ fn parse_css_value_to_px(value : String, ctx : ComputeContext) -> Double? {
 
   // Handle nested max()
   if v.has_prefix("max(") && v.has_suffix(")") {
-    let inner = view_to_string(
-      v.view(start_offset=4, end_offset=v.length() - 1),
-    )
+    let inner = view_to_string(v.clamped_view(start=4, end=v.length() - 1))
     let args = split_css_args(inner)
     let mut max_val : Double? = None
     for arg in args {
@@ -3186,9 +3180,7 @@ fn parse_css_value_to_px(value : String, ctx : ComputeContext) -> Double? {
 
   // Handle nested clamp()
   if v.has_prefix("clamp(") && v.has_suffix(")") {
-    let inner = view_to_string(
-      v.view(start_offset=6, end_offset=v.length() - 1),
-    )
+    let inner = view_to_string(v.clamped_view(start=6, end=v.length() - 1))
     let args = split_css_args(inner)
     if args.length() != 3 {
       return None
@@ -3199,7 +3191,9 @@ fn parse_css_value_to_px(value : String, ctx : ComputeContext) -> Double? {
     match (min_px, val_px, max_px) {
       (Some(min_v), Some(val_v), Some(max_v)) =>
         // clamp(min, val, max) == max(min, min(val, max))
-        return Some(@types.apply_math_op(@types.MathOp::Clamp, [min_v, val_v, max_v]))
+        return Some(
+          @types.apply_math_op(@types.MathOp::Clamp, [min_v, val_v, max_v]),
+        )
       _ => return None
     }
   }
@@ -3222,7 +3216,7 @@ fn parse_css_value_to_px(value : String, ctx : ComputeContext) -> Double? {
 /// Split CSS function arguments by comma (handling nested parentheses)
 fn split_css_args(input : String) -> Array[String] {
   let result : Array[String] = []
-  let mut current = StringBuilder::new()
+  let mut current = StringBuilder()
   let mut paren_depth = 0
   for i = 0; i < input.length(); i = i + 1 {
     let c = input[i].to_int().unsafe_to_char()
@@ -3237,7 +3231,7 @@ fn split_css_args(input : String) -> Array[String] {
       if !s.is_empty() {
         result.push(s)
       }
-      current = StringBuilder::new()
+      current = StringBuilder()
     } else {
       current.write_char(c)
     }
@@ -3253,8 +3247,8 @@ fn split_css_args(input : String) -> Array[String] {
 /// Parse a simple calc expression (handles + - * / with px values)
 fn is_calc_signed_number_start(
   expr : String,
-  index : Int,
-  token_start : Int,
+  index : Int32,
+  token_start : Int32,
 ) -> Bool {
   if index != token_start || index + 1 >= expr.length() {
     return false
@@ -3389,7 +3383,7 @@ fn parse_css_math_function(
     return None
   }
   let inner = view_to_string(
-    v.view(start_offset=prefix_len, end_offset=v.length() - 1),
+    v.clamped_view(start=prefix_len, end=v.length() - 1),
   )
   let raw_args = split_css_args(inner)
   if raw_args.is_empty() {
@@ -3442,12 +3436,12 @@ priv struct CalcVal {
 
 ///|
 fn calc_num(n : Double) -> CalcVal {
-  { px: 0.0, pct: 0.0, num: n, is_num: true }
+  { px: 0.0, pct: 0.0, num: n, is_num: true, }
 }
 
 ///|
 fn calc_lp(px : Double, pct : Double) -> CalcVal {
-  { px, pct, num: 0.0, is_num: false }
+  { px, pct, num: 0.0, is_num: false, }
 }
 
 ///|
@@ -3462,7 +3456,7 @@ priv enum CalcTok {
 }
 
 ///|
-fn calc_char_at(s : String, i : Int) -> Char {
+fn calc_char_at(s : String, i : Int32) -> Char {
   s[i].to_int().unsafe_to_char()
 }
 
@@ -3658,9 +3652,9 @@ fn calc_div(a : CalcVal, b : CalcVal) -> CalcVal? {
 /// primary := number | '(' sum ')' | fn '(' sum (',' sum)* ')'
 fn calc_parse_primary(
   toks : Array[CalcTok],
-  pos : Int,
+  pos : Int32,
   ctx : ComputeContext,
-) -> (CalcVal, Int)? {
+) -> (CalcVal, Int32)? {
   if pos >= toks.length() {
     return None
   }
@@ -3769,9 +3763,9 @@ fn calc_parse_primary(
 /// product := primary (('*' | '/') primary)*
 fn calc_parse_product(
   toks : Array[CalcTok],
-  pos : Int,
+  pos : Int32,
   ctx : ComputeContext,
-) -> (CalcVal, Int)? {
+) -> (CalcVal, Int32)? {
   match calc_parse_primary(toks, pos, ctx) {
     Some((first, p1)) => {
       let mut acc = first
@@ -3815,9 +3809,9 @@ fn calc_parse_product(
 /// sum := product (('+' | '-') product)*
 fn calc_parse_sum(
   toks : Array[CalcTok],
-  pos : Int,
+  pos : Int32,
   ctx : ComputeContext,
-) -> (CalcVal, Int)? {
+) -> (CalcVal, Int32)? {
   match calc_parse_product(toks, pos, ctx) {
     Some((first, p1)) => {
       let mut acc = first
@@ -3860,7 +3854,7 @@ fn eval_calc(expr : String, ctx : ComputeContext) -> (Double, Double)? {
   if !v.has_prefix("calc(") || !v.has_suffix(")") {
     return None
   }
-  let inner = view_to_string(v.view(start_offset=5, end_offset=v.length() - 1))
+  let inner = view_to_string(v.clamped_view(start=5, end=v.length() - 1))
   let toks = match calc_tokenize(inner) {
     Some(t) => t
     None => return None
@@ -4039,7 +4033,7 @@ fn resolve_var(value : String, ctx : ComputeContext) -> String {
   }
   // Extract content inside var(...) - skip "var(" (4 chars) and ")" (1 char)
   let inner : String = view_to_string(
-    v.view(start_offset=4, end_offset=v.length() - 1),
+    v.clamped_view(start=4, end=v.length() - 1),
   )
   // Find the comma separating variable name from fallback
   // Need to handle nested var() and other functions
@@ -4121,12 +4115,12 @@ fn resolve_all_vars(value : String, ctx : ComputeContext) -> String {
   }
   // Complex case: var() embedded in value like "10px var(--gap) 20px"
   // Need to replace each var() with its resolved value
-  let result = StringBuilder::new()
+  let result = StringBuilder()
   let mut i = 0
   while i < v.length() {
     // Look for "var("
     if i + 4 <= v.length() {
-      let substr = view_to_string(v.view(start_offset=i, end_offset=i + 4))
+      let substr = view_to_string(v.clamped_view(start=i, end=i + 4))
       if substr == "var(" {
         // Find matching closing paren
         let mut depth = 1
@@ -4141,7 +4135,7 @@ fn resolve_all_vars(value : String, ctx : ComputeContext) -> String {
           j += 1
         }
         // Extract and resolve the var()
-        let var_expr = view_to_string(v.view(start_offset=i, end_offset=j))
+        let var_expr = view_to_string(v.clamped_view(start=i, end=j))
         let resolved = resolve_var(var_expr, ctx)
         result.write_string(resolved)
         i = j
@@ -4156,7 +4150,7 @@ fn resolve_all_vars(value : String, ctx : ComputeContext) -> String {
 
 ///|
 fn strip_css_ascii_whitespace(value : String) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for c in value.iter() {
     if !is_css_ascii_whitespace(c) {
       sb.write_char(c)
@@ -4180,14 +4174,14 @@ fn is_css_ident_char(c : Char) -> Bool {
 }
 
 ///|
-fn css_math_function_prefix_len(value : String, index : Int) -> Int {
+fn css_math_function_prefix_len(value : String, index : Int32) -> Int32 {
   if index > 0 {
     let prev = value[index - 1].to_int().unsafe_to_char()
     if is_css_ident_char(prev) {
       return 0
     }
   }
-  let tail = view_to_string(value.view(start_offset=index))
+  let tail = view_to_string(value.clamped_view(start=index))
   if tail.has_prefix("calc(") {
     5
   } else if tail.has_prefix("min(") {
@@ -4202,7 +4196,7 @@ fn css_math_function_prefix_len(value : String, index : Int) -> Int {
 }
 
 ///|
-fn find_matching_function_end(value : String, index : Int) -> Int {
+fn find_matching_function_end(value : String, index : Int32) -> Int32 {
   let mut depth = 0
   let mut i = index
   while i < value.length() {
@@ -4234,16 +4228,14 @@ fn normalize_grid_template_math_functions(
   value : String,
   ctx : ComputeContext,
 ) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   let mut i = 0
   while i < value.length() {
     let prefix_len = css_math_function_prefix_len(value, i)
     if prefix_len > 0 {
       let end = find_matching_function_end(value, i + prefix_len - 1)
       if end > i {
-        let expr = view_to_string(
-          value.view(start_offset=i, end_offset=end + 1),
-        )
+        let expr = view_to_string(value.clamped_view(start=i, end=end + 1))
         match dimension_to_grid_token(resolve_dimension(expr, ctx)) {
           Some(token) => {
             out.write_string(token)
@@ -4629,25 +4621,25 @@ fn parse_rotate_degrees(value : String) -> Double {
     return 0.0
   }
   if v.has_suffix("deg") {
-    let num_str = view_to_string(v.view(end_offset=v.length() - 3))
+    let num_str = view_to_string(v.clamped_view(end=v.length() - 3))
     return @string.parse_double(num_str.trim()) catch { _ => 0.0 }
   }
   if v.has_suffix("turn") {
-    let num_str = view_to_string(v.view(end_offset=v.length() - 4))
+    let num_str = view_to_string(v.clamped_view(end=v.length() - 4))
     let turns = @string.parse_double(num_str.trim()) catch { _ => return 0.0 }
     return turns * 360.0
   }
   // `grad` must be checked before `rad`: it also ends with "rad".
   // 400grad = 360deg, so 1grad = 0.9deg.
   if v.has_suffix("grad") {
-    let num_str = view_to_string(v.view(end_offset=v.length() - 4))
+    let num_str = view_to_string(v.clamped_view(end=v.length() - 4))
     let gradians = @string.parse_double(num_str.trim()) catch {
       _ => return 0.0
     }
     return gradians * 0.9
   }
   if v.has_suffix("rad") {
-    let num_str = view_to_string(v.view(end_offset=v.length() - 3))
+    let num_str = view_to_string(v.clamped_view(end=v.length() - 3))
     let radians = @string.parse_double(num_str.trim()) catch { _ => return 0.0 }
     return radians * 57.29577951308232
   }
@@ -4678,7 +4670,7 @@ fn parse_zoom(value : String) -> Double {
   }
   // Check for percentage (e.g., "150%")
   if v.has_suffix("%") {
-    let num_str = view_to_string(v.view(end_offset=v.length() - 1))
+    let num_str = view_to_string(v.clamped_view(end=v.length() - 1))
     let n = @string.parse_double(num_str.trim()) catch { _ => return 1.0 }
     return n / 100.0
   }
@@ -4697,13 +4689,13 @@ fn parse_translate_value(value : String) -> @style.TranslateValue {
   }
   // Check for percentage
   if v.has_suffix("%") {
-    let num_str = view_to_string(v.view(end_offset=v.length() - 1))
+    let num_str = view_to_string(v.clamped_view(end=v.length() - 1))
     let n = @string.parse_double(num_str.trim()) catch {
       _ => return @style.TranslateValue::Length(0.0)
     }
     @style.TranslateValue::Percent(n / 100.0)
   } else if v.has_suffix("px") {
-    let num_str = view_to_string(v.view(end_offset=v.length() - 2))
+    let num_str = view_to_string(v.clamped_view(end=v.length() - 2))
     let n = @string.parse_double(num_str.trim()) catch {
       _ => return @style.TranslateValue::Length(0.0)
     }
@@ -4711,7 +4703,7 @@ fn parse_translate_value(value : String) -> @style.TranslateValue {
   } else if v.has_suffix("em") || v.has_suffix("rem") {
     // em/rem - convert to pixels assuming 16px base
     let suffix_len = if v.has_suffix("rem") { 3 } else { 2 }
-    let num_str = view_to_string(v.view(end_offset=v.length() - suffix_len))
+    let num_str = view_to_string(v.clamped_view(end=v.length() - suffix_len))
     let n = @string.parse_double(num_str.trim()) catch {
       _ => return @style.TranslateValue::Length(0.0)
     }
@@ -4729,7 +4721,7 @@ fn parse_translate_value(value : String) -> @style.TranslateValue {
 /// Split string by comma (for transform arguments)
 fn split_by_comma(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for c in s {
     if c == ',' {
       result.push(current.to_string())
@@ -4748,7 +4740,7 @@ fn split_by_comma(s : String) -> Array[String] {
 ///|
 /// Convert char array slice to string
 fn chars_to_string(chars : ArrayView[Char]) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for c in chars {
     sb.write_char(c)
   }
@@ -4805,7 +4797,7 @@ fn strip_inline_important_marker(
   if trimmed[bang_pos - 1].to_int().unsafe_to_char() != '!' {
     return (trimmed, @cascade.Importance::Normal)
   }
-  let stripped = view_to_string(trimmed.view(end_offset=bang_pos - 1))
+  let stripped = view_to_string(trimmed.clamped_view(end=bang_pos - 1))
     .trim()
     .to_owned()
   if stripped.is_empty() {
@@ -4874,8 +4866,8 @@ pub fn compute_inline_raw(
       }
     }
     if colon_pos > 0 {
-      let prop = view_to_string(pair_str.view(end_offset=colon_pos)).trim()
-      let val = view_to_string(pair_str.view(start_offset=colon_pos + 1)).trim()
+      let prop = view_to_string(pair_str.clamped_view(end=colon_pos)).trim()
+      let val = view_to_string(pair_str.clamped_view(start=colon_pos + 1)).trim()
       if !prop.is_empty() && !val.is_empty() {
         let (value, importance) = strip_inline_important_marker(val.to_owned())
         decls.push(
@@ -4884,7 +4876,7 @@ pub fn compute_inline_raw(
             @cascade.PropertyValue::Value(value),
             @cascade.Origin::Author,
             importance,
-            { a: 1000, b: 0, c: 0 },
+            { a: 1000, b: 0, c: 0, },
             order,
           ),
         )
@@ -5107,7 +5099,7 @@ fn parse_font_size(value : String, ctx : ComputeContext) -> Double {
 fn parse_line_height(
   value : String,
   font_size : Double,
-  root_font_size? : Double = 16.0,
+  root_font_size~ : Double = 16.0,
 ) -> Double {
   let v = value.trim()
 
@@ -5201,7 +5193,7 @@ fn parse_font_shorthand(
 
   // Split by whitespace
   let parts : Array[String] = []
-  let mut current = StringBuilder::new()
+  let mut current = StringBuilder()
   let mut in_quotes = false
   for c in v.iter() {
     if c == '"' || c == '\'' {
@@ -5212,7 +5204,7 @@ fn parse_font_shorthand(
       if s.length() > 0 {
         parts.push(s)
       }
-      current = StringBuilder::new()
+      current = StringBuilder()
     } else {
       current.write_char(c)
     }
@@ -5292,7 +5284,7 @@ fn parse_font_shorthand(
   } else {
     ""
   }
-  { font_size, line_height, font_weight, font_family }
+  { font_size, line_height, font_weight, font_family, }
 }
 
 // =============================================================================
@@ -5300,7 +5292,7 @@ fn parse_font_shorthand(
 // =============================================================================
 
 ///|
-fn parse_column_count(value : String) -> Int? {
+fn parse_column_count(value : String) -> Int32? {
   let trimmed = value.trim().to_owned()
   if trimmed.is_empty() || trimmed == "auto" {
     return None
@@ -5388,7 +5380,7 @@ fn parse_column_span(value : String) -> @style.ColumnSpan {
 fn parse_columns_shorthand(
   value : String,
   ctx : ComputeContext,
-) -> (Int?, @types.Dimension)? {
+) -> (Int32?, @types.Dimension)? {
   let parts : Array[StringView] = value
     .trim()
     .split(" ")
@@ -5397,7 +5389,7 @@ fn parse_columns_shorthand(
   if parts.length() == 0 {
     return None
   }
-  let mut count : Int? = None
+  let mut count : Int32? = None
   let mut width = @types.Dimension::Auto
   for part in parts {
     let token = part.to_owned()
@@ -5499,15 +5491,15 @@ fn parse_contain(value : String) -> @style.Contain {
   for part in parts {
     let p = part.to_owned().trim()
     if p == "size" {
-      result = { ..result, size: true }
+      result = { ..result, size: true, }
     } else if p == "inline-size" {
-      result = { ..result, inline_size: true }
+      result = { ..result, inline_size: true, }
     } else if p == "layout" {
-      result = { ..result, layout: true }
+      result = { ..result, layout: true, }
     } else if p == "paint" {
-      result = { ..result, paint: true }
+      result = { ..result, paint: true, }
     } else if p == "style" {
-      result = { ..result, style: true }
+      result = { ..result, style: true, }
     }
   }
   result
@@ -5526,7 +5518,7 @@ fn merge_contain(
     style: base.style || extra.style,
   }
   if merged.size {
-    { ..merged, inline_size: false }
+    { ..merged, inline_size: false, }
   } else {
     merged
   }
@@ -5538,9 +5530,9 @@ fn merge_contain(
 fn parse_container_type(value : String) -> @style.Contain? {
   match value.trim().to_owned() {
     "normal" => Some(@style.Contain::none())
-    "size" => Some({ ..@style.Contain::none(), size: true, style: true })
+    "size" => Some({ ..@style.Contain::none(), size: true, style: true, })
     "inline-size" =>
-      Some({ ..@style.Contain::none(), inline_size: true, style: true })
+      Some({ ..@style.Contain::none(), inline_size: true, style: true, })
     _ => None
   }
 }

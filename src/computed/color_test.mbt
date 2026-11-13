@@ -466,7 +466,10 @@ test "parse_color_with_ctx - dark scheme selects second arg" {
 
 ///|
 test "parse_color color-mix() across spaces and weights" {
-  inspect(@computed.parse_color("color-mix(in srgb, red, blue)"), content="rgb(128, 0, 128)")
+  inspect(
+    @computed.parse_color("color-mix(in srgb, red, blue)"),
+    content="rgb(128, 0, 128)",
+  )
   inspect(
     @computed.parse_color("color-mix(in srgb, white 25%, black)"),
     content="rgb(64, 64, 64)",

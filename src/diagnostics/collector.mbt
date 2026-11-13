@@ -13,7 +13,7 @@ pub(all) struct Diagnostic {
 }
 
 ///|
-pub impl Show for Diagnostic with output(self, logger) {
+pub impl Show for Diagnostic with fn output(self, logger) {
   logger.write_string("[")
   self.severity.output(logger)
   logger.write_string("] ")
@@ -26,35 +26,41 @@ pub impl Show for Diagnostic with output(self, logger) {
 }
 
 ///|
+pub extend Diagnostic with Show::{to_string, output}
+
+///|
 /// Summary statistics for diagnostics
 pub(all) struct DiagnosticSummary {
-  total_properties : Int
-  supported : Int
-  partial : Int
-  unsupported_layout : Int
-  unsupported_visual : Int
-  deprecated : Int
-  unknown : Int
+  total_properties : Int32
+  supported : Int32
+  partial : Int32
+  unsupported_layout : Int32
+  unsupported_visual : Int32
+  deprecated : Int32
+  unknown : Int32
 }
 
 ///|
-pub impl Show for DiagnosticSummary with output(self, logger) {
+pub impl Show for DiagnosticSummary with fn output(self, logger) {
   logger.write_string("CSS Diagnostics Summary:\n")
   logger.write_string("  Total: ")
-  self.total_properties.output(logger)
+  Show::output(self.total_properties, logger)
   logger.write_string("\n  Supported: ")
-  self.supported.output(logger)
+  Show::output(self.supported, logger)
   logger.write_string("\n  Partial: ")
-  self.partial.output(logger)
+  Show::output(self.partial, logger)
   logger.write_string("\n  Unsupported (layout): ")
-  self.unsupported_layout.output(logger)
+  Show::output(self.unsupported_layout, logger)
   logger.write_string("\n  Unsupported (visual): ")
-  self.unsupported_visual.output(logger)
+  Show::output(self.unsupported_visual, logger)
   logger.write_string("\n  Deprecated: ")
-  self.deprecated.output(logger)
+  Show::output(self.deprecated, logger)
   logger.write_string("\n  Unknown: ")
-  self.unknown.output(logger)
+  Show::output(self.unknown, logger)
 }
+
+///|
+pub extend DiagnosticSummary with Show::{to_string, output}
 
 ///|
 /// Collector for CSS diagnostics
@@ -63,12 +69,12 @@ pub struct DiagnosticsCollector {
   // Track unique property+value combinations to avoid duplicates
   seen : Map[String, Bool]
   // Count by support level
-  mut supported_count : Int
-  mut partial_count : Int
-  mut unsupported_layout_count : Int
-  mut unsupported_visual_count : Int
-  mut deprecated_count : Int
-  mut unknown_count : Int
+  mut supported_count : Int32
+  mut partial_count : Int32
+  mut unsupported_layout_count : Int32
+  mut unsupported_visual_count : Int32
+  mut deprecated_count : Int32
+  mut unknown_count : Int32
 }
 
 ///|
@@ -111,7 +117,7 @@ pub fn DiagnosticsCollector::add_property(
     // Deduplicate
     if !self.seen.contains(key) {
       self.seen.set(key, true)
-      self.diagnostics.push({ property, value, level, severity, selector })
+      self.diagnostics.push({ property, value, level, severity, selector, })
     }
   }
 }
@@ -184,9 +190,9 @@ pub fn DiagnosticsCollector::get_layout_affecting(
 /// Format diagnostics as a string report
 pub fn DiagnosticsCollector::format_report(
   self : DiagnosticsCollector,
-  max_entries : Int,
+  max_entries : Int32,
 ) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let summary = self.get_summary()
   // Header
   buf.write_string("=== CSS Support Report ===\n")
@@ -277,7 +283,7 @@ pub fn DiagnosticsCollector::format_compact(
   self : DiagnosticsCollector,
 ) -> String {
   let summary = self.get_summary()
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string("CSS: ")
   buf.write_string(summary.supported.to_string())
   buf.write_string(" ok")

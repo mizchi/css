@@ -2,29 +2,91 @@
 package "mizchi/css/animation"
 
 import {
+  "mizchi/css/style",
   "mizchi/css/values",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn interpolate(AnimatableValue, AnimatableValue, Double) -> AnimatableValue
+
+pub fn interpolate_color_in(ColorSpace, @values.Color, @values.Color, Double) -> @values.Color
+
+pub fn interpolate_color_oklab(@values.Color, @values.Color, Double) -> @values.Color
 
 // Errors
 
 // Types and methods
+pub(all) struct AnimatableKeyframe {
+  offset : Double
+  value : AnimatableValue
+  easing : @values.Easing
+}
+pub fn AnimatableKeyframe::new(Double, AnimatableValue) -> Self
+pub fn AnimatableKeyframe::with_easing(Double, AnimatableValue, @values.Easing) -> Self
+
+pub(all) struct AnimatableKeyframeEffect {
+  keyframes : Array[AnimatableKeyframe]
+  timing : EffectTiming
+}
+pub fn AnimatableKeyframeEffect::new(Array[AnimatableKeyframe], EffectTiming) -> Self?
+pub fn AnimatableKeyframeEffect::sample(Self, Double) -> AnimatableValue?
+pub fn AnimatableKeyframeEffect::sample_progress(Self, Double) -> AnimatableValue
+
+#derive(Eq)
+pub(all) enum AnimatableValue {
+  Number(Double)
+  Length(Double)
+  Percent(Double)
+  Color(@values.Color)
+  Transform(@style.Transform)
+  Discrete(String)
+}
+pub fn AnimatableValue::equal(Self, Self) -> Bool
+pub fn AnimatableValue::not_equal(Self, Self) -> Bool
+pub fn AnimatableValue::output(Self, &Logger) -> Unit
+pub fn AnimatableValue::to_string(Self) -> String
+pub impl Show for AnimatableValue
+
+#derive(Eq, @debug.Debug)
 pub(all) enum AnimationPhase {
   Before
   Active
   After
-} derive(Eq, @debug.Debug)
+}
+pub fn AnimationPhase::equal(Self, Self) -> Bool
+pub fn AnimationPhase::not_equal(Self, Self) -> Bool
+pub fn AnimationPhase::output(Self, &Logger) -> Unit
+pub fn AnimationPhase::to_repr(Self) -> @debug.Repr
+pub fn AnimationPhase::to_string(Self) -> String
 pub impl Show for AnimationPhase
 
+#derive(Eq, @debug.Debug)
+pub(all) enum ColorSpace {
+  Srgb
+  Oklab
+  Oklch
+  Lab
+  Lch
+}
+pub fn ColorSpace::equal(Self, Self) -> Bool
+pub fn ColorSpace::not_equal(Self, Self) -> Bool
+pub fn ColorSpace::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
 pub(all) enum CompositeOperation {
   Replace
   Add
   Accumulate
-} derive(Eq, @debug.Debug)
+}
+pub fn CompositeOperation::equal(Self, Self) -> Bool
+pub fn CompositeOperation::not_equal(Self, Self) -> Bool
+pub fn CompositeOperation::output(Self, &Logger) -> Unit
+pub fn CompositeOperation::to_repr(Self) -> @debug.Repr
+pub fn CompositeOperation::to_string(Self) -> String
 pub impl Show for CompositeOperation
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ComputedEffectTiming {
   phase : AnimationPhase
   active_duration : Double
@@ -32,11 +94,15 @@ pub(all) struct ComputedEffectTiming {
   local_time : Double
   active_time : Double?
   progress : Double?
-  current_iteration : Int?
+  current_iteration : Int32?
   directed_progress : Double?
   transformed_progress : Double?
-} derive(Eq, @debug.Debug)
+}
+pub fn ComputedEffectTiming::equal(Self, Self) -> Bool
+pub fn ComputedEffectTiming::not_equal(Self, Self) -> Bool
+pub fn ComputedEffectTiming::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) struct EffectTiming {
   delay : Double
   end_delay : Double
@@ -46,59 +112,87 @@ pub(all) struct EffectTiming {
   duration : Double
   direction : PlaybackDirection
   easing : @values.Easing
-} derive(Eq, @debug.Debug)
+}
 pub fn EffectTiming::active_duration(Self) -> Double
 pub fn EffectTiming::at(Self, Double) -> ComputedEffectTiming
 pub fn EffectTiming::end_time(Self) -> Double
+pub fn EffectTiming::equal(Self, Self) -> Bool
 pub fn EffectTiming::new(Double) -> Self
+pub fn EffectTiming::not_equal(Self, Self) -> Bool
+pub fn EffectTiming::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum FillMode {
   None
   Forwards
   Backwards
   Both
   Auto
-} derive(Eq, @debug.Debug)
+}
+pub fn FillMode::equal(Self, Self) -> Bool
+pub fn FillMode::not_equal(Self, Self) -> Bool
+pub fn FillMode::output(Self, &Logger) -> Unit
+pub fn FillMode::to_repr(Self) -> @debug.Repr
+pub fn FillMode::to_string(Self) -> String
 pub impl Show for FillMode
 
+#derive(Eq, @debug.Debug)
 pub(all) enum IterationCompositeOperation {
   Replace
   Accumulate
-} derive(Eq, @debug.Debug)
+}
+pub fn IterationCompositeOperation::equal(Self, Self) -> Bool
+pub fn IterationCompositeOperation::not_equal(Self, Self) -> Bool
+pub fn IterationCompositeOperation::output(Self, &Logger) -> Unit
+pub fn IterationCompositeOperation::to_repr(Self) -> @debug.Repr
+pub fn IterationCompositeOperation::to_string(Self) -> String
 pub impl Show for IterationCompositeOperation
 
+#derive(Eq, @debug.Debug)
 pub(all) struct NumericKeyframe {
   offset : Double
   value : Double
   easing : @values.Easing
   composite : CompositeOperation?
-} derive(Eq, @debug.Debug)
+}
+pub fn NumericKeyframe::equal(Self, Self) -> Bool
 pub fn NumericKeyframe::new(Double, Double) -> Self
+pub fn NumericKeyframe::not_equal(Self, Self) -> Bool
+pub fn NumericKeyframe::to_repr(Self) -> @debug.Repr
 pub fn NumericKeyframe::with_composite(Double, Double, @values.Easing, CompositeOperation) -> Self
 pub fn NumericKeyframe::with_easing(Double, Double, @values.Easing) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct NumericKeyframeEffect {
   keyframes : Array[NumericKeyframe]
   timing : EffectTiming
   composite : CompositeOperation
   iteration_composite : IterationCompositeOperation
-} derive(Eq, @debug.Debug)
+}
+pub fn NumericKeyframeEffect::equal(Self, Self) -> Bool
 pub fn NumericKeyframeEffect::new(Array[NumericKeyframe], EffectTiming) -> Self?
+pub fn NumericKeyframeEffect::not_equal(Self, Self) -> Bool
 pub fn NumericKeyframeEffect::sample(Self, Double) -> Double?
 pub fn NumericKeyframeEffect::sample_progress(Self, Double) -> Double
-pub fn NumericKeyframeEffect::sample_progress_with_underlying(Self, Double, Double, Int) -> Double
+pub fn NumericKeyframeEffect::sample_progress_with_underlying(Self, Double, Double, Int32) -> Double
 pub fn NumericKeyframeEffect::sample_with_underlying(Self, Double, Double) -> Double?
+pub fn NumericKeyframeEffect::to_repr(Self) -> @debug.Repr
 pub fn NumericKeyframeEffect::with_composite(Array[NumericKeyframe], EffectTiming, CompositeOperation, IterationCompositeOperation) -> Self?
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PlaybackDirection {
   Normal
   Reverse
   Alternate
   AlternateReverse
-} derive(Eq, @debug.Debug)
+}
+pub fn PlaybackDirection::equal(Self, Self) -> Bool
+pub fn PlaybackDirection::not_equal(Self, Self) -> Bool
+pub fn PlaybackDirection::output(Self, &Logger) -> Unit
+pub fn PlaybackDirection::to_repr(Self) -> @debug.Repr
+pub fn PlaybackDirection::to_string(Self) -> String
 pub impl Show for PlaybackDirection
 
 // Type aliases
 
 // Traits
-

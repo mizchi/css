@@ -48,15 +48,11 @@ fn v3_combine(
   src : Array[Double],
   scale : Double,
 ) -> Array[Double] {
-  [
-    dest[0] + src[0] * scale,
-    dest[1] + src[1] * scale,
-    dest[2] + src[2] * scale,
-  ]
+  [dest[0] + src[0] * scale, dest[1] + src[1] * scale, dest[2] + src[2] * scale]
 }
 
 ///|
-fn m_get(m : Array[Double], c : Int, r : Int) -> Double {
+fn m_get(m : Array[Double], c : Int32, r : Int32) -> Double {
   m[c * 4 + r]
 }
 
@@ -184,7 +180,9 @@ fn mat4_mul(a : Array[Double], b : Array[Double]) -> Array[Double] {
 
 ///|
 fn mat4_identity() -> Array[Double] {
-  [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+  [
+    1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+  ]
 }
 
 ///|
@@ -214,7 +212,7 @@ fn recompose_matrix3d(d : Decomposed3D) -> Array[Double] {
   // Apply skews using explicit shear matrices, in spec order (YZ, XZ, XY).
   // skewYZ -> (col2,row1)=index 9, skewXZ -> (col2,row0)=index 8,
   // skewXY -> (col1,row0)=index 4.
-  let apply_skew = fn(idx : Int, value : Double) -> Unit {
+  let apply_skew = fn(idx : Int32, value : Double) -> Unit {
     if value != 0.0 {
       let t = mat4_identity()
       t[idx] = value

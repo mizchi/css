@@ -29,6 +29,7 @@ pub fn resolve_rect_intrinsic(Rect[Dimension]) -> Rect[Double]
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum AlignSelf {
   Auto
   Start
@@ -36,9 +37,15 @@ pub(all) enum AlignSelf {
   Center
   Stretch
   Baseline
-} derive(Eq, @debug.Debug)
+}
+pub fn AlignSelf::equal(Self, Self) -> Bool
+pub fn AlignSelf::not_equal(Self, Self) -> Bool
+pub fn AlignSelf::output(Self, &Logger) -> Unit
+pub fn AlignSelf::to_repr(Self) -> @debug.Repr
+pub fn AlignSelf::to_string(Self) -> String
 pub impl Show for AlignSelf
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Alignment {
   Start
   End
@@ -52,41 +59,76 @@ pub(all) enum Alignment {
   SpaceEvenly
   Stretch
   Baseline
-} derive(Eq, @debug.Debug)
+}
+pub fn Alignment::equal(Self, Self) -> Bool
+pub fn Alignment::not_equal(Self, Self) -> Bool
+pub fn Alignment::output(Self, &Logger) -> Unit
+pub fn Alignment::to_repr(Self) -> @debug.Repr
+pub fn Alignment::to_string(Self) -> String
 pub impl Show for Alignment
 
+#derive(Eq, @debug.Debug)
 pub(all) enum AnimationDirection {
   Normal
   Reverse
   Alternate
   AlternateReverse
-} derive(Eq, @debug.Debug)
+}
+pub fn AnimationDirection::equal(Self, Self) -> Bool
+pub fn AnimationDirection::not_equal(Self, Self) -> Bool
+pub fn AnimationDirection::output(Self, &Logger) -> Unit
+pub fn AnimationDirection::to_repr(Self) -> @debug.Repr
+pub fn AnimationDirection::to_string(Self) -> String
 pub impl Show for AnimationDirection
 
+#derive(Eq, @debug.Debug)
 pub(all) enum AnimationFillMode {
   None
   Forwards
   Backwards
   Both
-} derive(Eq, @debug.Debug)
+}
+pub fn AnimationFillMode::equal(Self, Self) -> Bool
+pub fn AnimationFillMode::not_equal(Self, Self) -> Bool
+pub fn AnimationFillMode::output(Self, &Logger) -> Unit
+pub fn AnimationFillMode::to_repr(Self) -> @debug.Repr
+pub fn AnimationFillMode::to_string(Self) -> String
 pub impl Show for AnimationFillMode
 
+#derive(Eq, @debug.Debug)
 pub(all) enum AnimationIterationCount {
   Count(Double)
   Infinite
-} derive(Eq, @debug.Debug)
+}
+pub fn AnimationIterationCount::equal(Self, Self) -> Bool
+pub fn AnimationIterationCount::not_equal(Self, Self) -> Bool
+pub fn AnimationIterationCount::output(Self, &Logger) -> Unit
+pub fn AnimationIterationCount::to_repr(Self) -> @debug.Repr
+pub fn AnimationIterationCount::to_string(Self) -> String
 pub impl Show for AnimationIterationCount
 
+#derive(Eq, @debug.Debug)
 pub(all) enum AnimationPlayState {
   Running
   Paused
-} derive(Eq, @debug.Debug)
+}
+pub fn AnimationPlayState::equal(Self, Self) -> Bool
+pub fn AnimationPlayState::not_equal(Self, Self) -> Bool
+pub fn AnimationPlayState::output(Self, &Logger) -> Unit
+pub fn AnimationPlayState::to_repr(Self) -> @debug.Repr
+pub fn AnimationPlayState::to_string(Self) -> String
 pub impl Show for AnimationPlayState
 
+#derive(Eq, @debug.Debug)
 pub(all) enum BackgroundImage {
   None
   Gradient(LinearGradient)
-} derive(Eq, @debug.Debug)
+}
+pub fn BackgroundImage::equal(Self, Self) -> Bool
+pub fn BackgroundImage::not_equal(Self, Self) -> Bool
+pub fn BackgroundImage::output(Self, &Logger) -> Unit
+pub fn BackgroundImage::to_repr(Self) -> @debug.Repr
+pub fn BackgroundImage::to_string(Self) -> String
 pub impl Show for BackgroundImage
 
 pub(all) struct BoundingRect {
@@ -98,57 +140,90 @@ pub(all) struct BoundingRect {
 pub fn BoundingRect::area(Self) -> Double
 pub fn BoundingRect::bottom(Self) -> Double
 pub fn BoundingRect::new(Double, Double, Double, Double) -> Self
+pub fn BoundingRect::output(Self, &Logger) -> Unit
 pub fn BoundingRect::right(Self) -> Double
+pub fn BoundingRect::to_string(Self) -> String
 pub fn BoundingRect::union(Self, Self) -> Self
 pub fn BoundingRect::zero() -> Self
 pub impl Show for BoundingRect
 
+#derive(Eq, @debug.Debug)
 pub(all) enum BoxSizing {
   ContentBox
   BorderBox
-} derive(Eq, @debug.Debug)
+}
+pub fn BoxSizing::equal(Self, Self) -> Bool
+pub fn BoxSizing::not_equal(Self, Self) -> Bool
+pub fn BoxSizing::output(Self, &Logger) -> Unit
+pub fn BoxSizing::to_repr(Self) -> @debug.Repr
+pub fn BoxSizing::to_string(Self) -> String
 pub impl Show for BoxSizing
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Clear {
   None
   Left
   Right
   Both
-} derive(Eq, @debug.Debug)
+}
+pub fn Clear::equal(Self, Self) -> Bool
+pub fn Clear::not_equal(Self, Self) -> Bool
+pub fn Clear::output(Self, &Logger) -> Unit
+pub fn Clear::to_repr(Self) -> @debug.Repr
+pub fn Clear::to_string(Self) -> String
 pub impl Show for Clear
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ClipRect {
   Auto
   Rect(top~ : Double, right~ : Double, bottom~ : Double, left~ : Double)
-} derive(Eq, @debug.Debug)
+}
 pub fn ClipRect::default() -> Self
+pub fn ClipRect::equal(Self, Self) -> Bool
+pub fn ClipRect::not_equal(Self, Self) -> Bool
+pub fn ClipRect::output(Self, &Logger) -> Unit
+pub fn ClipRect::to_repr(Self) -> @debug.Repr
+pub fn ClipRect::to_string(Self) -> String
 pub impl Show for ClipRect
 
+#derive(@debug.Debug)
 pub(all) struct Color {
   r : Int32
   g : Int32
   b : Int32
   a : Double
-} derive(@debug.Debug)
+}
 pub fn Color::black() -> Self
+pub fn Color::equal(Self, Self) -> Bool
 pub fn Color::is_opaque(Self) -> Bool
 pub fn Color::is_transparent(Self) -> Bool
+pub fn Color::not_equal(Self, Self) -> Bool
+pub fn Color::output(Self, &Logger) -> Unit
 pub fn Color::rgb(Int32, Int32, Int32) -> Self
 pub fn Color::rgba(Int32, Int32, Int32, Double) -> Self
 pub fn Color::to_hex(Self) -> String
+pub fn Color::to_repr(Self) -> @debug.Repr
 pub fn Color::to_rgba_string(Self) -> String
+pub fn Color::to_string(Self) -> String
 pub fn Color::transparent() -> Self
 pub fn Color::white() -> Self
 pub impl Eq for Color
 pub impl Show for Color
 
+#derive(Eq, @debug.Debug)
 pub(all) enum CssFloat {
   None
   Left
   Right
-} derive(Eq, @debug.Debug)
+}
+pub fn CssFloat::equal(Self, Self) -> Bool
+pub fn CssFloat::not_equal(Self, Self) -> Bool
+pub fn CssFloat::output(Self, &Logger) -> Unit
+pub fn CssFloat::to_repr(Self) -> @debug.Repr
+pub fn CssFloat::to_string(Self) -> String
 pub impl Show for CssFloat
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Dimension {
   Length(Double)
   Percent(Double)
@@ -158,16 +233,22 @@ pub(all) enum Dimension {
   FitContent(Double)
   Calc(Double, Double)
   MathFn(MathOp, Array[(Double, Double)])
-} derive(Eq, @debug.Debug)
+}
 pub fn Dimension::eq_length(Self, Double) -> Bool
 pub fn Dimension::eq_percent(Self, Double) -> Bool
+pub fn Dimension::equal(Self, Self) -> Bool
 pub fn Dimension::is_definite(Self) -> Bool
 pub fn Dimension::is_intrinsic(Self) -> Bool
+pub fn Dimension::not_equal(Self, Self) -> Bool
+pub fn Dimension::output(Self, &Logger) -> Unit
 pub fn Dimension::resolve(Self, Double) -> Double?
 pub fn Dimension::resolve_or(Self, Double, Double) -> Double
 pub fn Dimension::resolve_or_intrinsic(Self, Double, Double) -> Double
+pub fn Dimension::to_repr(Self) -> @debug.Repr
+pub fn Dimension::to_string(Self) -> String
 pub impl Show for Dimension
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Display {
   Block
   Inline
@@ -189,9 +270,15 @@ pub(all) enum Display {
   None
   Contents
   FlowRoot
-} derive(Eq, @debug.Debug)
+}
+pub fn Display::equal(Self, Self) -> Bool
+pub fn Display::not_equal(Self, Self) -> Bool
+pub fn Display::output(Self, &Logger) -> Unit
+pub fn Display::to_repr(Self) -> @debug.Repr
+pub fn Display::to_string(Self) -> String
 pub impl Show for Display
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Easing {
   Linear
   Ease
@@ -231,14 +318,19 @@ pub(all) enum Easing {
   LinearFunction(Array[LinearEasingPoint])
   CubicBezier(Double, Double, Double, Double)
   Steps(Int32, StepPosition)
-} derive(Eq, @debug.Debug)
+}
 pub fn Easing::apply(Self, Double, Double, Double) -> Double
 pub fn Easing::cubic_bezier(Double, Double, Double, Double) -> Self
+pub fn Easing::equal(Self, Self) -> Bool
 pub fn Easing::frame(Self, Double, Double, Double) -> EasingFrame
 pub fn Easing::frames(Self, Double, Double, Int32) -> Array[EasingFrame]
 pub fn Easing::linear(Array[LinearEasingPoint]) -> Self?
+pub fn Easing::not_equal(Self, Self) -> Bool
+pub fn Easing::output(Self, &Logger) -> Unit
 pub fn Easing::sample(Self, Double) -> Double
 pub fn Easing::steps(Int32, StepPosition) -> Self
+pub fn Easing::to_repr(Self) -> @debug.Repr
+pub fn Easing::to_string(Self) -> String
 pub impl Show for Easing
 
 pub(all) struct EasingFrame {
@@ -246,44 +338,77 @@ pub(all) struct EasingFrame {
   eased_progress : Double
   value : Double
 }
+pub fn EasingFrame::output(Self, &Logger) -> Unit
+pub fn EasingFrame::to_string(Self) -> String
 pub impl Show for EasingFrame
 
+#derive(Eq, @debug.Debug)
 pub(all) enum FlexDirection {
   Row
   RowReverse
   Column
   ColumnReverse
-} derive(Eq, @debug.Debug)
+}
+pub fn FlexDirection::equal(Self, Self) -> Bool
+pub fn FlexDirection::not_equal(Self, Self) -> Bool
+pub fn FlexDirection::output(Self, &Logger) -> Unit
+pub fn FlexDirection::to_repr(Self) -> @debug.Repr
+pub fn FlexDirection::to_string(Self) -> String
 pub impl Show for FlexDirection
 
+#derive(Eq, @debug.Debug)
 pub(all) enum FlexWrap {
   NoWrap
   Wrap
   WrapReverse
-} derive(Eq, @debug.Debug)
+}
+pub fn FlexWrap::equal(Self, Self) -> Bool
+pub fn FlexWrap::not_equal(Self, Self) -> Bool
+pub fn FlexWrap::output(Self, &Logger) -> Unit
+pub fn FlexWrap::to_repr(Self) -> @debug.Repr
+pub fn FlexWrap::to_string(Self) -> String
 pub impl Show for FlexWrap
 
+#derive(Eq, @debug.Debug)
 pub(all) struct GradientStop {
   color : Color
   position : Double
-} derive(Eq, @debug.Debug)
+}
+pub fn GradientStop::equal(Self, Self) -> Bool
+pub fn GradientStop::not_equal(Self, Self) -> Bool
+pub fn GradientStop::output(Self, &Logger) -> Unit
+pub fn GradientStop::to_repr(Self) -> @debug.Repr
+pub fn GradientStop::to_string(Self) -> String
 pub impl Show for GradientStop
 
+#derive(Eq, @debug.Debug)
 pub(all) enum GridAutoFlow {
   Row
   Column
   RowDense
   ColumnDense
-} derive(Eq, @debug.Debug)
+}
+pub fn GridAutoFlow::equal(Self, Self) -> Bool
+pub fn GridAutoFlow::not_equal(Self, Self) -> Bool
+pub fn GridAutoFlow::output(Self, &Logger) -> Unit
+pub fn GridAutoFlow::to_repr(Self) -> @debug.Repr
+pub fn GridAutoFlow::to_string(Self) -> String
 pub impl Show for GridAutoFlow
 
+#derive(Eq, @debug.Debug)
 pub(all) struct GridLine {
   start : GridPlacement
   end : GridPlacement
-} derive(Eq, @debug.Debug)
+}
 pub fn GridLine::auto() -> Self
+pub fn GridLine::equal(Self, Self) -> Bool
+pub fn GridLine::not_equal(Self, Self) -> Bool
+pub fn GridLine::output(Self, &Logger) -> Unit
+pub fn GridLine::to_repr(Self) -> @debug.Repr
+pub fn GridLine::to_string(Self) -> String
 pub impl Show for GridLine
 
+#derive(Eq, @debug.Debug)
 pub(all) enum GridPlacement {
   Auto
   Line(Int32)
@@ -291,14 +416,25 @@ pub(all) enum GridPlacement {
   Named(String)
   NamedLine(Int32, String)
   SpanNamed(Int32, String)
-} derive(Eq, @debug.Debug)
+}
+pub fn GridPlacement::equal(Self, Self) -> Bool
+pub fn GridPlacement::not_equal(Self, Self) -> Bool
+pub fn GridPlacement::output(Self, &Logger) -> Unit
+pub fn GridPlacement::to_repr(Self) -> @debug.Repr
+pub fn GridPlacement::to_string(Self) -> String
 pub impl Show for GridPlacement
 
+#derive(Eq, @debug.Debug)
 pub(all) enum GridTemplateKind {
   Explicit
   Subgrid
   Masonry
-} derive(Eq, @debug.Debug)
+}
+pub fn GridTemplateKind::equal(Self, Self) -> Bool
+pub fn GridTemplateKind::not_equal(Self, Self) -> Bool
+pub fn GridTemplateKind::output(Self, &Logger) -> Unit
+pub fn GridTemplateKind::to_repr(Self) -> @debug.Repr
+pub fn GridTemplateKind::to_string(Self) -> String
 pub impl Show for GridTemplateKind
 
 pub struct Line[T] {
@@ -306,27 +442,46 @@ pub struct Line[T] {
   end : T
 }
 pub fn[T] Line::new(T, T) -> Self[T]
+pub fn[T : Show] Line::output(Self[T], &Logger) -> Unit
+pub fn[T : Show] Line::to_string(Self[T]) -> String
 pub impl[T : Show] Show for Line[T]
 
+#derive(Eq, @debug.Debug)
 pub(all) struct LinearEasingPoint {
   input : Double
   output : Double
-} derive(Eq, @debug.Debug)
+}
+pub fn LinearEasingPoint::equal(Self, Self) -> Bool
 pub fn LinearEasingPoint::new(Double, Double) -> Self
+pub fn LinearEasingPoint::not_equal(Self, Self) -> Bool
+pub fn LinearEasingPoint::output(Self, &Logger) -> Unit
+pub fn LinearEasingPoint::to_repr(Self) -> @debug.Repr
+pub fn LinearEasingPoint::to_string(Self) -> String
 pub impl Show for LinearEasingPoint
 
+#derive(Eq, @debug.Debug)
 pub(all) struct LinearGradient {
   angle_deg : Double
   stops : Array[GradientStop]
-} derive(Eq, @debug.Debug)
+}
+pub fn LinearGradient::equal(Self, Self) -> Bool
+pub fn LinearGradient::not_equal(Self, Self) -> Bool
+pub fn LinearGradient::output(Self, &Logger) -> Unit
+pub fn LinearGradient::to_repr(Self) -> @debug.Repr
+pub fn LinearGradient::to_string(Self) -> String
 pub impl Show for LinearGradient
 
+#derive(Eq, @debug.Debug)
 pub(all) enum MathOp {
   Min
   Max
   Clamp
-} derive(Eq, @debug.Debug)
+}
+pub fn MathOp::equal(Self, Self) -> Bool
+pub fn MathOp::not_equal(Self, Self) -> Bool
+pub fn MathOp::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum MaxTrackSizing {
   Length(Double)
   Percent(Double)
@@ -334,25 +489,42 @@ pub(all) enum MaxTrackSizing {
   Auto
   MinContent
   MaxContent
-} derive(Eq, @debug.Debug)
+}
+pub fn MaxTrackSizing::equal(Self, Self) -> Bool
+pub fn MaxTrackSizing::not_equal(Self, Self) -> Bool
+pub fn MaxTrackSizing::output(Self, &Logger) -> Unit
+pub fn MaxTrackSizing::to_repr(Self) -> @debug.Repr
+pub fn MaxTrackSizing::to_string(Self) -> String
 pub impl Show for MaxTrackSizing
 
+#derive(Eq, @debug.Debug)
 pub(all) enum MinTrackSizing {
   Length(Double)
   Percent(Double)
   Auto
   MinContent
   MaxContent
-} derive(Eq, @debug.Debug)
+}
+pub fn MinTrackSizing::equal(Self, Self) -> Bool
+pub fn MinTrackSizing::not_equal(Self, Self) -> Bool
+pub fn MinTrackSizing::output(Self, &Logger) -> Unit
+pub fn MinTrackSizing::to_repr(Self) -> @debug.Repr
+pub fn MinTrackSizing::to_string(Self) -> String
 pub impl Show for MinTrackSizing
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Overflow {
   Visible
   Hidden
   Clip
   Scroll
   Auto
-} derive(Eq, @debug.Debug)
+}
+pub fn Overflow::equal(Self, Self) -> Bool
+pub fn Overflow::not_equal(Self, Self) -> Bool
+pub fn Overflow::output(Self, &Logger) -> Unit
+pub fn Overflow::to_repr(Self) -> @debug.Repr
+pub fn Overflow::to_string(Self) -> String
 pub impl Show for Overflow
 
 pub struct Point[T] {
@@ -361,38 +533,59 @@ pub struct Point[T] {
 }
 pub fn[T, U] Point::map(Self[T], (T) -> U) -> Self[U]
 pub fn[T] Point::new(T, T) -> Self[T]
+pub fn[T : Show] Point::output(Self[T], &Logger) -> Unit
+pub fn[T : Show] Point::to_string(Self[T]) -> String
 pub fn Point::zero() -> Self[Double]
 pub impl[T : Show] Show for Point[T]
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Position {
   Static
   Relative
   Absolute
   Fixed
-} derive(Eq, @debug.Debug)
+}
+pub fn Position::equal(Self, Self) -> Bool
+pub fn Position::not_equal(Self, Self) -> Bool
+pub fn Position::output(Self, &Logger) -> Unit
+pub fn Position::to_repr(Self) -> @debug.Repr
+pub fn Position::to_string(Self) -> String
 pub impl Show for Position
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Rect[T] {
   left : T
   right : T
   top : T
   bottom : T
-} derive(Eq, @debug.Debug)
+}
 pub fn[T] Rect::all(T) -> Self[T]
+pub fn[T : Eq] Rect::equal(Self[T], Self[T]) -> Bool
 pub fn Rect::horizontal_sum(Self[Double]) -> Double
 pub fn[T, U] Rect::map(Self[T], (T) -> U) -> Self[U]
 pub fn[T] Rect::new(T, T, T, T) -> Self[T]
+pub fn[T : Eq] Rect::not_equal(Self[T], Self[T]) -> Bool
+pub fn[T : Show] Rect::output(Self[T], &Logger) -> Unit
+pub fn[T : @debug.Debug] Rect::to_repr(Self[T]) -> @debug.Repr
+pub fn[T : Show] Rect::to_string(Self[T]) -> String
 pub fn Rect::vertical_sum(Self[Double]) -> Double
 pub fn Rect::zero() -> Self[Double]
 pub impl[T : Show] Show for Rect[T]
 
+#derive(Eq, @debug.Debug)
 pub(all) enum RepeatCount {
   Count(Int32)
   AutoFill
   AutoFit
-} derive(Eq, @debug.Debug)
+}
+pub fn RepeatCount::equal(Self, Self) -> Bool
+pub fn RepeatCount::not_equal(Self, Self) -> Bool
+pub fn RepeatCount::output(Self, &Logger) -> Unit
+pub fn RepeatCount::to_repr(Self) -> @debug.Repr
+pub fn RepeatCount::to_string(Self) -> String
 pub impl Show for RepeatCount
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SingleTrackSizing {
   Length(Double)
   Percent(Double)
@@ -403,7 +596,12 @@ pub(all) enum SingleTrackSizing {
   MinMax(MinTrackSizing, MaxTrackSizing)
   FitContentLength(Double)
   FitContentPercent(Double)
-} derive(Eq, @debug.Debug)
+}
+pub fn SingleTrackSizing::equal(Self, Self) -> Bool
+pub fn SingleTrackSizing::not_equal(Self, Self) -> Bool
+pub fn SingleTrackSizing::output(Self, &Logger) -> Unit
+pub fn SingleTrackSizing::to_repr(Self) -> @debug.Repr
+pub fn SingleTrackSizing::to_string(Self) -> String
 pub impl Show for SingleTrackSizing
 
 pub struct Size[T] {
@@ -412,17 +610,26 @@ pub struct Size[T] {
 }
 pub fn[T, U] Size::map(Self[T], (T) -> U) -> Self[U]
 pub fn[T] Size::new(T, T) -> Self[T]
+pub fn[T : Show] Size::output(Self[T], &Logger) -> Unit
+pub fn[T : Show] Size::to_string(Self[T]) -> String
 pub fn Size::zero() -> Self[Double]
 pub impl[T : Show] Show for Size[T]
 
+#derive(Eq, @debug.Debug)
 pub(all) enum StepPosition {
   Start
   End
   JumpNone
   JumpBoth
-} derive(Eq, @debug.Debug)
+}
+pub fn StepPosition::equal(Self, Self) -> Bool
+pub fn StepPosition::not_equal(Self, Self) -> Bool
+pub fn StepPosition::output(Self, &Logger) -> Unit
+pub fn StepPosition::to_repr(Self) -> @debug.Repr
+pub fn StepPosition::to_string(Self) -> String
 pub impl Show for StepPosition
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TrackSizingFunction {
   Length(Double)
   Percent(Double)
@@ -434,7 +641,12 @@ pub(all) enum TrackSizingFunction {
   Repeat(RepeatCount, Array[SingleTrackSizing], Array[Array[String]])
   FitContentLength(Double)
   FitContentPercent(Double)
-} derive(Eq, @debug.Debug)
+}
+pub fn TrackSizingFunction::equal(Self, Self) -> Bool
+pub fn TrackSizingFunction::not_equal(Self, Self) -> Bool
+pub fn TrackSizingFunction::output(Self, &Logger) -> Unit
+pub fn TrackSizingFunction::to_repr(Self) -> @debug.Repr
+pub fn TrackSizingFunction::to_string(Self) -> String
 pub impl Show for TrackSizingFunction
 
 // Type aliases

@@ -3,7 +3,7 @@
 
 ///|
 test "wpt parse-is.html: valid :is(ul,ol,.list) > [hidden]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-is.html: valid :is(ul,ol,.list) > [hidden]",
     ":is(ul,ol,.list) > [hidden]",
     [":is(ul, ol, .list) > [hidden]"],
@@ -13,7 +13,7 @@ test "wpt parse-is.html: valid :is(ul,ol,.list) > [hidden]" {
 
 ///|
 test "wpt parse-is.html: valid :is(:hover,:focus)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-is.html: valid :is(:hover,:focus)",
     ":is(:hover,:focus)",
     [":is(:hover, :focus)"],
@@ -23,7 +23,7 @@ test "wpt parse-is.html: valid :is(:hover,:focus)" {
 
 ///|
 test "wpt parse-is.html: valid a:is(:not(:hover))" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-is.html: valid a:is(:not(:hover))",
     "a:is(:not(:hover))",
     ["a:is(:not(:hover))"],
@@ -33,7 +33,7 @@ test "wpt parse-is.html: valid a:is(:not(:hover))" {
 
 ///|
 test "wpt parse-is.html: valid :is(#a)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-is.html: valid :is(#a)",
     ":is(#a)",
     [":is(#a)"],
@@ -43,7 +43,7 @@ test "wpt parse-is.html: valid :is(#a)" {
 
 ///|
 test "wpt parse-is.html: valid .a.b ~ :is(.c.d ~ .e.f)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-is.html: valid .a.b ~ :is(.c.d ~ .e.f)",
     ".a.b ~ :is(.c.d ~ .e.f)",
     [".a.b ~ :is(.c.d ~ .e.f)"],
@@ -53,7 +53,7 @@ test "wpt parse-is.html: valid .a.b ~ :is(.c.d ~ .e.f)" {
 
 ///|
 test "wpt parse-is.html: valid .a.b ~ .c.d:is(span.e + .f, .g.h > .i.j .k)" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-is.html: valid .a.b ~ .c.d:is(span.e + .f, .g.h > .i.j .k)",
     ".a.b ~ .c.d:is(span.e + .f, .g.h > .i.j .k)",
     [".a.b ~ .c.d:is(span.e + .f, .g.h > .i.j .k)"],

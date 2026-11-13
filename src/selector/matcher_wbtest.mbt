@@ -8,6 +8,40 @@ fn matches_selector_text(element : Element, css : String) -> Bool {
 }
 
 ///|
+test "attribute string searches preserve boundary and overlapping matches" {
+  for length in [0, 1, 7, 8, 15, 16, 31, 32, 127, 128] {
+    let padding = String::make(length, 'a')
+    for needle in ["target", "日本語", "😀"] {
+      assert_true(fast_has_prefix(needle + padding, needle))
+      assert_true(fast_has_suffix(padding + needle, needle))
+      assert_true(fast_contains(padding + needle, needle))
+      assert_false(fast_contains(padding, needle))
+      assert_false(fast_has_prefix(needle, needle + "!"))
+      assert_false(fast_has_suffix(needle, "!" + needle))
+    }
+    assert_true(fast_contains(padding + "ab", "aab") == (length > 0))
+    assert_true(fast_has_prefix(padding + "!", padding))
+    assert_true(fast_has_suffix("!" + padding, padding))
+    assert_false(fast_has_prefix(padding + "x", padding + "y"))
+    assert_false(fast_has_suffix("x" + padding, "y" + padding))
+  }
+  assert_true(fast_contains("", ""))
+  assert_false(fast_contains("", "x"))
+}
+
+///|
+test "long attribute selectors retain case-insensitive matching" {
+  let prefix = String::make(128, 'A')
+  let element = Element::new("a").set_attribute("href", prefix + "TARGET")
+  assert_true(matches_selector_text(element, "[href*=target i]"))
+  assert_true(
+    matches_selector_text(element, "[href^=\"" + prefix.to_lower() + "\" i]"),
+  )
+  assert_true(matches_selector_text(element, "[href$=target i]"))
+  assert_false(matches_selector_text(element, "[href*=target]"))
+}
+
+///|
 fn matches_selector_text_with_shadow_context(
   element : Element,
   css : String,
@@ -165,7 +199,7 @@ test "match root" {
 ///|
 test "match empty" {
   let empty_elem = Element::new("div")
-  let non_empty = { ..Element::new("div"), children: [Element::new("span")] }
+  let non_empty = { ..Element::new("div"), children: [Element::new("span")], }
   inspect(matches_selector_text(empty_elem, ":empty"), content="true")
   inspect(matches_selector_text(non_empty, ":empty"), content="false")
 }
@@ -203,7 +237,7 @@ test "match descendant combinator" {
 ///|
 test "match next-sibling combinator" {
   let first = Element::new("h1")
-  let second = { ..Element::new("p"), prev_sibling: Some(first) }
+  let second = { ..Element::new("p"), prev_sibling: Some(first), }
   let result = matches_selector_text(second, "h1 + p")
   inspect(result, content="true")
 }
@@ -293,7 +327,7 @@ test "match :not with class - Wikipedia-style body:not(.vector-sticky-header-vis
 test "match :has descendant class" {
   let base = Element::new("div").add_class("box")
   let child = Element::new("span").add_class("child").set_parent(base)
-  let elem = { ..base, children: [child] }
+  let elem = { ..base, children: [child], }
   inspect(matches_selector_text(elem, ".box:has(.child)"), content="true")
   inspect(matches_selector_text(elem, ".box:has(.missing)"), content="false")
 }
@@ -302,7 +336,7 @@ test "match :has descendant class" {
 test "match :has direct child combinator" {
   let base = Element::new("div").add_class("box")
   let child = Element::new("span").add_class("child").set_parent(base)
-  let elem = { ..base, children: [child] }
+  let elem = { ..base, children: [child], }
   inspect(matches_selector_text(elem, ".box:has(> .child)"), content="true")
   inspect(matches_selector_text(elem, ".box:has(> .missing)"), content="false")
 }
@@ -310,7 +344,7 @@ test "match :has direct child combinator" {
 ///|
 test "match :has next sibling combinator" {
   let next = Element::new("span").add_class("next")
-  let elem = { ..Element::new("div"), next_sibling: Some(next) }
+  let elem = { ..Element::new("div"), next_sibling: Some(next), }
   inspect(matches_selector_text(elem, "div:has(+ .next)"), content="true")
   inspect(matches_selector_text(elem, "div:has(+ .missing)"), content="false")
 }
@@ -417,8 +451,8 @@ test "pseudo-elements do not match real elements" {
 ///|
 test "match :has - subsequent sibling combinator" {
   let next = Element::new("p")
-  let middle = { ..Element::new("span"), next_sibling: Some(next) }
-  let elem = { ..Element::new("div"), next_sibling: Some(middle) }
+  let middle = { ..Element::new("span"), next_sibling: Some(next), }
+  let elem = { ..Element::new("div"), next_sibling: Some(middle), }
   inspect(matches_selector_text(elem, "div:has(~ p)"), content="true")
   inspect(matches_selector_text(elem, "div:has(~ .missing)"), content="false")
 }
@@ -426,8 +460,8 @@ test "match :has - subsequent sibling combinator" {
 ///|
 test "match :has - descendant via implicit combinator" {
   let leaf = Element::new("span").add_class("target")
-  let nested = { ..Element::new("p"), children: [leaf] }
-  let root = { ..Element::new("div"), children: [nested] }
+  let nested = { ..Element::new("p"), children: [leaf], }
+  let root = { ..Element::new("div"), children: [nested], }
   inspect(matches_selector_text(root, "div:has(.target)"), content="true")
   inspect(matches_selector_text(root, "div:has(.absent)"), content="false")
 }
@@ -595,7 +629,7 @@ test "matches_pseudo_class - NthLastOfType" {
 ///|
 test "matches_has - next-sibling combinator path" {
   let next = Element::new("p").add_class("after")
-  let elem = { ..Element::new("div"), next_sibling: Some(next) }
+  let elem = { ..Element::new("div"), next_sibling: Some(next), }
   inspect(matches_selector_text(elem, "div:has(+ .after)"), content="true")
   inspect(matches_selector_text(elem, "div:has(+ .missing)"), content="false")
 }
@@ -603,8 +637,8 @@ test "matches_has - next-sibling combinator path" {
 ///|
 test "matches_has - subsequent-sibling combinator path with intermediate" {
   let target = Element::new("section").add_class("found")
-  let middle = { ..Element::new("article"), next_sibling: Some(target) }
-  let elem = { ..Element::new("div"), next_sibling: Some(middle) }
+  let middle = { ..Element::new("article"), next_sibling: Some(target), }
+  let elem = { ..Element::new("div"), next_sibling: Some(middle), }
   inspect(matches_selector_text(elem, "div:has(~ .found)"), content="true")
   inspect(matches_selector_text(elem, "div:has(~ .nope)"), content="false")
 }
@@ -635,7 +669,7 @@ test "matches_complex - NextSibling combinator path" {
 test "matches_complex - SubsequentSibling no match" {
   // Element with prev_sibling that doesn't match
   let prev = Element::new("span").add_class("other")
-  let elem = { ..Element::new("p"), prev_sibling: Some(prev) }
+  let elem = { ..Element::new("p"), prev_sibling: Some(prev), }
   inspect(matches_selector_text(elem, ".target ~ p"), content="false")
 }
 
@@ -672,7 +706,7 @@ test "matches_has - explicit Descendant combinator" {
   // Note: selector parser may treat ".x" inside :has() as implicit descendant.
   // This is what we already test, but explicit form covers Some(Descendant).
   let leaf = Element::new("span").add_class("found")
-  let elem = { ..Element::new("div"), children: [leaf] }
+  let elem = { ..Element::new("div"), children: [leaf], }
   inspect(matches_selector_text(elem, "div:has(.found)"), content="true")
 }
 
@@ -680,8 +714,8 @@ test "matches_has - explicit Descendant combinator" {
 test "matches_complex - SubsequentSibling deep chain" {
   // Build a chain: target → middle → elem; all should be siblings
   let target = Element::new("h1").add_class("target")
-  let middle = { ..Element::new("span"), prev_sibling: Some(target) }
-  let elem = { ..Element::new("p"), prev_sibling: Some(middle) }
+  let middle = { ..Element::new("span"), prev_sibling: Some(target), }
+  let elem = { ..Element::new("p"), prev_sibling: Some(middle), }
   inspect(matches_selector_text(elem, ".target ~ p"), content="true")
 }
 
@@ -691,7 +725,7 @@ test "match :has selector list with attribute substring" {
   let child = Element::new("section")
     .set_attribute("class", "interactive-example-shell")
     .set_parent(base)
-  let elem = { ..base, children: [child] }
+  let elem = { ..base, children: [child], }
   inspect(
     matches_selector_text(
       elem, ".code-example:has(.hidden, [class*=interactive-example])",

@@ -15,4 +15,3 @@ pub fn wpt_assert_valid(String, String, Array[String], Bool) -> Unit raise
 // Type aliases
 
 // Traits
-

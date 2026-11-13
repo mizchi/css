@@ -19,7 +19,7 @@ pub(all) struct ShadowContext {
 
 ///|
 pub fn ShadowContext::new(host : Element) -> ShadowContext {
-  { host, host_ancestors: [], assigned_slot: None }
+  { host, host_ancestors: [], assigned_slot: None, }
 }
 
 ///|
@@ -35,7 +35,7 @@ pub fn ShadowContext::set_assigned_slot(
   self : ShadowContext,
   assigned_slot : Element,
 ) -> ShadowContext {
-  { ..self, assigned_slot: Some(assigned_slot) }
+  { ..self, assigned_slot: Some(assigned_slot), }
 }
 
 ///|
@@ -80,11 +80,30 @@ fn matches_simple_with_shadow_context(
 }
 
 ///|
-/// Fast prefix check using char-code comparison. MoonBit's
-/// `String::has_prefix` walks via UTF iterators and measures ~450 ns even for
-/// short prefixes; this hot-path variant runs in ~30 ns by comparing
-/// UTF-16 code units directly.
+/// Keep short comparisons scalar. On linear-memory backends, core's string
+/// comparison uses SIMD for longer prefixes and suffixes.
+#cfg(any(target="native", target="wasm"))
+#borrow(s, prefix)
+#inline
 fn fast_has_prefix(s : String, prefix : String) -> Bool {
+  if prefix.length() >= 16 {
+    return s.has_prefix(prefix)
+  }
+  scalar_has_prefix(s, prefix)
+}
+
+///|
+#cfg(not(any(target="native", target="wasm")))
+#borrow(s, prefix)
+#inline
+fn fast_has_prefix(s : String, prefix : String) -> Bool {
+  scalar_has_prefix(s, prefix)
+}
+
+///|
+#borrow(s, prefix)
+#inline
+fn scalar_has_prefix(s : String, prefix : String) -> Bool {
   let pl = prefix.length()
   if pl > s.length() {
     return false
@@ -98,8 +117,29 @@ fn fast_has_prefix(s : String, prefix : String) -> Bool {
 }
 
 ///|
-/// Fast suffix check mirroring `fast_has_prefix`.
+/// Use the same length threshold as `fast_has_prefix`.
+#cfg(any(target="native", target="wasm"))
+#borrow(s, suffix)
+#inline
 fn fast_has_suffix(s : String, suffix : String) -> Bool {
+  if suffix.length() >= 16 {
+    return s.has_suffix(suffix)
+  }
+  scalar_has_suffix(s, suffix)
+}
+
+///|
+#cfg(not(any(target="native", target="wasm")))
+#borrow(s, suffix)
+#inline
+fn fast_has_suffix(s : String, suffix : String) -> Bool {
+  scalar_has_suffix(s, suffix)
+}
+
+///|
+#borrow(s, suffix)
+#inline
+fn scalar_has_suffix(s : String, suffix : String) -> Bool {
   let sl = s.length()
   let nl = suffix.length()
   if nl > sl {
@@ -127,45 +167,16 @@ fn fast_dash_match(value : String, query : String) -> Bool {
   if value[ql] != '-' {
     return false
   }
-  for i in 0..<ql {
-    if value[i] != query[i] {
-      return false
-    }
-  }
-  true
+  fast_has_prefix(value, query)
 }
 
 ///|
-/// Fast substring check using char-code scan. Comparable to a naive O(n*m)
-/// search but with no per-char allocation.
+/// Core uses SIMD search on linear-memory backends and native string search
+/// on JavaScript. This also avoids the old loop's quadratic worst case.
+#borrow(s, needle)
+#inline
 fn fast_contains(s : String, needle : String) -> Bool {
-  let nl = needle.length()
-  if nl == 0 {
-    return true
-  }
-  let sl = s.length()
-  if nl > sl {
-    return false
-  }
-  let last = sl - nl
-  let first = needle[0]
-  for i in 0..<=last {
-    if s[i] == first {
-      let mut all = true
-      let mut j = 1
-      while j < nl {
-        if s[i + j] != needle[j] {
-          all = false
-          break
-        }
-        j = j + 1
-      }
-      if all {
-        return true
-      }
-    }
-  }
-  false
+  s.contains(needle)
 }
 
 ///|
@@ -230,7 +241,7 @@ fn matches_attribute(element : Element, selector : AttributeSelector) -> Bool {
 /// Split string by whitespace
 fn split_whitespace(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   // Track the pending segment length with a counter instead of materializing
   // `current.to_string()` on every whitespace char (and at the end) just to
   // test emptiness — that allocated a throwaway String per character.
@@ -550,7 +561,7 @@ fn matches_has_with_shadow_context(
 
 ///|
 /// Check if index matches An+B expression
-fn matches_nth(index : Int, expr : NthExpr) -> Bool {
+fn matches_nth(index : Int32, expr : NthExpr) -> Bool {
   if expr.a == 0 {
     // Just check if index == b
     return index == expr.b

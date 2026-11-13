@@ -89,7 +89,7 @@ function genTest(fixture) {
       lines.push(
         `///|`,
         `test ${mbtString(escName)} {`,
-        `  wpt_assert_anb(${mbtString(name)}, ${mbtString(t.input)}, ${mbtString(t.expected)}, ${knownFail})`,
+        `  @wpt.wpt_assert_anb(${mbtString(name)}, ${mbtString(t.input)}, ${mbtString(t.expected)}, ${knownFail})`,
         `}`,
         ``,
       );
@@ -106,7 +106,7 @@ function genTest(fixture) {
       lines.push(
         `///|`,
         `test ${mbtString(escName)} {`,
-        `  wpt_assert_valid(${mbtString(name)}, ${mbtString(t.input)}, ${exprArr}, ${knownFail})`,
+        `  @wpt.wpt_assert_valid(${mbtString(name)}, ${mbtString(t.input)}, ${exprArr}, ${knownFail})`,
         `}`,
         ``,
       );
@@ -114,7 +114,7 @@ function genTest(fixture) {
       lines.push(
         `///|`,
         `test ${mbtString(escName)} {`,
-        `  wpt_assert_invalid(${mbtString(name)}, ${mbtString(t.input)}, ${knownFail})`,
+        `  @wpt.wpt_assert_invalid(${mbtString(name)}, ${mbtString(t.input)}, ${knownFail})`,
         `}`,
         ``,
       );

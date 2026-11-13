@@ -12,7 +12,7 @@ let bench_small_css : String =
 
 ///|
 fn build_bench_medium_css() -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i in 0..<40 {
     buf.write_string(".item-")
     buf.write_string(i.to_string())
@@ -36,76 +36,82 @@ fn build_bench_medium_css() -> String {
 ///|
 test "bench parse_stylesheet small" (it : @bench.T) {
   let css = bench_small_css
-  it.bench(fn() { it.keep(parse_stylesheet(css)) })
+  it.bench(fn() { it.keep(@css.parse_stylesheet(css)) })
 }
 
 ///|
 test "bench parse_stylesheet medium" (it : @bench.T) {
   let css = build_bench_medium_css()
-  it.bench(fn() { it.keep(parse_stylesheet(css)) })
+  it.bench(fn() { it.keep(@css.parse_stylesheet(css)) })
 }
 
 ///|
 test "bench parse_inline_style" (it : @bench.T) {
   let css = "display: flex; padding: 8px 16px; color: #3498db; background-color: rgba(0,0,0,0.5); font-size: 14px;"
-  it.bench(fn() { it.keep(parse_inline_style(css)) })
+  it.bench(fn() { it.keep(@css.parse_inline_style(css)) })
 }
 
 ///|
 test "bench parse_selector_list" (it : @bench.T) {
   let s = "div.card, .row > .col, #main p:hover, ul li:nth-child(2n+1)"
-  it.bench(fn() { it.keep(parse_selector_list(s)) })
+  it.bench(fn() { it.keep(@css.parse_selector_list(s)) })
 }
 
 ///|
 test "bench matches_selector simple" (it : @bench.T) {
-  let element = Element::with_classes("div", ["card", "primary"]).set_id("main")
-  let sel = parse_selector("div.card.primary#main").unwrap()
-  it.bench(fn() { it.keep(matches_selector(element, sel)) })
+  let element = @css.Element::with_classes("div", ["card", "primary"]).set_id(
+    "main",
+  )
+  let sel = @css.parse_selector("div.card.primary#main").unwrap()
+  it.bench(fn() { it.keep(@css.matches_selector(element, sel)) })
 }
 
 ///|
 test "bench cascade_element small stylesheet" (it : @bench.T) {
-  let element = Element::with_classes("div", ["card", "primary"]).set_id("main")
-  let sheet = parse_stylesheet(bench_small_css)
-  it.bench(fn() { it.keep(cascade_element(element, [sheet], [])) })
+  let element = @css.Element::with_classes("div", ["card", "primary"]).set_id(
+    "main",
+  )
+  let sheet = @css.parse_stylesheet(bench_small_css)
+  it.bench(fn() { it.keep(@css.cascade_element(element, [sheet], [])) })
 }
 
 ///|
 test "bench cascade_element medium stylesheet" (it : @bench.T) {
-  let element = Element::with_classes("div", ["item-17", "row"]).set_id(
+  let element = @css.Element::with_classes("div", ["item-17", "row"]).set_id(
     "section-17",
   )
-  let sheet = parse_stylesheet(build_bench_medium_css())
-  it.bench(fn() { it.keep(cascade_element(element, [sheet], [])) })
+  let sheet = @css.parse_stylesheet(build_bench_medium_css())
+  it.bench(fn() { it.keep(@css.cascade_element(element, [sheet], [])) })
 }
 
 ///|
 test "bench compute_style small" (it : @bench.T) {
-  let element = Element::with_classes("div", ["card", "primary"])
-  let sheet = parse_stylesheet(bench_small_css)
-  let cascaded = cascade_element(element, [sheet], [])
-  let ctx = ComputeContext::new()
-  it.bench(fn() { it.keep(compute_style(cascaded, ctx)) })
+  let element = @css.Element::with_classes("div", ["card", "primary"])
+  let sheet = @css.parse_stylesheet(bench_small_css)
+  let cascaded = @css.cascade_element(element, [sheet], [])
+  let ctx = @css.ComputeContext::new()
+  it.bench(fn() { it.keep(@css.compute_style(cascaded, ctx)) })
 }
 
 ///|
 test "bench full pipeline small" (it : @bench.T) {
   let css = bench_small_css
-  let element = Element::with_classes("div", ["card", "primary"]).set_id("main")
-  let ctx = ComputeContext::new()
+  let element = @css.Element::with_classes("div", ["card", "primary"]).set_id(
+    "main",
+  )
+  let ctx = @css.ComputeContext::new()
   it.bench(fn() {
-    let sheet = parse_stylesheet(css)
-    let cascaded = cascade_element(element, [sheet], [])
-    it.keep(compute_style(cascaded, ctx))
+    let sheet = @css.parse_stylesheet(css)
+    let cascaded = @css.cascade_element(element, [sheet], [])
+    it.keep(@css.compute_style(cascaded, ctx))
   })
 }
 
 ///|
 test "bench compute_inline_style" (it : @bench.T) {
   let css = "display: flex; padding: 8px 16px; color: #3498db; background-color: rgba(0,0,0,0.5); font-size: 14px; flex-grow: 1;"
-  let ctx = ComputeContext::new()
-  it.bench(fn() { it.keep(compute_inline_style(css, ctx)) })
+  let ctx = @css.ComputeContext::new()
+  it.bench(fn() { it.keep(@css.compute_inline_style(css, ctx)) })
 }
 
 // ---------------------------------------------------------------------------
@@ -133,17 +139,17 @@ test "bench tokenize inline" (it : @bench.T) {
 
 ///|
 test "bench parse_selector_text simple" (it : @bench.T) {
-  it.bench(fn() { it.keep(parse_selector("div.foo")) })
+  it.bench(fn() { it.keep(@css.parse_selector("div.foo")) })
 }
 
 ///|
 test "bench parse_selector_text compound" (it : @bench.T) {
   it.bench(fn() {
-    it.keep(parse_selector("button.btn.primary.lg#submit[type=submit]"))
+    it.keep(@css.parse_selector("button.btn.primary.lg#submit[type=submit]"))
   })
 }
 
 ///|
 test "bench parse_selector_text descendant chain" (it : @bench.T) {
-  it.bench(fn() { it.keep(parse_selector("nav > ul li a:hover")) })
+  it.bench(fn() { it.keep(@css.parse_selector("nav > ul li a:hover")) })
 }

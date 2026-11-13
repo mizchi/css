@@ -3,7 +3,7 @@
 
 ///|
 test "wpt parse-attribute.html: valid [att]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid [att]",
     "[att]",
     ["[att]"],
@@ -13,7 +13,7 @@ test "wpt parse-attribute.html: valid [att]" {
 
 ///|
 test "wpt parse-attribute.html: valid [att=val]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid [att=val]",
     "[att=val]",
     ["[att=\"val\"]"],
@@ -23,7 +23,7 @@ test "wpt parse-attribute.html: valid [att=val]" {
 
 ///|
 test "wpt parse-attribute.html: valid [att~=val]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid [att~=val]",
     "[att~=val]",
     ["[att~=\"val\"]"],
@@ -33,7 +33,7 @@ test "wpt parse-attribute.html: valid [att~=val]" {
 
 ///|
 test "wpt parse-attribute.html: valid [att|=val]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid [att|=val]",
     "[att|=val]",
     ["[att|=\"val\"]"],
@@ -43,7 +43,7 @@ test "wpt parse-attribute.html: valid [att|=val]" {
 
 ///|
 test "wpt parse-attribute.html: valid h1[title]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid h1[title]",
     "h1[title]",
     ["h1[title]"],
@@ -53,7 +53,7 @@ test "wpt parse-attribute.html: valid h1[title]" {
 
 ///|
 test "wpt parse-attribute.html: valid span[class='example']" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid span[class='example']",
     "span[class='example']",
     ["span[class=\"example\"]"],
@@ -63,7 +63,7 @@ test "wpt parse-attribute.html: valid span[class='example']" {
 
 ///|
 test "wpt parse-attribute.html: valid a[hreflang=fr]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid a[hreflang=fr]",
     "a[hreflang=fr]",
     ["a[hreflang=\"fr\"]"],
@@ -73,7 +73,7 @@ test "wpt parse-attribute.html: valid a[hreflang=fr]" {
 
 ///|
 test "wpt parse-attribute.html: valid a[hreflang|='en']" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid a[hreflang|='en']",
     "a[hreflang|='en']",
     ["a[hreflang|=\"en\"]"],
@@ -83,7 +83,7 @@ test "wpt parse-attribute.html: valid a[hreflang|='en']" {
 
 ///|
 test "wpt parse-attribute.html: valid [att^=val]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid [att^=val]",
     "[att^=val]",
     ["[att^=\"val\"]"],
@@ -93,7 +93,7 @@ test "wpt parse-attribute.html: valid [att^=val]" {
 
 ///|
 test "wpt parse-attribute.html: valid [att$=val]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid [att$=val]",
     "[att$=val]",
     ["[att$=\"val\"]"],
@@ -103,7 +103,7 @@ test "wpt parse-attribute.html: valid [att$=val]" {
 
 ///|
 test "wpt parse-attribute.html: valid [att*=val]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid [att*=val]",
     "[att*=val]",
     ["[att*=\"val\"]"],
@@ -113,7 +113,7 @@ test "wpt parse-attribute.html: valid [att*=val]" {
 
 ///|
 test "wpt parse-attribute.html: valid object[type^=\"image/\"]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid object[type^=\"image/\"]",
     "object[type^=\"image/\"]",
     ["object[type^=\"image/\"]"],
@@ -123,7 +123,7 @@ test "wpt parse-attribute.html: valid object[type^=\"image/\"]" {
 
 ///|
 test "wpt parse-attribute.html: valid a[href$=\".html\"]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid a[href$=\".html\"]",
     "a[href$=\".html\"]",
     ["a[href$=\".html\"]"],
@@ -133,7 +133,7 @@ test "wpt parse-attribute.html: valid a[href$=\".html\"]" {
 
 ///|
 test "wpt parse-attribute.html: valid p[title*=\"hello\"]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid p[title*=\"hello\"]",
     "p[title*=\"hello\"]",
     ["p[title*=\"hello\"]"],
@@ -143,7 +143,7 @@ test "wpt parse-attribute.html: valid p[title*=\"hello\"]" {
 
 ///|
 test "wpt parse-attribute.html: valid [*|att]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid [*|att]",
     "[*|att]",
     ["[*|att]"],
@@ -153,7 +153,7 @@ test "wpt parse-attribute.html: valid [*|att]" {
 
 ///|
 test "wpt parse-attribute.html: valid [|att]" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-attribute.html: valid [|att]",
     "[|att]",
     ["[att]"],

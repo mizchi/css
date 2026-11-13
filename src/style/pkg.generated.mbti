@@ -11,12 +11,19 @@ import {
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum BorderCollapse {
   Separate
   Collapse
-} derive(Eq, @debug.Debug)
+}
+pub fn BorderCollapse::equal(Self, Self) -> Bool
+pub fn BorderCollapse::not_equal(Self, Self) -> Bool
+pub fn BorderCollapse::output(Self, &Logger) -> Unit
+pub fn BorderCollapse::to_repr(Self) -> @debug.Repr
+pub fn BorderCollapse::to_string(Self) -> String
 pub impl Show for BorderCollapse
 
+#derive(Eq, @debug.Debug)
 pub(all) enum BorderStyle {
   None
   Inset
@@ -28,10 +35,16 @@ pub(all) enum BorderStyle {
   Solid
   Double
   Hidden
-} derive(Eq, @debug.Debug)
+}
+pub fn BorderStyle::equal(Self, Self) -> Bool
+pub fn BorderStyle::not_equal(Self, Self) -> Bool
+pub fn BorderStyle::output(Self, &Logger) -> Unit
 pub fn BorderStyle::priority(Self) -> Int32
+pub fn BorderStyle::to_repr(Self) -> @debug.Repr
+pub fn BorderStyle::to_string(Self) -> String
 pub impl Show for BorderStyle
 
+#derive(Eq, @debug.Debug)
 pub struct BoxShadow {
   inset : Bool
   offset_x : Double
@@ -39,28 +52,50 @@ pub struct BoxShadow {
   blur_radius : Double
   spread_radius : Double
   color : @values.Color
-} derive(Eq, @debug.Debug)
+}
+pub fn BoxShadow::equal(Self, Self) -> Bool
 pub fn BoxShadow::new(Bool, Double, Double, Double, Double, @values.Color) -> Self
+pub fn BoxShadow::not_equal(Self, Self) -> Bool
+pub fn BoxShadow::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum BreakBefore {
   Auto
   Column
   Avoid
-} derive(Eq, @debug.Debug)
+}
+pub fn BreakBefore::equal(Self, Self) -> Bool
+pub fn BreakBefore::not_equal(Self, Self) -> Bool
+pub fn BreakBefore::output(Self, &Logger) -> Unit
+pub fn BreakBefore::to_repr(Self) -> @debug.Repr
+pub fn BreakBefore::to_string(Self) -> String
 pub impl Show for BreakBefore
 
+#derive(Eq, @debug.Debug)
 pub(all) enum BreakInside {
   Auto
   Avoid
-} derive(Eq, @debug.Debug)
+}
+pub fn BreakInside::equal(Self, Self) -> Bool
+pub fn BreakInside::not_equal(Self, Self) -> Bool
+pub fn BreakInside::output(Self, &Logger) -> Unit
+pub fn BreakInside::to_repr(Self) -> @debug.Repr
+pub fn BreakInside::to_string(Self) -> String
 pub impl Show for BreakInside
 
+#derive(Eq, @debug.Debug)
 pub(all) enum CaptionSide {
   Top
   Bottom
-} derive(Eq, @debug.Debug)
+}
+pub fn CaptionSide::equal(Self, Self) -> Bool
+pub fn CaptionSide::not_equal(Self, Self) -> Bool
+pub fn CaptionSide::output(Self, &Logger) -> Unit
+pub fn CaptionSide::to_repr(Self) -> @debug.Repr
+pub fn CaptionSide::to_string(Self) -> String
 pub impl Show for CaptionSide
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ClipPath {
   None
   Inset(Double, Double, Double, Double)
@@ -69,41 +104,69 @@ pub(all) enum ClipPath {
   Circle(Double, Double, Double)
   Ellipse(Double, Double, Double, Double)
   Polygon(Array[(Double, Double)])
-} derive(Eq, @debug.Debug)
+}
+pub fn ClipPath::equal(Self, Self) -> Bool
 pub fn ClipPath::none() -> Self
+pub fn ClipPath::not_equal(Self, Self) -> Bool
+pub fn ClipPath::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ColumnFill {
   Balance
   Auto
-} derive(Eq, @debug.Debug)
+}
+pub fn ColumnFill::equal(Self, Self) -> Bool
+pub fn ColumnFill::not_equal(Self, Self) -> Bool
+pub fn ColumnFill::output(Self, &Logger) -> Unit
+pub fn ColumnFill::to_repr(Self) -> @debug.Repr
+pub fn ColumnFill::to_string(Self) -> String
 pub impl Show for ColumnFill
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ColumnSpan {
   None
   All
-} derive(Eq, @debug.Debug)
+}
+pub fn ColumnSpan::equal(Self, Self) -> Bool
+pub fn ColumnSpan::not_equal(Self, Self) -> Bool
+pub fn ColumnSpan::output(Self, &Logger) -> Unit
+pub fn ColumnSpan::to_repr(Self) -> @debug.Repr
+pub fn ColumnSpan::to_string(Self) -> String
 pub impl Show for ColumnSpan
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Contain {
   size : Bool
   inline_size : Bool
   layout : Bool
   paint : Bool
   style : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn Contain::content() -> Self
+pub fn Contain::equal(Self, Self) -> Bool
 pub fn Contain::has_containment(Self) -> Bool
 pub fn Contain::none() -> Self
+pub fn Contain::not_equal(Self, Self) -> Bool
+pub fn Contain::output(Self, &Logger) -> Unit
 pub fn Contain::strict() -> Self
+pub fn Contain::to_repr(Self) -> @debug.Repr
+pub fn Contain::to_string(Self) -> String
 pub impl Show for Contain
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Direction {
   Ltr
   Rtl
-} derive(Eq, @debug.Debug)
+}
+pub fn Direction::equal(Self, Self) -> Bool
 pub fn Direction::is_rtl(Self) -> Bool
+pub fn Direction::not_equal(Self, Self) -> Bool
+pub fn Direction::output(Self, &Logger) -> Unit
+pub fn Direction::to_repr(Self) -> @debug.Repr
+pub fn Direction::to_string(Self) -> String
 pub impl Show for Direction
 
+#derive(Eq, @debug.Debug)
 pub(all) enum MarginTrim {
   None
   BlockStart
@@ -112,50 +175,86 @@ pub(all) enum MarginTrim {
   InlineStart
   InlineEnd
   Inline
-} derive(Eq, @debug.Debug)
+}
+pub fn MarginTrim::equal(Self, Self) -> Bool
+pub fn MarginTrim::not_equal(Self, Self) -> Bool
+pub fn MarginTrim::output(Self, &Logger) -> Unit
+pub fn MarginTrim::to_repr(Self) -> @debug.Repr
+pub fn MarginTrim::to_string(Self) -> String
 pub fn MarginTrim::trim_block_end(Self) -> Bool
 pub fn MarginTrim::trim_block_start(Self) -> Bool
 pub impl Show for MarginTrim
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PointerEvents {
   Auto
   None
-} derive(Eq, @debug.Debug)
+}
+pub fn PointerEvents::equal(Self, Self) -> Bool
+pub fn PointerEvents::not_equal(Self, Self) -> Bool
+pub fn PointerEvents::output(Self, &Logger) -> Unit
+pub fn PointerEvents::to_repr(Self) -> @debug.Repr
+pub fn PointerEvents::to_string(Self) -> String
 pub impl Show for PointerEvents
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ScrollSnapAlign {
   None
   Start
   End
   Center
-} derive(Eq, @debug.Debug)
+}
+pub fn ScrollSnapAlign::equal(Self, Self) -> Bool
+pub fn ScrollSnapAlign::not_equal(Self, Self) -> Bool
+pub fn ScrollSnapAlign::output(Self, &Logger) -> Unit
+pub fn ScrollSnapAlign::to_repr(Self) -> @debug.Repr
+pub fn ScrollSnapAlign::to_string(Self) -> String
 pub impl Show for ScrollSnapAlign
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ScrollSnapAxis {
   None
   X
   Y
   Both
-} derive(Eq, @debug.Debug)
+}
+pub fn ScrollSnapAxis::equal(Self, Self) -> Bool
+pub fn ScrollSnapAxis::not_equal(Self, Self) -> Bool
+pub fn ScrollSnapAxis::output(Self, &Logger) -> Unit
+pub fn ScrollSnapAxis::to_repr(Self) -> @debug.Repr
+pub fn ScrollSnapAxis::to_string(Self) -> String
 pub impl Show for ScrollSnapAxis
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ScrollSnapStrictness {
   None
   Mandatory
   Proximity
-} derive(Eq, @debug.Debug)
+}
+pub fn ScrollSnapStrictness::equal(Self, Self) -> Bool
+pub fn ScrollSnapStrictness::not_equal(Self, Self) -> Bool
+pub fn ScrollSnapStrictness::output(Self, &Logger) -> Unit
+pub fn ScrollSnapStrictness::to_repr(Self) -> @debug.Repr
+pub fn ScrollSnapStrictness::to_string(Self) -> String
 pub impl Show for ScrollSnapStrictness
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ScrollSnapType {
   axis : ScrollSnapAxis
   strictness : ScrollSnapStrictness
-} derive(Eq, @debug.Debug)
+}
+pub fn ScrollSnapType::equal(Self, Self) -> Bool
 pub fn ScrollSnapType::is_mandatory(Self) -> Bool
 pub fn ScrollSnapType::none() -> Self
+pub fn ScrollSnapType::not_equal(Self, Self) -> Bool
+pub fn ScrollSnapType::output(Self, &Logger) -> Unit
 pub fn ScrollSnapType::snaps_x(Self) -> Bool
 pub fn ScrollSnapType::snaps_y(Self) -> Bool
+pub fn ScrollSnapType::to_repr(Self) -> @debug.Repr
+pub fn ScrollSnapType::to_string(Self) -> String
 pub impl Show for ScrollSnapType
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Style {
   mut display : @values.Display
   mut position : @values.Position
@@ -273,21 +372,31 @@ pub(all) struct Style {
   mut text_decoration_overline : Bool
   mut letter_spacing : Double
   mut word_spacing : Double
-} derive(Eq, @debug.Debug)
+}
 pub fn Style::contained_intrinsic_height_fallback(Self) -> Double
 pub fn Style::contained_intrinsic_width_fallback(Self) -> Double
 pub fn Style::default() -> Self
+pub fn Style::equal(Self, Self) -> Bool
 pub fn Style::has_multicol(Self) -> Bool
 pub fn Style::layout_eq(Self, Self) -> Bool
+pub fn Style::not_equal(Self, Self) -> Bool
 pub fn Style::suppresses_intrinsic_height(Self) -> Bool
 pub fn Style::suppresses_intrinsic_width(Self) -> Bool
+pub fn Style::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TableLayout {
   Auto
   Fixed
-} derive(Eq, @debug.Debug)
+}
+pub fn TableLayout::equal(Self, Self) -> Bool
+pub fn TableLayout::not_equal(Self, Self) -> Bool
+pub fn TableLayout::output(Self, &Logger) -> Unit
+pub fn TableLayout::to_repr(Self) -> @debug.Repr
+pub fn TableLayout::to_string(Self) -> String
 pub impl Show for TableLayout
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TextAlign {
   Start
   End
@@ -295,15 +404,27 @@ pub(all) enum TextAlign {
   Right
   Center
   Justify
-} derive(Eq, @debug.Debug)
+}
+pub fn TextAlign::equal(Self, Self) -> Bool
+pub fn TextAlign::not_equal(Self, Self) -> Bool
+pub fn TextAlign::output(Self, &Logger) -> Unit
+pub fn TextAlign::to_repr(Self) -> @debug.Repr
+pub fn TextAlign::to_string(Self) -> String
 pub impl Show for TextAlign
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TextOverflow {
   Clip
   Ellipsis
-} derive(Eq, @debug.Debug)
+}
+pub fn TextOverflow::equal(Self, Self) -> Bool
+pub fn TextOverflow::not_equal(Self, Self) -> Bool
+pub fn TextOverflow::output(Self, &Logger) -> Unit
+pub fn TextOverflow::to_repr(Self) -> @debug.Repr
+pub fn TextOverflow::to_string(Self) -> String
 pub impl Show for TextOverflow
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Transform {
   translate_x : TranslateValue
   translate_y : TranslateValue
@@ -320,24 +441,36 @@ pub(all) struct Transform {
   matrix_e : Double
   matrix_f : Double
   matrix3d : Array[Double]
-} derive(Eq, @debug.Debug)
+}
 pub fn Transform::compute_translate_x(Self, Double) -> Double
 pub fn Transform::compute_translate_y(Self, Double) -> Double
+pub fn Transform::equal(Self, Self) -> Bool
 pub fn Transform::has_affine_matrix(Self) -> Bool
 pub fn Transform::has_matrix3d(Self) -> Bool
 pub fn Transform::has_scale(Self) -> Bool
 pub fn Transform::has_skew(Self) -> Bool
 pub fn Transform::is_none(Self) -> Bool
 pub fn Transform::none() -> Self
+pub fn Transform::not_equal(Self, Self) -> Bool
+pub fn Transform::output(Self, &Logger) -> Unit
 pub fn Transform::quarter_turns(Self) -> Int32
+pub fn Transform::to_repr(Self) -> @debug.Repr
+pub fn Transform::to_string(Self) -> String
 pub impl Show for Transform
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TranslateValue {
   Length(Double)
   Percent(Double)
-} derive(Eq, @debug.Debug)
+}
+pub fn TranslateValue::equal(Self, Self) -> Bool
+pub fn TranslateValue::not_equal(Self, Self) -> Bool
+pub fn TranslateValue::output(Self, &Logger) -> Unit
+pub fn TranslateValue::to_repr(Self) -> @debug.Repr
+pub fn TranslateValue::to_string(Self) -> String
 pub impl Show for TranslateValue
 
+#derive(Eq, @debug.Debug)
 pub(all) enum VerticalAlign {
   Baseline
   Top
@@ -347,38 +480,67 @@ pub(all) enum VerticalAlign {
   TextBottom
   Sub
   Super
-} derive(Eq, @debug.Debug)
+}
+pub fn VerticalAlign::equal(Self, Self) -> Bool
+pub fn VerticalAlign::not_equal(Self, Self) -> Bool
+pub fn VerticalAlign::output(Self, &Logger) -> Unit
+pub fn VerticalAlign::to_repr(Self) -> @debug.Repr
+pub fn VerticalAlign::to_string(Self) -> String
 pub impl Show for VerticalAlign
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Visibility {
   Visible
   Hidden
   Collapse
-} derive(Eq, @debug.Debug)
+}
+pub fn Visibility::equal(Self, Self) -> Bool
+pub fn Visibility::not_equal(Self, Self) -> Bool
+pub fn Visibility::output(Self, &Logger) -> Unit
+pub fn Visibility::to_repr(Self) -> @debug.Repr
+pub fn Visibility::to_string(Self) -> String
 pub impl Show for Visibility
 
+#derive(Eq, @debug.Debug)
 pub(all) enum WhiteSpace {
   Normal
   Nowrap
   Pre
   PreWrap
   PreLine
-} derive(Eq, @debug.Debug)
+}
+pub fn WhiteSpace::equal(Self, Self) -> Bool
+pub fn WhiteSpace::not_equal(Self, Self) -> Bool
+pub fn WhiteSpace::output(Self, &Logger) -> Unit
+pub fn WhiteSpace::to_repr(Self) -> @debug.Repr
+pub fn WhiteSpace::to_string(Self) -> String
 pub impl Show for WhiteSpace
 
+#derive(Eq, @debug.Debug)
 pub(all) enum WritingMode {
   HorizontalTb
   VerticalRl
   VerticalLr
-} derive(Eq, @debug.Debug)
+}
+pub fn WritingMode::equal(Self, Self) -> Bool
 pub fn WritingMode::is_block_rtl(Self) -> Bool
 pub fn WritingMode::is_vertical(Self) -> Bool
+pub fn WritingMode::not_equal(Self, Self) -> Bool
+pub fn WritingMode::output(Self, &Logger) -> Unit
+pub fn WritingMode::to_repr(Self) -> @debug.Repr
+pub fn WritingMode::to_string(Self) -> String
 pub impl Show for WritingMode
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ZIndex {
   Auto
   Value(Int32)
-} derive(Eq, @debug.Debug)
+}
+pub fn ZIndex::equal(Self, Self) -> Bool
+pub fn ZIndex::not_equal(Self, Self) -> Bool
+pub fn ZIndex::output(Self, &Logger) -> Unit
+pub fn ZIndex::to_repr(Self) -> @debug.Repr
+pub fn ZIndex::to_string(Self) -> String
 pub impl Show for ZIndex
 
 // Type aliases

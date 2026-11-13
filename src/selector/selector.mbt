@@ -58,6 +58,9 @@ pub impl Show for AttributeMatch with fn output(self, logger) {
 }
 
 ///|
+pub extend AttributeMatch with Show::{to_string, output}
+
+///|
 /// Attribute selector
 pub struct AttributeSelector {
   name : String
@@ -92,10 +95,13 @@ pub impl Show for AttributeSelector with fn output(self, logger) {
 }
 
 ///|
+pub extend AttributeSelector with Show::{to_string, output}
+
+///|
 /// Nth expression: An+B
 pub struct NthExpr {
-  a : Int // coefficient
-  b : Int // offset
+  a : Int32 // coefficient
+  b : Int32 // offset
 }
 
 ///|
@@ -131,6 +137,9 @@ pub impl Show for NthExpr with fn output(self, logger) {
 }
 
 ///|
+pub extend NthExpr with Show::{to_string, output}
+
+///|
 /// Pseudo-class selector
 pub enum PseudoClass {
   // Tree-structural
@@ -164,7 +173,7 @@ pub enum PseudoClass {
   /// `:heading` — any HTML heading element (h1-h6).
   /// `:heading(N, ...)` — headings of the specified levels.
   /// Spec: CSS Selectors 4 (draft).
-  Heading(Array[Int])
+  Heading(Array[Int32])
   /// `:dir(ltr|rtl)` — directionality. Spec: CSS Selectors 4.
   Dir(String)
   /// `:lang(<language-code>+)` — language-tag match. Spec: Selectors 4.
@@ -285,6 +294,9 @@ pub impl Show for PseudoClass with fn output(self, logger) {
 }
 
 ///|
+pub extend PseudoClass with Show::{to_string, output}
+
+///|
 /// Pseudo-element selector
 pub enum PseudoElement {
   Before
@@ -341,6 +353,9 @@ pub impl Show for PseudoElement with fn output(self, logger) {
 }
 
 ///|
+pub extend PseudoElement with Show::{to_string, output}
+
+///|
 /// Simple selector - a single component
 pub enum SimpleSelector {
   /// Type selector: div, span
@@ -379,6 +394,9 @@ pub impl Show for SimpleSelector with fn output(self, logger) {
 }
 
 ///|
+pub extend SimpleSelector with Show::{to_string, output}
+
+///|
 /// Compound selector - a sequence of simple selectors without combinator
 /// e.g., div.foo#bar:hover
 pub struct CompoundSelector {
@@ -411,6 +429,9 @@ pub impl Show for CompoundSelector with fn output(self, logger) {
 }
 
 ///|
+pub extend CompoundSelector with Show::{to_string, output}
+
+///|
 /// Combinator between compound selectors
 pub enum Combinator {
   /// Descendant combinator (whitespace)
@@ -432,6 +453,9 @@ pub impl Show for Combinator with fn output(self, logger) {
     SubsequentSibling => logger.write_string(" ~ ")
   }
 }
+
+///|
+pub extend Combinator with Show::{to_string, output}
 
 ///|
 /// A step in a complex selector: combinator + compound selector
@@ -457,7 +481,7 @@ pub impl Show for ComplexSelector with fn output(self, logger) {
   let parts : Array[String] = []
   for i = self.tail.length() - 1; i >= 0; i = i - 1 {
     let step = self.tail[i]
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     step.selector.output(buf)
     parts.push(buf.to_string())
     match step.combinator {
@@ -472,6 +496,9 @@ pub impl Show for ComplexSelector with fn output(self, logger) {
   }
   self.head.output(logger)
 }
+
+///|
+pub extend ComplexSelector with Show::{to_string, output}
 
 ///|
 /// Relative selector for :has()
@@ -497,15 +524,25 @@ pub impl Show for SelectorList with fn output(self, logger) {
 }
 
 ///|
+pub extend SelectorList with Show::{to_string, output}
+
+///|
 /// Specificity as (a, b, c) tuple
 /// a: ID selectors count
 /// b: class selectors, attribute selectors, pseudo-classes count
 /// c: type selectors, pseudo-elements count
+#derive(Eq, Compare)
 pub(all) struct Specificity {
-  a : Int
-  b : Int
-  c : Int
-} derive(Eq, Compare)
+  a : Int32
+  b : Int32
+  c : Int32
+}
+
+///|
+pub extend Specificity with Eq::{not_equal, equal}
+
+///|
+pub extend Specificity with Compare::{op_lt, op_le, op_ge, compare, op_gt}
 
 ///|
 pub impl Show for Specificity with fn output(self, logger) {
@@ -519,19 +556,25 @@ pub impl Show for Specificity with fn output(self, logger) {
 }
 
 ///|
+pub extend Specificity with Show::{to_string, output}
+
+///|
 pub fn Specificity::zero() -> Specificity {
-  { a: 0, b: 0, c: 0 }
+  { a: 0, b: 0, c: 0, }
 }
 
 ///|
 pub fn Specificity::add(self : Specificity, other : Specificity) -> Specificity {
-  { a: self.a + other.a, b: self.b + other.b, c: self.c + other.c }
+  { a: self.a + other.a, b: self.b + other.b, c: self.c + other.c, }
 }
 
 ///|
 /// Compare specificities for cascade ordering
 /// Returns positive if self > other, negative if self < other, 0 if equal
-pub fn Specificity::compare_to(self : Specificity, other : Specificity) -> Int {
+pub fn Specificity::compare_to(
+  self : Specificity,
+  other : Specificity,
+) -> Int32 {
   if self.a != other.a {
     return self.a - other.a
   }
@@ -564,17 +607,17 @@ pub fn CompoundSelector::from_class(class_name : String) -> CompoundSelector {
 ///|
 /// Create a simple compound selector with just an ID selector
 pub fn CompoundSelector::from_id(id : String) -> CompoundSelector {
-  { type_selector: None, subclasses: [Id(id)], any_ns_universal: false }
+  { type_selector: None, subclasses: [Id(id)], any_ns_universal: false, }
 }
 
 ///|
 /// Create a simple compound selector with universal selector
 pub fn CompoundSelector::universal() -> CompoundSelector {
-  { type_selector: Some(Universal), subclasses: [], any_ns_universal: false }
+  { type_selector: Some(Universal), subclasses: [], any_ns_universal: false, }
 }
 
 ///|
 /// Create a complex selector from a single compound
 pub fn ComplexSelector::simple(compound : CompoundSelector) -> ComplexSelector {
-  { head: compound, tail: [] }
+  { head: compound, tail: [], }
 }

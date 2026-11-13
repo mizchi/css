@@ -11,6 +11,7 @@
 /// A computed value that can take part in animation interpolation. Anything not
 /// representable here (or interpolated between mismatched kinds) animates
 /// discretely (a 50% jump).
+#derive(Eq)
 pub(all) enum AnimatableValue {
   Number(Double)
   Length(Double) // px
@@ -19,10 +20,13 @@ pub(all) enum AnimatableValue {
   Transform(@style.Transform)
   /// Non-interpolable / unsupported computed value; animates discretely.
   Discrete(String)
-} derive(Eq)
+}
 
 ///|
-pub impl Show for AnimatableValue with output(self, logger) {
+pub extend AnimatableValue with Eq::{not_equal, equal}
+
+///|
+pub impl Show for AnimatableValue with fn output(self, logger) {
   match self {
     Number(v) => logger.write_string("Number(\{v})")
     Length(v) => logger.write_string("Length(\{v})")
@@ -42,13 +46,16 @@ pub impl Show for AnimatableValue with output(self, logger) {
 }
 
 ///|
+pub extend AnimatableValue with Show::{to_string, output}
+
+///|
 fn lerp(a : Double, b : Double, t : Double) -> Double {
   a + (b - a) * t
 }
 
 ///|
 /// Round to the nearest integer and clamp to the 0-255 color-channel range.
-fn lerp_channel(a : Int, b : Int, t : Double) -> Int {
+fn lerp_channel(a : Int32, b : Int32, t : Double) -> Int32 {
   let v = lerp(a.to_double(), b.to_double(), t)
   let r = (v + 0.5).to_int()
   if r < 0 {
@@ -222,7 +229,7 @@ fn decompose_2d(m : @style.Transform) -> @style.Transform {
 
 ///|
 /// sRGB 0-255 channel to linear-light [0, 1].
-fn srgb_to_linear(c : Int) -> Double {
+fn srgb_to_linear(c : Int32) -> Double {
   let x = c.to_double() / 255.0
   if x <= 0.04045 {
     x / 12.92
@@ -233,7 +240,7 @@ fn srgb_to_linear(c : Int) -> Double {
 
 ///|
 /// Linear-light [0, 1] to sRGB 0-255 channel (rounded, clamped).
-fn linear_to_srgb(x : Double) -> Int {
+fn linear_to_srgb(x : Double) -> Int32 {
   let c = if x <= 0.0031308 {
     12.92 * x
   } else {
@@ -286,7 +293,7 @@ fn srgb_to_oklab(c : @values.Color) -> (Double, Double, Double) {
 }
 
 ///|
-fn oklab_to_srgb(l : Double, a : Double, b : Double) -> (Int, Int, Int) {
+fn oklab_to_srgb(l : Double, a : Double, b : Double) -> (Int32, Int32, Int32) {
   let l_ = l + 0.3963377774 * a + 0.2158037573 * b
   let m_ = l - 0.1055613458 * a - 0.0638541728 * b
   let s_ = l - 0.0894841775 * a - 1.2914855480 * b
@@ -303,13 +310,20 @@ fn oklab_to_srgb(l : Double, a : Double, b : Double) -> (Int, Int, Int) {
 
 ///|
 /// Color space used for `<color>` interpolation.
+#derive(Debug, Eq)
 pub(all) enum ColorSpace {
   Srgb
   Oklab
   Oklch
   Lab
   Lch
-} derive(Debug, Eq)
+}
+
+///|
+pub extend ColorSpace with @debug.Debug::{to_repr}
+
+///|
+pub extend ColorSpace with Eq::{not_equal, equal}
 
 ///|
 /// Interpolate a hue (radians) along the shortest arc.
@@ -343,7 +357,11 @@ pub fn interpolate_color_in(
     Lab => {
       let (l1, a1, b1) = srgb_to_lab(a)
       let (l2, a2, b2) = srgb_to_lab(b)
-      let (r, g, bl) = lab_to_srgb(lerp(l1, l2, t), lerp(a1, a2, t), lerp(b1, b2, t))
+      let (r, g, bl) = lab_to_srgb(
+        lerp(l1, l2, t),
+        lerp(a1, a2, t),
+        lerp(b1, b2, t),
+      )
       @values.Color::rgba(r, g, bl, alpha)
     }
     Oklch => {
@@ -411,7 +429,7 @@ fn lab_f(t : Double) -> Double {
 
 ///|
 /// CIE Lab (D65) to sRGB 0-255.
-fn lab_to_srgb(l : Double, a : Double, b : Double) -> (Int, Int, Int) {
+fn lab_to_srgb(l : Double, a : Double, b : Double) -> (Int32, Int32, Int32) {
   let fy = (l + 16.0) / 116.0
   let fx = fy + a / 500.0
   let fz = fy - b / 200.0
@@ -445,7 +463,7 @@ pub fn AnimatableKeyframe::new(
   offset : Double,
   value : AnimatableValue,
 ) -> AnimatableKeyframe {
-  { offset, value, easing: @values.Easing::Linear }
+  { offset, value, easing: @values.Easing::Linear, }
 }
 
 ///|
@@ -454,7 +472,7 @@ pub fn AnimatableKeyframe::with_easing(
   value : AnimatableValue,
   easing : @values.Easing,
 ) -> AnimatableKeyframe {
-  { offset, value, easing }
+  { offset, value, easing, }
 }
 
 ///|
@@ -475,7 +493,7 @@ pub fn AnimatableKeyframeEffect::new(
   if keyframes.length() == 0 {
     None
   } else {
-    Some({ keyframes, timing })
+    Some({ keyframes, timing, })
   }
 }
 

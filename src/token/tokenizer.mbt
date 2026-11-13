@@ -6,8 +6,8 @@
 /// Tokenizer state
 priv struct Tokenizer {
   input : String
-  mut pos : Int
-  len : Int
+  mut pos : Int32
+  len : Int32
   /// Set by `consume_number` to record whether the just-consumed number
   /// token had an explicit leading `+`/`-` sign. Read by
   /// `tokenize_with_signs` after each `next_token` call. CSS Syntax 3
@@ -20,7 +20,7 @@ priv struct Tokenizer {
 
 ///|
 fn Tokenizer::new(input : String) -> Tokenizer {
-  { input, pos: 0, len: input.length(), last_num_signed: false }
+  { input, pos: 0, len: input.length(), last_num_signed: false, }
 }
 
 ///|
@@ -41,7 +41,7 @@ fn Tokenizer::peek_char(self : Tokenizer) -> Char {
 }
 
 ///|
-fn Tokenizer::peek_char_at(self : Tokenizer, offset : Int) -> Char {
+fn Tokenizer::peek_char_at(self : Tokenizer, offset : Int32) -> Char {
   let idx = self.pos + offset
   if idx >= self.len || idx < 0 {
     nul_char
@@ -117,7 +117,7 @@ fn is_hex_digit(c : Char) -> Bool {
 }
 
 ///|
-fn hex_digit_to_int(c : Char) -> Int {
+fn hex_digit_to_int(c : Char) -> Int32 {
   let code = c.to_int()
   if code >= '0'.to_int() && code <= '9'.to_int() {
     code - '0'.to_int()
@@ -131,14 +131,7 @@ fn hex_digit_to_int(c : Char) -> Int {
 ///|
 /// Consume whitespace
 fn Tokenizer::consume_whitespace(self : Tokenizer) -> Unit {
-  while self.pos < self.len {
-    let c = self.input[self.pos].to_int().unsafe_to_char()
-    if is_whitespace(c) {
-      self.pos += 1
-    } else {
-      break
-    }
-  }
+  self.pos = scan_whitespace(self.input, self.pos, self.len)
 }
 
 ///|
@@ -146,15 +139,12 @@ fn Tokenizer::consume_whitespace(self : Tokenizer) -> Unit {
 fn Tokenizer::consume_name(self : Tokenizer) -> String {
   let start = self.pos
   // Fast path: scan a run of name chars and return it as one substring.
-  while self.pos < self.len &&
-        is_name_char(self.input[self.pos].to_int().unsafe_to_char()) {
-    self.pos += 1
-  }
+  self.pos = scan_name(self.input, self.pos, self.len)
   // Escapes are rare; only fall back to the char-by-char builder if we stopped
   // on a backslash, seeding it with the run already scanned.
   if self.pos < self.len &&
     self.input[self.pos].to_int().unsafe_to_char() == '\\' {
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     buf.write_string(self.input.unsafe_substring(start~, end=self.pos))
     while self.pos < self.len {
       let c = self.input[self.pos].to_int().unsafe_to_char()
@@ -241,7 +231,9 @@ fn Tokenizer::consume_number(self : Tokenizer) -> (Double, NumType) {
     }
   } else {
     let num_str = self.input.unsafe_substring(start~, end=self.pos)
-    @string.parse_double(num_str) catch { _ => 0.0 }
+    @string.parse_double(num_str) catch {
+      _ => 0.0
+    }
   }
   let num_type : NumType = if is_integer { Integer } else { NumType::Number }
   (value, num_type)
@@ -254,23 +246,23 @@ fn Tokenizer::consume_string(self : Tokenizer, quote : Char) -> Token {
   // raw newlines (which need special handling) are rare, so only fall back to
   // the char-by-char builder when one is encountered.
   let start = self.pos
-  while self.pos < self.len {
-    let c = self.input[self.pos].to_int().unsafe_to_char()
-    if c == quote {
-      let s = self.input.unsafe_substring(start~, end=self.pos)
-      self.pos += 1
-      return Token::String(s)
-    } else if c == '\\' || c == '\n' || c == '\r' {
-      break
-    }
+  self.pos = find_string_special(
+    self.input,
+    self.pos,
+    self.len,
+    quote.to_int().to_uint16(),
+  )
+  if !self.is_eof() && self.peek_char() == quote {
+    let s = self.input.unsafe_substring(start~, end=self.pos)
     self.pos += 1
+    return Token::String(s)
   }
   if self.is_eof() {
     return Token::String(self.input.unsafe_substring(start~, end=self.pos))
   }
   // Slow path: seed the builder with the run scanned so far, then handle
   // escapes / bad-string termination char-by-char.
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write_string(self.input.unsafe_substring(start~, end=self.pos))
   while !self.is_eof() {
     match self.consume() {
@@ -469,14 +461,8 @@ fn Tokenizer::next_token(self : Tokenizer) -> Token {
     '/' =>
       if self.peek_char_at(1) == '*' {
         self.pos += 2
-        // Skip until */
-        while !self.is_eof() {
-          if self.peek_char() == '*' && self.peek_char_at(1) == '/' {
-            self.pos += 2
-            break
-          }
-          self.pos += 1
-        }
+        let end = find_comment_end(self.input, self.pos, self.len)
+        self.pos = if end < self.len { end + 2 } else { end }
         self.next_token()
       } else {
         self.pos += 1

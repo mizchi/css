@@ -3,7 +3,7 @@
 
 ///|
 test "wpt parse-class.html: valid *.pastoral" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-class.html: valid *.pastoral",
     "*.pastoral",
     ["*.pastoral", ".pastoral"],
@@ -13,7 +13,7 @@ test "wpt parse-class.html: valid *.pastoral" {
 
 ///|
 test "wpt parse-class.html: valid .pastoral" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-class.html: valid .pastoral",
     ".pastoral",
     ["*.pastoral", ".pastoral"],
@@ -23,7 +23,7 @@ test "wpt parse-class.html: valid .pastoral" {
 
 ///|
 test "wpt parse-class.html: valid h1.pastoral" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-class.html: valid h1.pastoral",
     "h1.pastoral",
     ["h1.pastoral"],
@@ -33,7 +33,7 @@ test "wpt parse-class.html: valid h1.pastoral" {
 
 ///|
 test "wpt parse-class.html: valid p.pastoral.marine" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-class.html: valid p.pastoral.marine",
     "p.pastoral.marine",
     ["p.pastoral.marine"],

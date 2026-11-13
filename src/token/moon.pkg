@@ -2,5 +2,10 @@ import {
   "moonbitlang/core/string",
 }
 
+#cfg(any(target="native", target="wasm"))
+import {
+  "moonbitlang/core/v128",
+}
+
 import {
 } for "wbtest"

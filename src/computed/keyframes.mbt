@@ -188,7 +188,7 @@ pub fn build_keyframe_track(
       Some(s) => {
         let v = keyframe_value_for_property(property, s, ctx)
         for off in block.offsets {
-          raw.push({ offset: off, value: v, easing })
+          raw.push({ offset: off, value: v, easing, })
         }
       }
       None => ()
@@ -207,10 +207,10 @@ pub fn build_keyframe_track(
     }
   }
   if !has_start {
-    raw.push({ offset: 0.0, value: base, easing: @types.Easing::Linear })
+    raw.push({ offset: 0.0, value: base, easing: @types.Easing::Linear, })
   }
   if !has_end {
-    raw.push({ offset: 1.0, value: base, easing: @types.Easing::Linear })
+    raw.push({ offset: 1.0, value: base, easing: @types.Easing::Linear, })
   }
   // Stable insertion sort by offset (keeps source order for equal offsets).
   for i = 1; i < raw.length(); i = i + 1 {
@@ -248,7 +248,7 @@ pub fn build_keyframe_track(
 ///|
 /// Return `arr[index]` cycling by length (CSS animation longhand lists repeat
 /// to match the animation count), or `default` when the list is empty.
-fn[T] list_cycle(arr : Array[T], index : Int, default : T) -> T {
+fn[T] list_cycle(arr : Array[T], index : Int32, default : T) -> T {
   if arr.length() == 0 {
     default
   } else {
@@ -287,11 +287,12 @@ fn direction_to_anim(
 /// iteration count. Longhand lists shorter than the animation list are cycled.
 pub fn effect_timing_from_style(
   style : @style.Style,
-  index : Int,
+  index : Int32,
 ) -> @animation.EffectTiming {
   let duration = list_cycle(style.animation_duration, index, 0.0) * 1000.0
   let delay = list_cycle(style.animation_delay, index, 0.0) * 1000.0
-  let iterations = match list_cycle(
+  let iterations = match
+    list_cycle(
       style.animation_iteration_count,
       index,
       @types.AnimationIterationCount::Count(1.0),

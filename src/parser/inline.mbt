@@ -62,10 +62,9 @@ fn parse_calc_linear(
       break
     }
     match remaining[0] {
-      @token.Token::RightParen => {
+      @token.Token::RightParen =>
         // End of calc expression: return the linear form (pct as a ratio).
         return Some(((result_px, result_pct / 100.0), remaining[1:]))
-      }
       @token.Token::Dimension(value, raw_unit) => {
         let unit = raw_unit.to_lower()
         if unit == "%" {
@@ -314,7 +313,9 @@ fn parse_math_function(
   let dim = if all_px {
     @types.Dimension::Length(@types.apply_math_op(op, lps.map(fn(lp) { lp.0 })))
   } else if all_pct {
-    @types.Dimension::Percent(@types.apply_math_op(op, lps.map(fn(lp) { lp.1 })))
+    @types.Dimension::Percent(
+      @types.apply_math_op(op, lps.map(fn(lp) { lp.1 })),
+    )
   } else {
     @types.Dimension::MathFn(op, lps)
   }
@@ -431,7 +432,7 @@ fn parse_dimension(tokens : ArrayView[@token.Token]) -> @types.Dimension? {
 /// Parse multiple dimension values (for shorthand properties like margin, padding)
 fn parse_multi_dimensions(
   tokens : ArrayView[@token.Token],
-  max_count : Int,
+  max_count : Int32,
 ) -> Array[@types.Dimension] {
   let result : Array[@types.Dimension] = []
   let mut rest = tokens
@@ -738,8 +739,8 @@ fn collect_alignment_parts(tokens : ArrayView[@token.Token]) -> Array[String] {
 ///|
 fn parse_alignment_segment_with_overflow(
   parts : Array[String],
-  start : Int,
-) -> ((@types.Alignment, Bool), Int)? {
+  start : Int32,
+) -> ((@types.Alignment, Bool), Int32)? {
   if start >= parts.length() {
     return None
   }
@@ -788,8 +789,8 @@ fn parse_alignment_segment_with_overflow(
 ///|
 fn parse_alignment_segment(
   parts : Array[String],
-  start : Int,
-) -> (@types.Alignment, Int)? {
+  start : Int32,
+) -> (@types.Alignment, Int32)? {
   match parse_alignment_segment_with_overflow(parts, start) {
     Some(((alignment, _), next_index)) => Some((alignment, next_index))
     None => None
@@ -877,7 +878,7 @@ fn parse_number(tokens : ArrayView[@token.Token]) -> Double? {
 
 ///|
 /// Parse an integer value
-fn parse_integer(tokens : ArrayView[@token.Token]) -> Int? {
+fn parse_integer(tokens : ArrayView[@token.Token]) -> Int32? {
   if tokens.length() == 0 {
     return None
   }
@@ -1764,7 +1765,9 @@ fn parse_grid_template_shorthand(
     return None
   }
   let (rows, row_names) = parse_grid_template_track_list(tokens[:slash_index])
-  let (cols, col_names) = parse_grid_template_track_list(tokens[slash_index + 1:])
+  let (cols, col_names) = parse_grid_template_track_list(
+    tokens[slash_index + 1:],
+  )
   Some((rows, row_names, cols, col_names))
 }
 
@@ -1863,7 +1866,8 @@ fn parse_grid_autoflow_side(
   let mut consuming = true
   while consuming && remaining.length() > 0 {
     match remaining[0] {
-      @token.Token::Ident("auto-flow") => remaining = skip_whitespace(remaining[1:])
+      @token.Token::Ident("auto-flow") =>
+        remaining = skip_whitespace(remaining[1:])
       @token.Token::Ident("dense") => {
         dense = true
         remaining = skip_whitespace(remaining[1:])
@@ -1997,7 +2001,12 @@ fn classify_grid_line(tokens : ArrayView[@token.Token]) -> @types.GridPlacement 
         } else {
           @types.GridPlacement::Named(nm)
         }
-      None => if line != 0 { @types.GridPlacement::Line(line) } else { @types.GridPlacement::Auto }
+      None =>
+        if line != 0 {
+          @types.GridPlacement::Line(line)
+        } else {
+          @types.GridPlacement::Auto
+        }
     }
   }
 }
@@ -2127,9 +2136,7 @@ fn grid_area_single_name(tokens : ArrayView[@token.Token]) -> String? {
 
 ///|
 /// Parse a single `<grid-line>` from a raw string.
-pub fn parse_grid_placement_from_string(
-  value : String,
-) -> @types.GridPlacement {
+pub fn parse_grid_placement_from_string(value : String) -> @types.GridPlacement {
   classify_grid_line(@token.tokenize(value)[:])
 }
 
@@ -2966,7 +2973,7 @@ fn parse_clip_path_path_data(path_data : String) -> @style.ClipPath {
 ///|
 fn tokenize_clip_path_path_data(path_data : String) -> Array[String] {
   let tokens : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for c in path_data.iter() {
     if is_clip_path_path_command_char(c) {
       flush_clip_path_path_token(tokens, current)
@@ -3162,7 +3169,7 @@ fn clip_path_angle_between(
 }
 
 ///|
-fn clip_path_max_int(a : Int, b : Int) -> Int {
+fn clip_path_max_int(a : Int32, b : Int32) -> Int32 {
   if a > b {
     a
   } else {
@@ -3220,7 +3227,7 @@ fn is_clip_path_path_command_char(c : Char) -> Bool {
 
 ///|
 fn clip_path_path_char_to_string(c : Char) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   sb.write_char(c)
   sb.to_string()
 }
@@ -3299,15 +3306,15 @@ fn parse_contain(tokens : ArrayView[@token.Token]) -> @style.Contain {
         } else if s == "content" {
           return @style.Contain::content()
         } else if s == "size" {
-          result = { ..result, size: true }
+          result = { ..result, size: true, }
         } else if s == "inline-size" {
-          result = { ..result, inline_size: true }
+          result = { ..result, inline_size: true, }
         } else if s == "layout" {
-          result = { ..result, layout: true }
+          result = { ..result, layout: true, }
         } else if s == "paint" {
-          result = { ..result, paint: true }
+          result = { ..result, paint: true, }
         } else if s == "style" {
-          result = { ..result, style: true }
+          result = { ..result, style: true, }
         }
         remaining = skip_whitespace(remaining[1:])
       }
@@ -3331,7 +3338,7 @@ fn merge_contain(
     style: base.style || extra.style,
   }
   if merged.size {
-    { ..merged, inline_size: false }
+    { ..merged, inline_size: false, }
   } else {
     merged
   }
@@ -3350,9 +3357,9 @@ fn parse_container_type(tokens : ArrayView[@token.Token]) -> @style.Contain? {
       if s == "normal" {
         Some(@style.Contain::none())
       } else if s == "size" {
-        Some({ ..@style.Contain::none(), size: true, style: true })
+        Some({ ..@style.Contain::none(), size: true, style: true, })
       } else if s == "inline-size" {
-        Some({ ..@style.Contain::none(), inline_size: true, style: true })
+        Some({ ..@style.Contain::none(), inline_size: true, style: true, })
       } else {
         None
       }
@@ -3446,7 +3453,7 @@ fn parse_transform(tokens : ArrayView[@token.Token]) -> @style.Transform {
   // Reconstruct the value as string for parsing with the full transform parser
   // Since transform values like "translate(10px, 20px)" are complex,
   // we build the string and reuse the computed transform parser
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < remaining.length(); i = i + 1 {
     match remaining[i] {
       @token.Token::Ident(s) => sb.write_string(s)
@@ -3769,7 +3776,7 @@ pub fn parse_translate_property_from_string(value : String) -> @style.Transform 
   } else {
     @style.TranslateValue::Length(0.0)
   }
-  { ..@style.Transform::none(), translate_x: x, translate_y: y }
+  { ..@style.Transform::none(), translate_x: x, translate_y: y, }
 }
 
 ///|
@@ -3782,7 +3789,7 @@ pub fn parse_scale_property_from_string(value : String) -> @style.Transform {
   }
   let sx = parse_scale_value(parts[0])
   let sy = if parts.length() > 1 { parse_scale_value(parts[1]) } else { sx }
-  { ..@style.Transform::none(), scale_x: sx, scale_y: sy }
+  { ..@style.Transform::none(), scale_x: sx, scale_y: sy, }
 }
 
 ///|
@@ -3795,14 +3802,14 @@ pub fn parse_rotate_property_from_string(value : String) -> @style.Transform {
   }
   // The angle is the last part (an axis keyword / vector may precede it).
   let angle = parse_rotate_degrees(parts[parts.length() - 1])
-  { ..@style.Transform::none(), rotate_degrees: angle }
+  { ..@style.Transform::none(), rotate_degrees: angle, }
 }
 
 ///|
 /// Split string by comma (for transform arguments) - local version
 fn split_transform_args(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   for c in s {
     if c == ',' {
       result.push(current.to_string())
@@ -3821,7 +3828,7 @@ fn split_transform_args(s : String) -> Array[String] {
 ///|
 /// Convert char array slice to string
 fn transform_chars_to_string(chars : ArrayView[Char]) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for c in chars {
     sb.write_char(c)
   }
@@ -3879,91 +3886,91 @@ fn apply_property(
   // display
   if property == "display" {
     match parse_display(value_tokens) {
-      Some(v) => return { ..style, display: v }
+      Some(v) => return { ..style, display: v, }
       None => ()
     }
   }
   // position
   if property == "position" {
     match parse_position(value_tokens) {
-      Some(v) => return { ..style, position: v }
+      Some(v) => return { ..style, position: v, }
       None => ()
     }
   }
   // float
   if property == "float" {
     match parse_float(value_tokens, style.direction) {
-      Some(v) => return { ..style, float: v }
+      Some(v) => return { ..style, float: v, }
       None => ()
     }
   }
   // clear
   if property == "clear" {
     match parse_clear(value_tokens, style.direction) {
-      Some(v) => return { ..style, clear: v }
+      Some(v) => return { ..style, clear: v, }
       None => ()
     }
   }
   // box-sizing
   if property == "box-sizing" {
     match parse_box_sizing(value_tokens) {
-      Some(v) => return { ..style, box_sizing: v }
+      Some(v) => return { ..style, box_sizing: v, }
       None => ()
     }
   }
   // width
   if property == "width" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, width: v }
+      Some(v) => return { ..style, width: v, }
       None => ()
     }
   }
   // height
   if property == "height" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, height: v }
+      Some(v) => return { ..style, height: v, }
       None => ()
     }
   }
   // min-width
   if property == "min-width" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, min_width: v }
+      Some(v) => return { ..style, min_width: v, }
       None => ()
     }
   }
   // min-height
   if property == "min-height" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, min_height: v }
+      Some(v) => return { ..style, min_height: v, }
       None => ()
     }
   }
   // max-width
   if property == "max-width" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, max_width: v }
+      Some(v) => return { ..style, max_width: v, }
       None => ()
     }
   }
   // max-height
   if property == "max-height" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, max_height: v }
+      Some(v) => return { ..style, max_height: v, }
       None => ()
     }
   }
   // flex-direction
   if property == "flex-direction" {
     match parse_flex_direction(value_tokens) {
-      Some(v) => return { ..style, flex_direction: v }
+      Some(v) => return { ..style, flex_direction: v, }
       None => ()
     }
   }
   // flex-wrap
   if property == "flex-wrap" {
     match parse_flex_wrap(value_tokens) {
-      Some(v) => return { ..style, flex_wrap: v }
+      Some(v) => return { ..style, flex_wrap: v, }
       None => ()
     }
   }
@@ -3982,7 +3989,7 @@ fn apply_property(
   // align-items
   if property == "align-items" {
     match parse_alignment(value_tokens) {
-      Some(v) => return { ..style, align_items: v }
+      Some(v) => return { ..style, align_items: v, }
       None => ()
     }
   }
@@ -3990,7 +3997,7 @@ fn apply_property(
   if property == "align-content" {
     match parse_alignment_with_overflow(value_tokens) {
       Some((v, is_unsafe)) =>
-        return { ..style, align_content: v, align_content_unsafe: is_unsafe }
+        return { ..style, align_content: v, align_content_unsafe: is_unsafe, }
       None => ()
     }
   }
@@ -4016,42 +4023,42 @@ fn apply_property(
   // align-self
   if property == "align-self" {
     match parse_self_alignment(value_tokens) {
-      Some(v) => return { ..style, align_self: v }
+      Some(v) => return { ..style, align_self: v, }
       None => ()
     }
   }
   // justify-self
   if property == "justify-self" {
     match parse_self_alignment(value_tokens) {
-      Some(v) => return { ..style, justify_self: v }
+      Some(v) => return { ..style, justify_self: v, }
       None => ()
     }
   }
   // justify-items
   if property == "justify-items" {
     match parse_alignment(value_tokens) {
-      Some(v) => return { ..style, justify_items: v }
+      Some(v) => return { ..style, justify_items: v, }
       None => ()
     }
   }
   // flex-grow (must be non-negative)
   if property == "flex-grow" {
     match parse_number(value_tokens) {
-      Some(v) if v >= 0.0 => return { ..style, flex_grow: v }
+      Some(v) if v >= 0.0 => return { ..style, flex_grow: v, }
       _ => ()
     }
   }
   // flex-shrink (must be non-negative)
   if property == "flex-shrink" {
     match parse_number(value_tokens) {
-      Some(v) if v >= 0.0 => return { ..style, flex_shrink: v }
+      Some(v) if v >= 0.0 => return { ..style, flex_shrink: v, }
       _ => ()
     }
   }
   // flex-basis
   if property == "flex-basis" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, flex_basis: v }
+      Some(v) => return { ..style, flex_basis: v, }
       None => ()
     }
   }
@@ -4072,14 +4079,14 @@ fn apply_property(
   if property == "flex-flow" {
     match parse_flex_flow_shorthand(value_tokens) {
       Some((direction, wrap)) =>
-        return { ..style, flex_direction: direction, flex_wrap: wrap }
+        return { ..style, flex_direction: direction, flex_wrap: wrap, }
       None => ()
     }
   }
   // order
   if property == "order" {
     match parse_integer(value_tokens) {
-      Some(v) => return { ..style, order: v }
+      Some(v) => return { ..style, order: v, }
       None => ()
     }
   }
@@ -4090,20 +4097,23 @@ fn apply_property(
       1 => {
         // All sides
         let v = dims[0]
-        return { ..style, margin: { top: v, right: v, bottom: v, left: v } }
+        return { ..style, margin: { top: v, right: v, bottom: v, left: v, }, }
       }
       2 => {
         // top/bottom, left/right
         let tb = dims[0]
         let lr = dims[1]
-        return { ..style, margin: { top: tb, right: lr, bottom: tb, left: lr } }
+        return {
+          ..style,
+          margin: { top: tb, right: lr, bottom: tb, left: lr, },
+        }
       }
       3 => {
         // top, left/right, bottom
         let t = dims[0]
         let lr = dims[1]
         let b = dims[2]
-        return { ..style, margin: { top: t, right: lr, bottom: b, left: lr } }
+        return { ..style, margin: { top: t, right: lr, bottom: b, left: lr, }, }
       }
       4 =>
         // top, right, bottom, left
@@ -4122,28 +4132,28 @@ fn apply_property(
   // margin-left
   if property == "margin-left" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, margin: { ..style.margin, left: v } }
+      Some(v) => return { ..style, margin: { ..style.margin, left: v, }, }
       None => ()
     }
   }
   // margin-right
   if property == "margin-right" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, margin: { ..style.margin, right: v } }
+      Some(v) => return { ..style, margin: { ..style.margin, right: v, }, }
       None => ()
     }
   }
   // margin-top
   if property == "margin-top" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, margin: { ..style.margin, top: v } }
+      Some(v) => return { ..style, margin: { ..style.margin, top: v, }, }
       None => ()
     }
   }
   // margin-bottom
   if property == "margin-bottom" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, margin: { ..style.margin, bottom: v } }
+      Some(v) => return { ..style, margin: { ..style.margin, bottom: v, }, }
       None => ()
     }
   }
@@ -4153,21 +4163,24 @@ fn apply_property(
     match dims.length() {
       1 => {
         let v = dims[0]
-        return { ..style, padding: { top: v, right: v, bottom: v, left: v } }
+        return { ..style, padding: { top: v, right: v, bottom: v, left: v, }, }
       }
       2 => {
         let tb = dims[0]
         let lr = dims[1]
         return {
           ..style,
-          padding: { top: tb, right: lr, bottom: tb, left: lr },
+          padding: { top: tb, right: lr, bottom: tb, left: lr, },
         }
       }
       3 => {
         let t = dims[0]
         let lr = dims[1]
         let b = dims[2]
-        return { ..style, padding: { top: t, right: lr, bottom: b, left: lr } }
+        return {
+          ..style,
+          padding: { top: t, right: lr, bottom: b, left: lr, },
+        }
       }
       4 =>
         return {
@@ -4185,28 +4198,28 @@ fn apply_property(
   // padding-left
   if property == "padding-left" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, padding: { ..style.padding, left: v } }
+      Some(v) => return { ..style, padding: { ..style.padding, left: v, }, }
       None => ()
     }
   }
   // padding-right
   if property == "padding-right" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, padding: { ..style.padding, right: v } }
+      Some(v) => return { ..style, padding: { ..style.padding, right: v, }, }
       None => ()
     }
   }
   // padding-top
   if property == "padding-top" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, padding: { ..style.padding, top: v } }
+      Some(v) => return { ..style, padding: { ..style.padding, top: v, }, }
       None => ()
     }
   }
   // padding-bottom
   if property == "padding-bottom" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, padding: { ..style.padding, bottom: v } }
+      Some(v) => return { ..style, padding: { ..style.padding, bottom: v, }, }
       None => ()
     }
   }
@@ -4214,7 +4227,7 @@ fn apply_property(
   if property == "padding-block" {
     match parse_dimension(value_tokens) {
       Some(v) =>
-        return { ..style, padding: { ..style.padding, top: v, bottom: v } }
+        return { ..style, padding: { ..style.padding, top: v, bottom: v, }, }
       None => ()
     }
   }
@@ -4222,93 +4235,93 @@ fn apply_property(
   if property == "padding-inline" {
     match parse_dimension(value_tokens) {
       Some(v) =>
-        return { ..style, padding: { ..style.padding, left: v, right: v } }
+        return { ..style, padding: { ..style.padding, left: v, right: v, }, }
       None => ()
     }
   }
   // gap
   if property == "gap" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, row_gap: v, column_gap: v }
+      Some(v) => return { ..style, row_gap: v, column_gap: v, }
       None => ()
     }
   }
   // row-gap
   if property == "row-gap" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, row_gap: v }
+      Some(v) => return { ..style, row_gap: v, }
       None => ()
     }
   }
   // column-gap
   if property == "column-gap" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, column_gap: v }
+      Some(v) => return { ..style, column_gap: v, }
       None => ()
     }
   }
   // overflow
   if property == "overflow" {
     match parse_overflow(value_tokens) {
-      Some(v) => return { ..style, overflow_x: v, overflow_y: v }
+      Some(v) => return { ..style, overflow_x: v, overflow_y: v, }
       None => ()
     }
   }
   // overflow-x
   if property == "overflow-x" {
     match parse_overflow(value_tokens) {
-      Some(v) => return { ..style, overflow_x: v }
+      Some(v) => return { ..style, overflow_x: v, }
       None => ()
     }
   }
   // overflow-y
   if property == "overflow-y" {
     match parse_overflow(value_tokens) {
-      Some(v) => return { ..style, overflow_y: v }
+      Some(v) => return { ..style, overflow_y: v, }
       None => ()
     }
   }
   // clip (legacy, for accessibility)
   if property == "clip" {
-    return { ..style, clip: parse_clip(value_tokens) }
+    return { ..style, clip: parse_clip(value_tokens), }
   }
   // clip-path (paint/hit-test subset)
   if property == "clip-path" {
-    return { ..style, clip_path: parse_clip_path(value_tokens) }
+    return { ..style, clip_path: parse_clip_path(value_tokens), }
   }
   // border (single value)
   if property == "border-width" {
     match parse_dimension(value_tokens) {
       Some(v) =>
-        return { ..style, border: { left: v, right: v, top: v, bottom: v } }
+        return { ..style, border: { left: v, right: v, top: v, bottom: v, }, }
       None => ()
     }
   }
   // border-left-width
   if property == "border-left-width" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, border: { ..style.border, left: v } }
+      Some(v) => return { ..style, border: { ..style.border, left: v, }, }
       None => ()
     }
   }
   // border-right-width
   if property == "border-right-width" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, border: { ..style.border, right: v } }
+      Some(v) => return { ..style, border: { ..style.border, right: v, }, }
       None => ()
     }
   }
   // border-top-width
   if property == "border-top-width" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, border: { ..style.border, top: v } }
+      Some(v) => return { ..style, border: { ..style.border, top: v, }, }
       None => ()
     }
   }
   // border-bottom-width
   if property == "border-bottom-width" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, border: { ..style.border, bottom: v } }
+      Some(v) => return { ..style, border: { ..style.border, bottom: v, }, }
       None => ()
     }
   }
@@ -4318,7 +4331,7 @@ fn apply_property(
     // Parse first token as dimension (width)
     match parse_dimension(value_tokens) {
       Some(v) =>
-        return { ..style, border: { ..style.border, top: v, bottom: v } }
+        return { ..style, border: { ..style.border, top: v, bottom: v, }, }
       None => ()
     }
   }
@@ -4326,7 +4339,7 @@ fn apply_property(
   if property == "border-block-width" {
     match parse_dimension(value_tokens) {
       Some(v) =>
-        return { ..style, border: { ..style.border, top: v, bottom: v } }
+        return { ..style, border: { ..style.border, top: v, bottom: v, }, }
       None => ()
     }
   }
@@ -4334,7 +4347,7 @@ fn apply_property(
   if property == "border-inline" {
     match parse_dimension(value_tokens) {
       Some(v) =>
-        return { ..style, border: { ..style.border, left: v, right: v } }
+        return { ..style, border: { ..style.border, left: v, right: v, }, }
       None => ()
     }
   }
@@ -4342,7 +4355,7 @@ fn apply_property(
   if property == "border-inline-width" {
     match parse_dimension(value_tokens) {
       Some(v) =>
-        return { ..style, border: { ..style.border, left: v, right: v } }
+        return { ..style, border: { ..style.border, left: v, right: v, }, }
       None => ()
     }
   }
@@ -4352,18 +4365,21 @@ fn apply_property(
     match dims.length() {
       1 => {
         let v = dims[0]
-        return { ..style, inset: { top: v, right: v, bottom: v, left: v } }
+        return { ..style, inset: { top: v, right: v, bottom: v, left: v, }, }
       }
       2 => {
         let tb = dims[0]
         let lr = dims[1]
-        return { ..style, inset: { top: tb, right: lr, bottom: tb, left: lr } }
+        return {
+          ..style,
+          inset: { top: tb, right: lr, bottom: tb, left: lr, },
+        }
       }
       3 => {
         let t = dims[0]
         let lr = dims[1]
         let b = dims[2]
-        return { ..style, inset: { top: t, right: lr, bottom: b, left: lr } }
+        return { ..style, inset: { top: t, right: lr, bottom: b, left: lr, }, }
       }
       4 =>
         return {
@@ -4381,42 +4397,42 @@ fn apply_property(
   // top
   if property == "top" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, inset: { ..style.inset, top: v } }
+      Some(v) => return { ..style, inset: { ..style.inset, top: v, }, }
       None => ()
     }
   }
   // right
   if property == "right" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, inset: { ..style.inset, right: v } }
+      Some(v) => return { ..style, inset: { ..style.inset, right: v, }, }
       None => ()
     }
   }
   // bottom
   if property == "bottom" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, inset: { ..style.inset, bottom: v } }
+      Some(v) => return { ..style, inset: { ..style.inset, bottom: v, }, }
       None => ()
     }
   }
   // left
   if property == "left" {
     match parse_dimension(value_tokens) {
-      Some(v) => return { ..style, inset: { ..style.inset, left: v } }
+      Some(v) => return { ..style, inset: { ..style.inset, left: v, }, }
       None => ()
     }
   }
   // aspect-ratio
   if property == "aspect-ratio" {
     match parse_aspect_ratio(value_tokens) {
-      Some(v) => return { ..style, aspect_ratio: Some(v) }
+      Some(v) => return { ..style, aspect_ratio: Some(v), }
       None => ()
     }
   }
   // grid-auto-flow
   if property == "grid-auto-flow" {
     match parse_grid_auto_flow(value_tokens) {
-      Some(v) => return { ..style, grid_auto_flow: v }
+      Some(v) => return { ..style, grid_auto_flow: v, }
       None => ()
     }
   }
@@ -4488,47 +4504,53 @@ fn apply_property(
   if property == "grid-column-start" {
     return {
       ..style,
-      grid_column: { ..style.grid_column, start: classify_grid_line(value_tokens) },
+      grid_column: {
+        ..style.grid_column,
+        start: classify_grid_line(value_tokens),
+      },
     }
   }
   if property == "grid-column-end" {
     return {
       ..style,
-      grid_column: { ..style.grid_column, end: classify_grid_line(value_tokens) },
+      grid_column: {
+        ..style.grid_column,
+        end: classify_grid_line(value_tokens),
+      },
     }
   }
   if property == "grid-row-start" {
     return {
       ..style,
-      grid_row: { ..style.grid_row, start: classify_grid_line(value_tokens) },
+      grid_row: { ..style.grid_row, start: classify_grid_line(value_tokens), },
     }
   }
   if property == "grid-row-end" {
     return {
       ..style,
-      grid_row: { ..style.grid_row, end: classify_grid_line(value_tokens) },
+      grid_row: { ..style.grid_row, end: classify_grid_line(value_tokens), },
     }
   }
   // grid-column / grid-row shorthand
   if property == "grid-column" {
     let (start, end) = parse_grid_line_shorthand_tokens(value_tokens)
-    return { ..style, grid_column: { start, end } }
+    return { ..style, grid_column: { start, end, }, }
   }
   if property == "grid-row" {
     let (start, end) = parse_grid_line_shorthand_tokens(value_tokens)
-    return { ..style, grid_row: { start, end } }
+    return { ..style, grid_row: { start, end, }, }
   }
   // grid-area: either a single named area, or up to four grid lines.
   if property == "grid-area" {
     match grid_area_single_name(value_tokens) {
       // A single <custom-ident> names a grid area rather than placing lines.
-      Some(name) => return { ..style, grid_area: Some(name) }
+      Some(name) => return { ..style, grid_area: Some(name), }
       None => {
         let (rs, cs, re, ce) = parse_grid_area_shorthand_tokens(value_tokens)
         return {
           ..style,
-          grid_row: { start: rs, end: re },
-          grid_column: { start: cs, end: ce },
+          grid_row: { start: rs, end: re, },
+          grid_column: { start: cs, end: ce, },
         }
       }
     }
@@ -4568,10 +4590,10 @@ fn apply_property(
   }
   // Animation longhands
   if property == "animation-name" {
-    return { ..style, animation_name: parse_ident_list(value_tokens) }
+    return { ..style, animation_name: parse_ident_list(value_tokens), }
   }
   if property == "animation-duration" {
-    return { ..style, animation_duration: parse_time_list(value_tokens) }
+    return { ..style, animation_duration: parse_time_list(value_tokens), }
   }
   if property == "animation-timing-function" {
     return {
@@ -4580,7 +4602,7 @@ fn apply_property(
     }
   }
   if property == "animation-delay" {
-    return { ..style, animation_delay: parse_time_list(value_tokens) }
+    return { ..style, animation_delay: parse_time_list(value_tokens), }
   }
   if property == "animation-iteration-count" {
     return {
@@ -4589,10 +4611,10 @@ fn apply_property(
     }
   }
   if property == "animation-direction" {
-    return { ..style, animation_direction: parse_direction_list(value_tokens) }
+    return { ..style, animation_direction: parse_direction_list(value_tokens), }
   }
   if property == "animation-fill-mode" {
-    return { ..style, animation_fill_mode: parse_fill_mode_list(value_tokens) }
+    return { ..style, animation_fill_mode: parse_fill_mode_list(value_tokens), }
   }
   if property == "animation-play-state" {
     return {
@@ -4617,10 +4639,10 @@ fn apply_property(
   }
   // Transition longhands
   if property == "transition-property" {
-    return { ..style, transition_property: parse_ident_list(value_tokens) }
+    return { ..style, transition_property: parse_ident_list(value_tokens), }
   }
   if property == "transition-duration" {
-    return { ..style, transition_duration: parse_time_list(value_tokens) }
+    return { ..style, transition_duration: parse_time_list(value_tokens), }
   }
   if property == "transition-timing-function" {
     return {
@@ -4629,7 +4651,7 @@ fn apply_property(
     }
   }
   if property == "transition-delay" {
-    return { ..style, transition_delay: parse_time_list(value_tokens) }
+    return { ..style, transition_delay: parse_time_list(value_tokens), }
   }
   // transition shorthand
   if property == "transition" {
@@ -4652,7 +4674,7 @@ fn apply_property(
     match parse_container_type(value_tokens) {
       Some(implied) =>
         if implied.has_containment() {
-          return { ..style, contain: merge_contain(style.contain, implied) }
+          return { ..style, contain: merge_contain(style.contain, implied), }
         } else {
           return style
         }

@@ -7,21 +7,25 @@
 
 ///|
 /// RGBA color with 8-bit channels and alpha
+#derive(Debug)
 pub(all) struct Color {
-  r : Int // 0-255
-  g : Int // 0-255
-  b : Int // 0-255
+  r : Int32 // 0-255
+  g : Int32 // 0-255
+  b : Int32 // 0-255
   a : Double // 0.0-1.0
-} derive(Debug)
-
-///|
-pub fn Color::rgb(r : Int, g : Int, b : Int) -> Color {
-  { r, g, b, a: 1.0 }
 }
 
 ///|
-pub fn Color::rgba(r : Int, g : Int, b : Int, a : Double) -> Color {
-  { r, g, b, a }
+pub extend Color with @debug.Debug::{to_repr}
+
+///|
+pub fn Color::rgb(r : Int32, g : Int32, b : Int32) -> Color {
+  { r, g, b, a: 1.0, }
+}
+
+///|
+pub fn Color::rgba(r : Int32, g : Int32, b : Int32, a : Double) -> Color {
+  { r, g, b, a, }
 }
 
 ///|
@@ -30,13 +34,13 @@ pub fn Color::rgba(r : Int, g : Int, b : Int, a : Double) -> Color {
 /// avoids re-allocating these immutable values on every access (hot path in
 /// `Style::default` / `StyleBuilder`, where each default style references
 /// `transparent` five times).
-let color_transparent : Color = { r: 0, g: 0, b: 0, a: 0.0 }
+let color_transparent : Color = { r: 0, g: 0, b: 0, a: 0.0, }
 
 ///|
-let color_black : Color = { r: 0, g: 0, b: 0, a: 1.0 }
+let color_black : Color = { r: 0, g: 0, b: 0, a: 1.0, }
 
 ///|
-let color_white : Color = { r: 255, g: 255, b: 255, a: 1.0 }
+let color_white : Color = { r: 255, g: 255, b: 255, a: 1.0, }
 
 ///|
 /// Transparent color (alpha = 0)
@@ -69,7 +73,7 @@ pub fn Color::is_opaque(self : Color) -> Bool {
 ///|
 /// Convert to CSS hex string (#rrggbb or #rrggbbaa)
 pub fn Color::to_hex(self : Color) -> String {
-  fn hex_char(n : Int) -> Char {
+  fn hex_char(n : Int32) -> Char {
     if n < 10 {
       ('0'.to_int() + n).unsafe_to_char()
     } else {
@@ -77,10 +81,10 @@ pub fn Color::to_hex(self : Color) -> String {
     }
   }
 
-  fn hex2(n : Int) -> String {
+  fn hex2(n : Int32) -> String {
     let hi = n / 16 % 16
     let lo = n % 16
-    let sb = StringBuilder::new()
+    let sb = StringBuilder()
     sb.write_char(hex_char(hi))
     sb.write_char(hex_char(lo))
     sb.to_string()
@@ -106,12 +110,15 @@ pub fn Color::to_rgba_string(self : Color) -> String {
 }
 
 ///|
-pub impl Show for Color with output(self, logger) {
+pub impl Show for Color with fn output(self, logger) {
   logger.write_string(self.to_rgba_string())
 }
 
 ///|
-pub impl Eq for Color with equal(self, other) {
+pub extend Color with Show::{to_string, output}
+
+///|
+pub impl Eq for Color with fn equal(self, other) {
   self.r == other.r &&
   self.g == other.g &&
   self.b == other.b &&
@@ -123,28 +130,52 @@ pub impl Eq for Color with equal(self, other) {
 // =============================================================================
 
 ///|
+pub extend Color with Eq::{not_equal, equal}
+
+///|
 /// A color stop in a gradient
+#derive(Debug, Eq)
 pub(all) struct GradientStop {
   color : Color
   position : Double // 0.0-1.0
-} derive(Debug, Eq)
+}
+
+///|
+pub extend GradientStop with @debug.Debug::{to_repr}
+
+///|
+pub extend GradientStop with Eq::{not_equal, equal}
 
 ///|
 /// Linear gradient with angle and color stops
+#derive(Debug, Eq)
 pub(all) struct LinearGradient {
   angle_deg : Double // Angle in degrees (0 = to top, 90 = to right, 180 = to bottom)
   stops : Array[GradientStop]
-} derive(Debug, Eq)
+}
+
+///|
+pub extend LinearGradient with @debug.Debug::{to_repr}
+
+///|
+pub extend LinearGradient with Eq::{not_equal, equal}
 
 ///|
 /// Background image (currently only linear-gradient)
+#derive(Debug, Eq)
 pub(all) enum BackgroundImage {
   None
   Gradient(LinearGradient)
-} derive(Debug, Eq)
+}
 
 ///|
-pub impl Show for GradientStop with output(self, logger) {
+pub extend BackgroundImage with @debug.Debug::{to_repr}
+
+///|
+pub extend BackgroundImage with Eq::{not_equal, equal}
+
+///|
+pub impl Show for GradientStop with fn output(self, logger) {
   logger.write_string("{color: ")
   logger.write_string(self.color.to_string())
   logger.write_string(", position: ")
@@ -153,13 +184,19 @@ pub impl Show for GradientStop with output(self, logger) {
 }
 
 ///|
-pub impl Show for LinearGradient with output(self, logger) {
+pub extend GradientStop with Show::{to_string, output}
+
+///|
+pub impl Show for LinearGradient with fn output(self, logger) {
   logger.write_string("{angle_deg: ")
   logger.write_string(self.angle_deg.to_string())
   logger.write_string(", stops: ")
   write_gradient_stops(self.stops, logger)
   logger.write_string("}")
 }
+
+///|
+pub extend LinearGradient with Show::{to_string, output}
 
 ///|
 fn write_gradient_stops(stops : Array[GradientStop], logger : &Logger) -> Unit {
@@ -174,7 +211,7 @@ fn write_gradient_stops(stops : Array[GradientStop], logger : &Logger) -> Unit {
 }
 
 ///|
-pub impl Show for BackgroundImage with output(self, logger) {
+pub impl Show for BackgroundImage with fn output(self, logger) {
   match self {
     None => logger.write_string("None")
     Gradient(gradient) => {
@@ -184,3 +221,6 @@ pub impl Show for BackgroundImage with output(self, logger) {
     }
   }
 }
+
+///|
+pub extend BackgroundImage with Show::{to_string, output}

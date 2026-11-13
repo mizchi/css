@@ -12,7 +12,7 @@ pub struct CascadedValues {
 
 ///|
 pub fn CascadedValues::new() -> CascadedValues {
-  { values: {} }
+  { values: {}, }
 }
 
 ///|
@@ -92,14 +92,14 @@ fn accumulate_cascaded_declaration(
 fn accumulate_inline_declaration(
   result : CascadedValues,
   decl : Declaration,
-  source_order_offset : Int,
+  source_order_offset : Int32,
 ) -> Unit {
   accumulate_cascaded_declaration(result, {
     property: decl.property,
     value: decl.value,
     origin: Author,
     importance: decl.importance,
-    specificity: { a: 1000, b: 0, c: 0 },
+    specificity: { a: 1000, b: 0, c: 0, },
     // Inline styles are authored after every stylesheet, so their source order
     // must sort above all stylesheet declarations. Otherwise an inline longhand
     // (e.g. border-top-width) would be applied before a stylesheet shorthand
@@ -118,7 +118,7 @@ pub(all) struct RuleMatch {
   /// Declarations from the rule
   declarations : Array[Declaration]
   /// Source order of the rule
-  source_order : Int
+  source_order : Int32
 }
 
 ///|
@@ -131,7 +131,7 @@ pub struct CSSRule {
   /// Declarations in this rule
   declarations : Array[Declaration]
   /// Source order
-  source_order : Int
+  source_order : Int32
   /// Media query (if this rule is inside @media)
   media_query : @media.MediaQueryList?
 }
@@ -172,7 +172,7 @@ pub struct Stylesheet {
 
 ///|
 pub fn Stylesheet::new(origin : Origin) -> Stylesheet {
-  { rules: [], keyframes: [], origin, cached_index: None }
+  { rules: [], keyframes: [], origin, cached_index: None, }
 }
 
 ///|
@@ -342,10 +342,10 @@ fn cascade_rule_into(
   element : @selector.Element,
   origin : Origin,
   media_env : @media.MediaEnvironment?,
-  source_order_offset : Int,
-  prev_max : Int,
+  source_order_offset : Int32,
+  prev_max : Int32,
   matches : (@selector.Element, @selector.ComplexSelector) -> Bool,
-) -> Int {
+) -> Int32 {
   let media_matches = match (rule.media_query, media_env) {
     (Some(mq), Some(env)) => mq.evaluate(env)
     (Some(_), None) => true
@@ -387,9 +387,9 @@ fn cascade_stylesheet_into(
   stylesheet : Stylesheet,
   element : @selector.Element,
   media_env : @media.MediaEnvironment?,
-  source_order_offset : Int,
+  source_order_offset : Int32,
   matches : (@selector.Element, @selector.ComplexSelector) -> Bool,
-) -> Int {
+) -> Int32 {
   let mut max_so = source_order_offset - 1
   let idx = stylesheet.get_or_build_index()
   for rule_idx in idx.get_candidates(element) {
@@ -413,8 +413,8 @@ fn cascade_stylesheet_matches_into(
   stylesheet : Stylesheet,
   element : @selector.Element,
   media_env : @media.MediaEnvironment?,
-  source_order_offset : Int,
-) -> Int {
+  source_order_offset : Int32,
+) -> Int32 {
   cascade_stylesheet_into(
     result, stylesheet, element, media_env, source_order_offset, @selector.matches_complex,
   )

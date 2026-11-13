@@ -1,6 +1,6 @@
 name = "mizchi/css"
 
-version = "0.7.4"
+version = "0.8.0"
 
 readme = "README.md"
 
@@ -14,6 +14,4 @@ description = "Standalone CSS parser, selector, cascade and computed-style engin
 
 preferred_target = "js"
 
-options(
-  source: "src",
-)
+source = "src"

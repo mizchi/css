@@ -13,7 +13,7 @@ fn assert_option_close(actual : Double?, expected : Double) -> Unit raise {
 
 ///|
 fn sample_value(
-  effect : NumericKeyframeEffect,
+  effect : @animation.NumericKeyframeEffect,
   local_time : Double,
 ) -> Double raise {
   match effect.sample(local_time) {
@@ -24,10 +24,10 @@ fn sample_value(
 
 ///|
 fn numeric_effect(
-  keyframes : Array[NumericKeyframe],
-  timing : EffectTiming,
-) -> NumericKeyframeEffect raise {
-  match NumericKeyframeEffect::new(keyframes, timing) {
+  keyframes : Array[@animation.NumericKeyframe],
+  timing : @animation.EffectTiming,
+) -> @animation.NumericKeyframeEffect raise {
+  match @animation.NumericKeyframeEffect::new(keyframes, timing) {
     Some(effect) => effect
     None => fail("expected keyframe effect")
   }
@@ -35,7 +35,7 @@ fn numeric_effect(
 
 ///|
 test "EffectTiming::at phases and fill modes" {
-  let timing = { ..EffectTiming::new(1000.0), delay: 100.0 }
+  let timing = { ..@animation.EffectTiming::new(1000.0), delay: 100.0, }
   let before = timing.at(50.0)
   inspect(before.phase, content="Before")
   debug_inspect(before.progress, content="None")
@@ -48,10 +48,10 @@ test "EffectTiming::at phases and fill modes" {
   inspect(after.phase, content="After")
   debug_inspect(after.progress, content="None")
 
-  let forwards = { ..timing, fill: FillMode::Forwards }.at(1200.0)
+  let forwards = { ..timing, fill: @animation.FillMode::Forwards, }.at(1200.0)
   assert_option_close(forwards.progress, 1.0)
   assert_option_close(forwards.transformed_progress, 1.0)
-  let backwards = { ..timing, fill: FillMode::Backwards }.at(50.0)
+  let backwards = { ..timing, fill: @animation.FillMode::Backwards, }.at(50.0)
   assert_option_close(backwards.progress, 0.0)
   assert_option_close(backwards.transformed_progress, 0.0)
 }
@@ -59,9 +59,9 @@ test "EffectTiming::at phases and fill modes" {
 ///|
 test "EffectTiming::at direction iterations and easing" {
   let alternate = {
-    ..EffectTiming::new(1000.0),
+    ..@animation.EffectTiming::new(1000.0),
     iterations: 2.0,
-    direction: PlaybackDirection::Alternate,
+    direction: @animation.PlaybackDirection::Alternate,
   }
   let first = alternate.at(250.0)
   debug_inspect(first.current_iteration, content="Some(0)")
@@ -72,13 +72,13 @@ test "EffectTiming::at direction iterations and easing" {
   assert_option_close(second.directed_progress, 0.75)
 
   let reverse = {
-    ..EffectTiming::new(1000.0),
-    direction: PlaybackDirection::Reverse,
+    ..@animation.EffectTiming::new(1000.0),
+    direction: @animation.PlaybackDirection::Reverse,
   }
   assert_option_close(reverse.at(250.0).directed_progress, 0.75)
 
   let eased = {
-    ..EffectTiming::new(1000.0),
+    ..@animation.EffectTiming::new(1000.0),
     easing: @values.Easing::EaseInQuad,
   }
   assert_option_close(eased.at(500.0).directed_progress, 0.5)
@@ -89,11 +89,15 @@ test "EffectTiming::at direction iterations and easing" {
 test "NumericKeyframeEffect::sample interpolates keyframes" {
   let effect = numeric_effect(
     [
-      NumericKeyframe::with_easing(0.0, 0.0, @values.Easing::EaseInQuad),
-      NumericKeyframe::new(0.5, 100.0),
-      NumericKeyframe::new(1.0, 200.0),
+      @animation.NumericKeyframe::with_easing(
+        0.0,
+        0.0,
+        @values.Easing::EaseInQuad,
+      ),
+      @animation.NumericKeyframe::new(0.5, 100.0),
+      @animation.NumericKeyframe::new(1.0, 200.0),
     ],
-    EffectTiming::new(1000.0),
+    @animation.EffectTiming::new(1000.0),
   )
   assert_close(sample_value(effect, 250.0), 25.0)
   assert_close(sample_value(effect, 750.0), 150.0)
@@ -102,12 +106,15 @@ test "NumericKeyframeEffect::sample interpolates keyframes" {
 ///|
 test "NumericKeyframeEffect::sample respects timing fill and global easing" {
   let timing = {
-    ..EffectTiming::new(1000.0),
-    fill: FillMode::Both,
+    ..@animation.EffectTiming::new(1000.0),
+    fill: @animation.FillMode::Both,
     easing: @values.Easing::EaseOutQuad,
   }
   let effect = numeric_effect(
-    [NumericKeyframe::new(0.0, 0.0), NumericKeyframe::new(1.0, 100.0)],
+    [
+      @animation.NumericKeyframe::new(0.0, 0.0),
+      @animation.NumericKeyframe::new(1.0, 100.0),
+    ],
     timing,
   )
   assert_close(sample_value(effect, -10.0), 0.0)
@@ -115,8 +122,11 @@ test "NumericKeyframeEffect::sample respects timing fill and global easing" {
   assert_close(sample_value(effect, 1100.0), 100.0)
 
   let no_fill = numeric_effect(
-    [NumericKeyframe::new(0.0, 0.0), NumericKeyframe::new(1.0, 100.0)],
-    EffectTiming::new(1000.0),
+    [
+      @animation.NumericKeyframe::new(0.0, 0.0),
+      @animation.NumericKeyframe::new(1.0, 100.0),
+    ],
+    @animation.EffectTiming::new(1000.0),
   )
   debug_inspect(no_fill.sample(-10.0), content="None")
   debug_inspect(no_fill.sample(1100.0), content="None")
@@ -125,32 +135,38 @@ test "NumericKeyframeEffect::sample respects timing fill and global easing" {
 ///|
 test "NumericKeyframeEffect::sample_with_underlying applies composite modes" {
   let replace = numeric_effect(
-    [NumericKeyframe::new(0.0, 10.0), NumericKeyframe::new(1.0, 20.0)],
-    EffectTiming::new(1000.0),
+    [
+      @animation.NumericKeyframe::new(0.0, 10.0),
+      @animation.NumericKeyframe::new(1.0, 20.0),
+    ],
+    @animation.EffectTiming::new(1000.0),
   )
   assert_option_close(replace.sample_with_underlying(500.0, 100.0), 15.0)
 
-  let add = NumericKeyframeEffect::with_composite(
-    [NumericKeyframe::new(0.0, 10.0), NumericKeyframe::new(1.0, 20.0)],
-    EffectTiming::new(1000.0),
-    CompositeOperation::Add,
-    IterationCompositeOperation::Replace,
+  let add = @animation.NumericKeyframeEffect::with_composite(
+    [
+      @animation.NumericKeyframe::new(0.0, 10.0),
+      @animation.NumericKeyframe::new(1.0, 20.0),
+    ],
+    @animation.EffectTiming::new(1000.0),
+    @animation.CompositeOperation::Add,
+    @animation.IterationCompositeOperation::Replace,
   ).unwrap()
   assert_option_close(add.sample_with_underlying(500.0, 100.0), 115.0)
 
-  let keyframe_override = NumericKeyframeEffect::with_composite(
+  let keyframe_override = @animation.NumericKeyframeEffect::with_composite(
     [
-      NumericKeyframe::with_composite(
+      @animation.NumericKeyframe::with_composite(
         0.0,
         10.0,
         @values.Easing::Linear,
-        CompositeOperation::Add,
+        @animation.CompositeOperation::Add,
       ),
-      NumericKeyframe::new(1.0, 20.0),
+      @animation.NumericKeyframe::new(1.0, 20.0),
     ],
-    { ..EffectTiming::new(1000.0), fill: FillMode::Both },
-    CompositeOperation::Replace,
-    IterationCompositeOperation::Replace,
+    { ..@animation.EffectTiming::new(1000.0), fill: @animation.FillMode::Both, },
+    @animation.CompositeOperation::Replace,
+    @animation.IterationCompositeOperation::Replace,
   ).unwrap()
   assert_option_close(
     keyframe_override.sample_with_underlying(0.0, 100.0),
@@ -164,12 +180,15 @@ test "NumericKeyframeEffect::sample_with_underlying applies composite modes" {
 
 ///|
 test "NumericKeyframeEffect::sample applies iteration accumulation" {
-  let timing = { ..EffectTiming::new(1000.0), iterations: 3.0 }
-  let effect = NumericKeyframeEffect::with_composite(
-    [NumericKeyframe::new(0.0, 0.0), NumericKeyframe::new(1.0, 10.0)],
+  let timing = { ..@animation.EffectTiming::new(1000.0), iterations: 3.0, }
+  let effect = @animation.NumericKeyframeEffect::with_composite(
+    [
+      @animation.NumericKeyframe::new(0.0, 0.0),
+      @animation.NumericKeyframe::new(1.0, 10.0),
+    ],
     timing,
-    CompositeOperation::Add,
-    IterationCompositeOperation::Accumulate,
+    @animation.CompositeOperation::Add,
+    @animation.IterationCompositeOperation::Accumulate,
   ).unwrap()
   assert_option_close(effect.sample(500.0), 5.0)
   assert_option_close(effect.sample(1500.0), 15.0)
@@ -179,37 +198,43 @@ test "NumericKeyframeEffect::sample applies iteration accumulation" {
 ///|
 test "NumericKeyframeEffect::new validates offsets" {
   debug_inspect(
-    NumericKeyframeEffect::new(
-      [NumericKeyframe::new(0.0, 0.0)],
-      EffectTiming::new(1.0),
+    @animation.NumericKeyframeEffect::new(
+      [@animation.NumericKeyframe::new(0.0, 0.0)],
+      @animation.EffectTiming::new(1.0),
     ),
     content="None",
   )
   debug_inspect(
-    NumericKeyframeEffect::new(
-      [NumericKeyframe::new(0.5, 0.0), NumericKeyframe::new(1.0, 100.0)],
-      EffectTiming::new(1.0),
+    @animation.NumericKeyframeEffect::new(
+      [
+        @animation.NumericKeyframe::new(0.5, 0.0),
+        @animation.NumericKeyframe::new(1.0, 100.0),
+      ],
+      @animation.EffectTiming::new(1.0),
     ),
     content="None",
   )
   debug_inspect(
-    NumericKeyframeEffect::new(
-      [NumericKeyframe::new(0.0, 0.0), NumericKeyframe::new(1.1, 100.0)],
-      EffectTiming::new(1.0),
+    @animation.NumericKeyframeEffect::new(
+      [
+        @animation.NumericKeyframe::new(0.0, 0.0),
+        @animation.NumericKeyframe::new(1.1, 100.0),
+      ],
+      @animation.EffectTiming::new(1.0),
     ),
     content="None",
   )
   // Duplicate (non-increasing) offsets are rejected: offsets must be strictly
   // increasing, so two keyframes sharing the same offset fail validation.
   debug_inspect(
-    NumericKeyframeEffect::new(
+    @animation.NumericKeyframeEffect::new(
       [
-        NumericKeyframe::new(0.0, 0.0),
-        NumericKeyframe::new(0.5, 10.0),
-        NumericKeyframe::new(0.5, 20.0),
-        NumericKeyframe::new(1.0, 100.0),
+        @animation.NumericKeyframe::new(0.0, 0.0),
+        @animation.NumericKeyframe::new(0.5, 10.0),
+        @animation.NumericKeyframe::new(0.5, 20.0),
+        @animation.NumericKeyframe::new(1.0, 100.0),
       ],
-      EffectTiming::new(1.0),
+      @animation.EffectTiming::new(1.0),
     ),
     content="None",
   )
@@ -295,7 +320,7 @@ test "AnimatableKeyframeEffect samples typed keyframes with easing and timing" {
         @animation.AnimatableValue::Length(100.0),
       ),
     ],
-    { ..@animation.EffectTiming::new(1000.0), fill: @animation.FillMode::Both },
+    { ..@animation.EffectTiming::new(1000.0), fill: @animation.FillMode::Both, },
   ).unwrap()
   // midpoint
   inspect(effect.sample(500.0).unwrap(), content="Length(50)")
@@ -327,22 +352,42 @@ test "interpolate_color_in across color spaces" {
   let white = @values.Color::rgb(255, 255, 255)
   // black -> white midpoint differs per space (perceptual vs sRGB-linear gamma)
   inspect(
-    @animation.interpolate_color_in(@animation.ColorSpace::Srgb, black, white, 0.5),
+    @animation.interpolate_color_in(
+      @animation.ColorSpace::Srgb,
+      black,
+      white,
+      0.5,
+    ),
     content="rgb(128, 128, 128)",
   )
   inspect(
-    @animation.interpolate_color_in(@animation.ColorSpace::Oklab, black, white, 0.5),
+    @animation.interpolate_color_in(
+      @animation.ColorSpace::Oklab,
+      black,
+      white,
+      0.5,
+    ),
     content="rgb(99, 99, 99)",
   )
   inspect(
-    @animation.interpolate_color_in(@animation.ColorSpace::Lab, black, white, 0.5),
+    @animation.interpolate_color_in(
+      @animation.ColorSpace::Lab,
+      black,
+      white,
+      0.5,
+    ),
     content="rgb(119, 119, 119)",
   )
   let red = @values.Color::rgb(255, 0, 0)
   let blue = @values.Color::rgb(0, 0, 255)
   // polar spaces interpolate hue along the shortest arc
   inspect(
-    @animation.interpolate_color_in(@animation.ColorSpace::Oklch, red, blue, 0.5),
+    @animation.interpolate_color_in(
+      @animation.ColorSpace::Oklch,
+      red,
+      blue,
+      0.5,
+    ),
     content="rgb(186, 0, 194)",
   )
   inspect(

@@ -15,13 +15,16 @@ pub(all) enum Origin {
 }
 
 ///|
-pub impl Show for Origin with output(self, logger) {
+pub impl Show for Origin with fn output(self, logger) {
   match self {
     UserAgent => logger.write_string("UserAgent")
     User => logger.write_string("User")
     Author => logger.write_string("Author")
   }
 }
+
+///|
+pub extend Origin with Show::{to_string, output}
 
 ///|
 /// Importance of a declaration
@@ -31,12 +34,15 @@ pub(all) enum Importance {
 }
 
 ///|
-pub impl Show for Importance with output(self, logger) {
+pub impl Show for Importance with fn output(self, logger) {
   match self {
     Normal => logger.write_string("Normal")
     Important => logger.write_string("Important")
   }
 }
+
+///|
+pub extend Importance with Show::{to_string, output}
 
 ///|
 /// A CSS property value that can be a specific value or a keyword
@@ -56,7 +62,7 @@ pub(all) enum PropertyValue {
 }
 
 ///|
-pub impl Show for PropertyValue with output(self, logger) {
+pub impl Show for PropertyValue with fn output(self, logger) {
   match self {
     Value(v) => {
       logger.write_string("Value(")
@@ -72,6 +78,9 @@ pub impl Show for PropertyValue with output(self, logger) {
 }
 
 ///|
+pub extend PropertyValue with Show::{to_string, output}
+
+///|
 /// A CSS declaration with cascade metadata
 pub(all) struct Declaration {
   /// Property name (e.g., "width", "display")
@@ -85,11 +94,11 @@ pub(all) struct Declaration {
   /// Selector specificity (from the rule that contains this declaration)
   specificity : @selector.Specificity
   /// Source order (higher = later in source)
-  source_order : Int
+  source_order : Int32
 }
 
 ///|
-pub impl Show for Declaration with output(self, logger) {
+pub impl Show for Declaration with fn output(self, logger) {
   logger.write_string(self.property)
   logger.write_string(": ")
   self.value.output(logger)
@@ -98,6 +107,9 @@ pub impl Show for Declaration with output(self, logger) {
     Normal => ()
   }
 }
+
+///|
+pub extend Declaration with Show::{to_string, output}
 
 ///|
 /// Create a new declaration with default values
@@ -120,9 +132,9 @@ pub fn Declaration::with_metadata(
   origin : Origin,
   importance : Importance,
   specificity : @selector.Specificity,
-  source_order : Int,
+  source_order : Int32,
 ) -> Declaration {
-  { property, value, origin, importance, specificity, source_order }
+  { property, value, origin, importance, specificity, source_order, }
 }
 
 ///|
@@ -138,7 +150,7 @@ pub fn Declaration::from_inline(
     origin: Author,
     importance,
     // Inline styles have specificity (1,0,0,0) but we represent as (1,0,0) with special handling
-    specificity: { a: 1, b: 0, c: 0 },
+    specificity: { a: 1, b: 0, c: 0, },
     source_order: 0,
   }
 }
@@ -146,7 +158,7 @@ pub fn Declaration::from_inline(
 ///|
 /// Cascade precedence level
 /// Higher value = higher precedence
-fn cascade_precedence(origin : Origin, importance : Importance) -> Int {
+fn cascade_precedence(origin : Origin, importance : Importance) -> Int32 {
   match (origin, importance) {
     // Lowest to highest precedence for cascade
     // 1. Normal user-agent
@@ -168,7 +180,7 @@ fn cascade_precedence(origin : Origin, importance : Importance) -> Int {
 ///|
 /// Compare two declarations for cascade ordering
 /// Returns positive if a wins, negative if b wins, 0 if equal
-fn compare_declarations(a : Declaration, b : Declaration) -> Int {
+fn compare_declarations(a : Declaration, b : Declaration) -> Int32 {
   // 1. Compare cascade precedence (origin + importance)
   let prec_a = cascade_precedence(a.origin, a.importance)
   let prec_b = cascade_precedence(b.origin, b.importance)

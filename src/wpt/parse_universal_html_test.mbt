@@ -3,12 +3,12 @@
 
 ///|
 test "wpt parse-universal.html: valid *" {
-  wpt_assert_valid("wpt parse-universal.html: valid *", "*", ["*"], false)
+  @wpt.wpt_assert_valid("wpt parse-universal.html: valid *", "*", ["*"], false)
 }
 
 ///|
 test "wpt parse-universal.html: valid div :first-child" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-universal.html: valid div :first-child",
     "div :first-child",
     ["div *:first-child", "div :first-child"],
@@ -18,7 +18,7 @@ test "wpt parse-universal.html: valid div :first-child" {
 
 ///|
 test "wpt parse-universal.html: valid div *:first-child" {
-  wpt_assert_valid(
+  @wpt.wpt_assert_valid(
     "wpt parse-universal.html: valid div *:first-child",
     "div *:first-child",
     ["div *:first-child", "div :first-child"],

@@ -20,7 +20,7 @@ pub(all) enum SupportLevel {
 }
 
 ///|
-pub impl Show for SupportLevel with output(self, logger) {
+pub impl Show for SupportLevel with fn output(self, logger) {
   match self {
     Supported => logger.write_string("Supported")
     Partial(reason) => {
@@ -40,6 +40,9 @@ pub impl Show for SupportLevel with output(self, logger) {
 }
 
 ///|
+pub extend SupportLevel with Show::{to_string, output}
+
+///|
 /// Severity level for diagnostics
 pub(all) enum Severity {
   /// Informational - property works but has limitations
@@ -51,13 +54,16 @@ pub(all) enum Severity {
 }
 
 ///|
-pub impl Show for Severity with output(self, logger) {
+pub impl Show for Severity with fn output(self, logger) {
   match self {
     Info => logger.write_string("Info")
     Warning => logger.write_string("Warning")
     Error => logger.write_string("Error")
   }
 }
+
+///|
+pub extend Severity with Show::{to_string, output}
 
 ///|
 /// Get support level for a CSS property

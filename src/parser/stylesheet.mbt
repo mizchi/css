@@ -4,7 +4,7 @@
 
 ///|
 /// Maximum allowed CSS input size (10 MB)
-let css_max_input_size : Int = 10 * 1024 * 1024
+let css_max_input_size : Int32 = 10 * 1024 * 1024
 
 ///|
 /// Parse a full stylesheet from CSS text
@@ -41,22 +41,24 @@ pub fn parse_stylesheet(css : String) -> @cascade.Stylesheet {
       _ =>
         // Try to parse a style rule
         match parse_style_rule(tokens, pos) {
-          Some((selectors, declarations, new_pos)) => {
+          Some((selectors, declarations, new_pos, nested_start)) => {
             // Add rules for each selector
             for item in selectors {
               let selector_text = item.0
               let selector = item.1
               stylesheet.add_rule(selector_text, selector, declarations.copy())
             }
-            let nested_rules = extract_ampersand_nested_rules(
-              tokens, pos, new_pos, selectors,
-            )
-            for nested_rule in nested_rules {
-              stylesheet.add_rule(
-                nested_rule.0,
-                nested_rule.1,
-                nested_rule.2.copy(),
+            if nested_start is Some(start) {
+              let nested_rules = extract_ampersand_nested_rules(
+                tokens, start, new_pos, selectors,
               )
+              for nested_rule in nested_rules {
+                stylesheet.add_rule(
+                  nested_rule.0,
+                  nested_rule.1,
+                  nested_rule.2.copy(),
+                )
+              }
             }
             pos = new_pos
           }
@@ -72,8 +74,8 @@ pub fn parse_stylesheet(css : String) -> @cascade.Stylesheet {
 fn parse_media_rule(
   stylesheet : @cascade.Stylesheet,
   tokens : Array[@token.Token],
-  start : Int,
-) -> Int {
+  start : Int32,
+) -> Int32 {
   let mut pos = start + 1 // Skip @media token
 
   // Collect media query tokens until '{'
@@ -90,7 +92,7 @@ fn parse_media_rule(
   }
 
   // Extract and parse media query
-  let query_text = tokens_to_string(tokens, query_start, pos).trim().to_owned()
+  let query_text = tokens_to_trimmed_string(tokens, query_start, pos)
   let media_query = @media.parse_media_query_list(query_text)
 
   // Skip '{'
@@ -130,7 +132,7 @@ fn parse_media_rule(
       _ =>
         // Try to parse a style rule
         match parse_style_rule(tokens, pos) {
-          Some((selectors, declarations, new_pos)) => {
+          Some((selectors, declarations, new_pos, _)) => {
             // Add rules with media query for each selector
             for item in selectors {
               let selector_text = item.0
@@ -156,9 +158,9 @@ fn parse_media_rule(
 fn parse_supports_rule_with_media(
   stylesheet : @cascade.Stylesheet,
   tokens : Array[@token.Token],
-  start : Int,
+  start : Int32,
   media_query : @media.MediaQueryList,
-) -> Int {
+) -> Int32 {
   let mut pos = start + 1 // Skip @supports token
 
   // Skip condition tokens until '{' (handling nested parens)
@@ -194,7 +196,7 @@ fn parse_supports_rule_with_media(
       @token.Token::AtKeyword(_) => pos = skip_at_rule(tokens, pos)
       _ =>
         match parse_style_rule(tokens, pos) {
-          Some((selectors, declarations, new_pos)) => {
+          Some((selectors, declarations, new_pos, _)) => {
             for item in selectors {
               let selector_text = item.0
               let selector = item.1
@@ -220,8 +222,8 @@ fn parse_supports_rule_with_media(
 fn parse_supports_rule(
   stylesheet : @cascade.Stylesheet,
   tokens : Array[@token.Token],
-  start : Int,
-) -> Int {
+  start : Int32,
+) -> Int32 {
   let mut pos = start + 1 // Skip @supports token
 
   // Skip condition tokens until '{' (handling nested parens)
@@ -264,7 +266,7 @@ fn parse_supports_rule(
         }
       _ =>
         match parse_style_rule(tokens, pos) {
-          Some((selectors, declarations, new_pos)) => {
+          Some((selectors, declarations, new_pos, _)) => {
             for item in selectors {
               let selector_text = item.0
               let selector = item.1
@@ -291,7 +293,7 @@ fn parse_supports_rule(
 
 ///|
 /// Skip whitespace tokens
-fn skip_ws(tokens : Array[@token.Token], pos : Int) -> Int {
+fn skip_ws(tokens : Array[@token.Token], pos : Int32) -> Int32 {
   let mut p = pos
   while p < tokens.length() {
     match tokens[p] {
@@ -305,8 +307,8 @@ fn skip_ws(tokens : Array[@token.Token], pos : Int) -> Int {
 ///|
 fn skip_supports_condition_to_block(
   tokens : Array[@token.Token],
-  start : Int,
-) -> Int {
+  start : Int32,
+) -> Int32 {
   let mut pos = start
   let mut paren_depth = 0
   while pos < tokens.length() {
@@ -332,7 +334,7 @@ fn skip_supports_condition_to_block(
 ///|
 fn compact_supports_condition(condition : String) -> String {
   let lower = condition.to_lower()
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for i = 0; i < lower.length(); i = i + 1 {
     let c = lower[i].to_int().unsafe_to_char()
     if c == ' ' || c == '\t' || c == '\n' {
@@ -381,8 +383,8 @@ fn supports_condition_matches(condition : String) -> Bool {
 fn parse_keyframes_rule(
   stylesheet : @cascade.Stylesheet,
   tokens : Array[@token.Token],
-  start : Int,
-) -> Int {
+  start : Int32,
+) -> Int32 {
   let mut pos = skip_ws(tokens, start + 1)
   // Animation name: a custom-ident or a string.
   let name = match tokens[pos] {
@@ -470,7 +472,7 @@ fn parse_keyframes_rule(
                     value: @cascade.Value(value),
                     origin: @cascade.Author,
                     importance,
-                    specificity: { a: 0, b: 0, c: 0 },
+                    specificity: { a: 0, b: 0, c: 0, },
                     source_order: decl_order,
                   })
                   decl_order = decl_order + 1
@@ -481,12 +483,12 @@ fn parse_keyframes_rule(
           }
         }
         if offsets.length() > 0 {
-          blocks.push({ offsets, declarations })
+          blocks.push({ offsets, declarations, })
         }
       }
     }
   }
-  stylesheet.add_keyframes({ name, blocks })
+  stylesheet.add_keyframes({ name, blocks, })
   pos
 }
 
@@ -499,7 +501,7 @@ fn is_keyframes_keyword(name : String) -> Bool {
 
 ///|
 /// Skip an @-rule (until semicolon or matching braces)
-fn skip_at_rule(tokens : Array[@token.Token], start : Int) -> Int {
+fn skip_at_rule(tokens : Array[@token.Token], start : Int32) -> Int32 {
   let mut pos = start + 1
   let mut brace_depth = 0
   while pos < tokens.length() {
@@ -530,14 +532,16 @@ fn skip_at_rule(tokens : Array[@token.Token], start : Int) -> Int {
 }
 
 ///|
-/// Parse a style rule: selector { declarations }
+/// Parse a style rule and record its first nested selector, if present.
+/// Flat rules need no second pass to extract nested rules.
 fn parse_style_rule(
   tokens : Array[@token.Token],
-  start : Int,
+  start : Int32,
 ) -> (
   Array[(String, @selector.ComplexSelector)],
   Array[@cascade.Declaration],
-  Int,
+  Int32,
+  Int32?,
 )? {
   let mut pos = start
 
@@ -567,6 +571,7 @@ fn parse_style_rule(
   // Parse declarations until '}'
   let declarations : Array[@cascade.Declaration] = []
   let mut decl_order = 0
+  let mut nested_start : Int32? = None
   while pos < tokens.length() {
     pos = skip_ws(tokens, pos)
     match tokens[pos] {
@@ -575,11 +580,15 @@ fn parse_style_rule(
         break
       }
       @token.Token::EOF => break
-      @token.Token::Delim('&') =>
+      @token.Token::Delim('&') => {
+        if nested_start is None {
+          nested_start = Some(pos)
+        }
         match skip_nested_rule_block(tokens, pos) {
           Some(next_pos) => pos = next_pos
           None => pos = pos + 1
         }
+      }
       _ =>
         // Parse declaration
         match parse_rule_declaration(tokens, pos) {
@@ -589,7 +598,7 @@ fn parse_style_rule(
               value: @cascade.Value(value),
               origin: @cascade.Author,
               importance,
-              specificity: { a: 0, b: 0, c: 0 }, // Will be set during cascade
+              specificity: { a: 0, b: 0, c: 0, }, // Will be set during cascade
               source_order: decl_order,
             }
             declarations.push(decl)
@@ -600,15 +609,15 @@ fn parse_style_rule(
         }
     }
   }
-  Some((selectors, declarations, pos))
+  Some((selectors, declarations, pos, nested_start))
 }
 
 ///|
 /// Parse a declaration within a rule block
 fn parse_rule_declaration(
   tokens : Array[@token.Token],
-  start : Int,
-) -> (String, String, @cascade.Importance, Int)? {
+  start : Int32,
+) -> (String, String, @cascade.Importance, Int32)? {
   let mut pos = skip_ws(tokens, start)
 
   // Get property name
@@ -663,7 +672,7 @@ fn parse_rule_declaration(
   } else {
     pos
   }
-  let value = tokens_to_string(tokens, value_start, value_end).trim().to_owned()
+  let value = tokens_to_trimmed_string(tokens, value_start, value_end)
 
   // Skip semicolon if present
   if pos < tokens.length() {
@@ -684,9 +693,9 @@ fn parse_rule_declaration(
 /// Find matching right brace index for a left brace token.
 fn find_matching_right_brace(
   tokens : Array[@token.Token],
-  left_brace_pos : Int,
-  limit : Int,
-) -> Int? {
+  left_brace_pos : Int32,
+  limit : Int32,
+) -> Int32? {
   if left_brace_pos < 0 || left_brace_pos >= tokens.length() {
     return None
   }
@@ -715,7 +724,10 @@ fn find_matching_right_brace(
 
 ///|
 /// Skip a nested ampersand rule block like `&::foo { ... }`.
-fn skip_nested_rule_block(tokens : Array[@token.Token], start : Int) -> Int? {
+fn skip_nested_rule_block(
+  tokens : Array[@token.Token],
+  start : Int32,
+) -> Int32? {
   let mut pos = start
   while pos < tokens.length() {
     match tokens[pos] {
@@ -736,7 +748,7 @@ fn replace_ampersand(
   nested_selector : String,
   parent_selector : String,
 ) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for i = 0; i < nested_selector.length(); i = i + 1 {
     let c = nested_selector[i].to_int().unsafe_to_char()
     if c == '&' {
@@ -752,29 +764,14 @@ fn replace_ampersand(
 /// Extract one-level nested `&... { ... }` rules as parsed selector/declaration entries.
 fn extract_ampersand_nested_rules(
   tokens : Array[@token.Token],
-  rule_start : Int,
-  rule_end : Int,
+  nested_start : Int32,
+  rule_end : Int32,
   selectors : Array[(String, @selector.ComplexSelector)],
 ) -> Array[(String, @selector.ComplexSelector, Array[@cascade.Declaration])] {
   let rules : Array[
     (String, @selector.ComplexSelector, Array[@cascade.Declaration]),
   ] = []
-  let mut body_start = -1
-  let mut i = rule_start
-  while i < rule_end {
-    match tokens[i] {
-      @token.Token::LeftBrace => {
-        body_start = i
-        break
-      }
-      _ => i = i + 1
-    }
-  }
-  if body_start < 0 {
-    return rules
-  }
-
-  let mut pos = body_start + 1
+  let mut pos = nested_start
   while pos < rule_end - 1 {
     pos = skip_ws(tokens, pos)
     if pos >= rule_end - 1 {
@@ -796,11 +793,9 @@ fn extract_ampersand_nested_rules(
         }
         match tokens[pos] {
           @token.Token::LeftBrace => {
-            let nested_selector_text = tokens_to_string(
-                tokens, nested_selector_start, pos,
-              )
-              .trim()
-              .to_owned()
+            let nested_selector_text = tokens_to_trimmed_string(
+              tokens, nested_selector_start, pos,
+            )
             match find_matching_right_brace(tokens, pos, rule_end) {
               Some(nested_close) => {
                 let nested_decls : Array[@cascade.Declaration] = []
@@ -818,7 +813,7 @@ fn extract_ampersand_nested_rules(
                         value: @cascade.Value(value),
                         origin: @cascade.Author,
                         importance,
-                        specificity: { a: 0, b: 0, c: 0 },
+                        specificity: { a: 0, b: 0, c: 0, },
                         source_order: decl_order,
                       }
                       nested_decls.push(decl)
@@ -880,10 +875,10 @@ fn extract_ampersand_nested_rules(
 /// Convert token range to string
 fn tokens_to_string(
   tokens : Array[@token.Token],
-  start : Int,
-  end : Int,
+  start : Int32,
+  end : Int32,
 ) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = start; i < end; i = i + 1 {
     match tokens[i] {
       @token.Token::Ident(s) => buf.write_string(s)
@@ -924,13 +919,55 @@ fn tokens_to_string(
 }
 
 ///|
+/// Serialize a token range without leading or trailing whitespace.
+fn tokens_to_trimmed_string(
+  tokens : Array[@token.Token],
+  start : Int32,
+  end : Int32,
+) -> String {
+  let mut start = start
+  let mut end = end
+  while start < end && tokens[start] is @token.Token::Whitespace {
+    start += 1
+  }
+  while end > start && tokens[end - 1] is @token.Token::Whitespace {
+    end -= 1
+  }
+  if start == end {
+    return ""
+  }
+  // Most declarations contain one keyword or numeric value. Reuse identifiers
+  // directly and avoid constructing a builder for the other common cases.
+  let text = if end == start + 1 {
+    match tokens[start] {
+      @token.Token::Ident(s) => s
+      @token.Token::Hash(s, _) => "#" + s
+      @token.Token::Number(n, _) => n.to_string()
+      @token.Token::Dimension(n, unit) => n.to_string() + unit
+      @token.Token::Percentage(n) => n.to_string() + "%"
+      _ => tokens_to_string(tokens, start, end)
+    }
+  } else {
+    tokens_to_string(tokens, start, end)
+  }
+  // Escaped identifiers can themselves contain boundary whitespace. Preserve
+  // the existing trimming behavior while reusing already-trimmed strings.
+  let trimmed = text.trim()
+  if trimmed.length() == text.length() {
+    text
+  } else {
+    trimmed.to_owned()
+  }
+}
+
+///|
 /// Parse comma-separated selector list directly from a token slice.
 /// Saves the round-trip through `tokens_to_string` +
 /// `@token.tokenize` that the previous string-based path required.
 fn parse_selector_list_from_tokens(
   tokens : Array[@token.Token],
-  start : Int,
-  end : Int,
+  start : Int32,
+  end : Int32,
 ) -> Array[(String, @selector.ComplexSelector)] {
   let result : Array[(String, @selector.ComplexSelector)] = []
   // Find top-level commas; each segment becomes one (text, selector).
@@ -964,8 +1001,8 @@ fn parse_selector_list_from_tokens(
 fn push_selector(
   result : Array[(String, @selector.ComplexSelector)],
   tokens : Array[@token.Token],
-  start : Int,
-  end : Int,
+  start : Int32,
+  end : Int32,
 ) -> Unit {
   // Use the token-direct selector parser (no re-tokenization).
   // Note `from_tokens` returns Array[ComplexSelector] over each
@@ -978,7 +1015,7 @@ fn push_selector(
   // Reconstruct the text for the rule's `selector_text` debug field.
   // It's not on the cascade hot path, but downstream code expects a
   // non-empty string here.
-  let text = tokens_to_string(tokens, start, end).trim().to_owned()
+  let text = tokens_to_trimmed_string(tokens, start, end)
   for sel in parsed {
     result.push((text, sel))
   }
@@ -988,7 +1025,7 @@ fn push_selector(
 /// Split string by comma
 fn split_by_comma(s : String) -> Array[String] {
   let result : Array[String] = []
-  let current = StringBuilder::new()
+  let current = StringBuilder()
   let mut paren_depth = 0
   let mut bracket_depth = 0
   let mut in_single_quote = false
@@ -1124,7 +1161,7 @@ pub fn parse_stylesheet_with_diagnostics(css : String) -> ParseResult {
         }
     }
   }
-  { stylesheet, diagnostics }
+  { stylesheet, diagnostics, }
 }
 
 ///|
@@ -1133,8 +1170,8 @@ fn parse_media_rule_with_diagnostics(
   stylesheet : @cascade.Stylesheet,
   diagnostics : @diagnostics.DiagnosticsCollector,
   tokens : Array[@token.Token],
-  start : Int,
-) -> Int {
+  start : Int32,
+) -> Int32 {
   let mut pos = start + 1 // Skip @media token
 
   // Collect media query tokens until '{'
@@ -1151,7 +1188,7 @@ fn parse_media_rule_with_diagnostics(
   }
 
   // Extract and parse media query
-  let query_text = tokens_to_string(tokens, query_start, pos).trim().to_owned()
+  let query_text = tokens_to_trimmed_string(tokens, query_start, pos)
   let media_query = @media.parse_media_query_list(query_text)
 
   // Skip '{'
@@ -1217,8 +1254,8 @@ fn parse_supports_rule_with_diagnostics(
   stylesheet : @cascade.Stylesheet,
   diagnostics : @diagnostics.DiagnosticsCollector,
   tokens : Array[@token.Token],
-  start : Int,
-) -> Int {
+  start : Int32,
+) -> Int32 {
   let mut pos = start + 1 // Skip @supports token
 
   // Skip condition tokens until '{' (handling nested parens)
@@ -1284,12 +1321,12 @@ fn parse_supports_rule_with_diagnostics(
 /// Parse a style rule with diagnostics
 fn parse_style_rule_with_diagnostics(
   tokens : Array[@token.Token],
-  start : Int,
+  start : Int32,
   diagnostics : @diagnostics.DiagnosticsCollector,
 ) -> (
   Array[(String, @selector.ComplexSelector)],
   Array[@cascade.Declaration],
-  Int,
+  Int32,
 )? {
   let mut pos = start
 
@@ -1345,7 +1382,7 @@ fn parse_style_rule_with_diagnostics(
               value: @cascade.Value(value),
               origin: @cascade.Author,
               importance,
-              specificity: { a: 0, b: 0, c: 0 },
+              specificity: { a: 0, b: 0, c: 0, },
               source_order: decl_order,
             }
             declarations.push(decl)

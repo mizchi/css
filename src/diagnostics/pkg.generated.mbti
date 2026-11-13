@@ -20,32 +20,36 @@ pub(all) struct Diagnostic {
   severity : Severity
   selector : String
 }
+pub fn Diagnostic::output(Self, &Logger) -> Unit
+pub fn Diagnostic::to_string(Self) -> String
 pub impl Show for Diagnostic
 
 pub(all) struct DiagnosticSummary {
-  total_properties : Int
-  supported : Int
-  partial : Int
-  unsupported_layout : Int
-  unsupported_visual : Int
-  deprecated : Int
-  unknown : Int
+  total_properties : Int32
+  supported : Int32
+  partial : Int32
+  unsupported_layout : Int32
+  unsupported_visual : Int32
+  deprecated : Int32
+  unknown : Int32
 }
+pub fn DiagnosticSummary::output(Self, &Logger) -> Unit
+pub fn DiagnosticSummary::to_string(Self) -> String
 pub impl Show for DiagnosticSummary
 
 pub struct DiagnosticsCollector {
   diagnostics : Array[Diagnostic]
   seen : Map[String, Bool]
-  mut supported_count : Int
-  mut partial_count : Int
-  mut unsupported_layout_count : Int
-  mut unsupported_visual_count : Int
-  mut deprecated_count : Int
-  mut unknown_count : Int
+  mut supported_count : Int32
+  mut partial_count : Int32
+  mut unsupported_layout_count : Int32
+  mut unsupported_visual_count : Int32
+  mut deprecated_count : Int32
+  mut unknown_count : Int32
 }
 pub fn DiagnosticsCollector::add_property(Self, String, String, String) -> Unit
 pub fn DiagnosticsCollector::format_compact(Self) -> String
-pub fn DiagnosticsCollector::format_report(Self, Int) -> String
+pub fn DiagnosticsCollector::format_report(Self, Int32) -> String
 pub fn DiagnosticsCollector::get_by_severity(Self, Severity) -> Array[Diagnostic]
 pub fn DiagnosticsCollector::get_diagnostics(Self) -> Array[Diagnostic]
 pub fn DiagnosticsCollector::get_layout_affecting(Self) -> Array[Diagnostic]
@@ -57,6 +61,8 @@ pub(all) enum Severity {
   Warning
   Error
 }
+pub fn Severity::output(Self, &Logger) -> Unit
+pub fn Severity::to_string(Self) -> String
 pub impl Show for Severity
 
 pub(all) enum SupportLevel {
@@ -67,9 +73,10 @@ pub(all) enum SupportLevel {
   Deprecated(String)
   Unknown
 }
+pub fn SupportLevel::output(Self, &Logger) -> Unit
+pub fn SupportLevel::to_string(Self) -> String
 pub impl Show for SupportLevel
 
 // Type aliases
 
 // Traits
-

@@ -4,8 +4,8 @@
 /// `moon bench --target native`.
 
 ///|
-fn repeat_unit(unit : String, times : Int) -> String {
-  let buf = StringBuilder::new()
+fn repeat_unit(unit : String, times : Int32) -> String {
+  let buf = StringBuilder()
   for _i in 0..<times {
     buf.write_string(unit)
   }
