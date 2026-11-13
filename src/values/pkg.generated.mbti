@@ -20,6 +20,10 @@ pub fn min(Double, Double) -> Double
 
 pub fn parse_easing(String) -> Easing?
 
+pub fn parse_flex_flow(String) -> (FlexDirection, FlexWrap)?
+
+pub fn parse_flex_shorthand(String) -> FlexShorthand?
+
 pub fn resolve_dimensions_with_aspect_ratio(Double?, Double?, Double?, Double, Double, Double, Double) -> (Double?, Double?)
 
 pub fn resolve_rect(Rect[Dimension], Double) -> Rect[Double]
@@ -355,6 +359,16 @@ pub fn FlexDirection::output(Self, &Logger) -> Unit
 pub fn FlexDirection::to_repr(Self) -> @debug.Repr
 pub fn FlexDirection::to_string(Self) -> String
 pub impl Show for FlexDirection
+
+#derive(Eq, @debug.Debug)
+pub(all) struct FlexShorthand {
+  grow : Double
+  shrink : Double
+  basis : String
+}
+pub fn FlexShorthand::equal(Self, Self) -> Bool
+pub fn FlexShorthand::not_equal(Self, Self) -> Bool
+pub fn FlexShorthand::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
 pub(all) enum FlexWrap {
