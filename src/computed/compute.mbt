@@ -1541,6 +1541,20 @@ fn resolve_logical_pair(
 }
 
 ///|
+/// `flex-basis: content` sizes the item from its max-content contribution
+/// (css-flexbox-1 §9.2.3 E), independently of `width`; it is not `auto`.
+fn flex_basis_dimension(
+  value : String,
+  ctx : ComputeContext,
+) -> @types.Dimension {
+  if value.trim().to_lower() == "content" {
+    @types.Dimension::MaxContent
+  } else {
+    resolve_dimension(value, ctx)
+  }
+}
+
+///|
 /// `normal` is a used gap of 0 for Grid/Flex; column-gap keeps the keyword
 /// for multi-column layout.
 fn is_normal_gap(value : String) -> Bool {
@@ -2126,7 +2140,7 @@ fn apply_property(
     }
     "flex-basis" => {
       // CSS spec: negative values are invalid, keep as auto
-      let dim = resolve_dimension(value, ctx)
+      let dim = flex_basis_dimension(value, ctx)
       match dim {
         @types.Length(v) => if v >= 0.0 { builder.flex_basis = dim }
         @types.Percent(v) => if v >= 0.0 { builder.flex_basis = dim }
@@ -2149,7 +2163,7 @@ fn apply_property(
         Some(flex) => {
           builder.flex_grow = flex.grow
           builder.flex_shrink = flex.shrink
-          builder.flex_basis = resolve_dimension(flex.basis, ctx)
+          builder.flex_basis = flex_basis_dimension(flex.basis, ctx)
         }
         None => ()
       }

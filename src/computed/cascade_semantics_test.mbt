@@ -174,3 +174,10 @@ test "a unitless zero after two factors is the basis" {
   inspect(s.flex_shrink, content="3")
   inspect(s.flex_basis, content="Length(0)")
 }
+
+///|
+test "flex-basis content is the content size, not auto" {
+  inspect(leaf(".b { flex-basis: content }").flex_basis, content="MaxContent")
+  inspect(leaf(".b { flex: content 2 }").flex_basis, content="MaxContent")
+  inspect(leaf(".b { flex-basis: auto }").flex_basis, content="Auto")
+}
