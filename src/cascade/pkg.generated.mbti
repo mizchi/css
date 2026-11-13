@@ -46,6 +46,7 @@ pub(all) struct Declaration {
   specificity : @selector.Specificity
   source_order : Int32
 }
+pub fn Declaration::compare_precedence(Self, Self) -> Int32
 pub fn Declaration::from_inline(String, String, Importance) -> Self
 pub fn Declaration::new(String, String) -> Self
 pub fn Declaration::output(Self, &Logger) -> Unit
