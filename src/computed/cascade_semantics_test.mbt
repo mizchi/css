@@ -146,3 +146,31 @@ test "an invalid custom property reference is not re-resolved by a child" {
   )
   inspect(s[2].padding.left, content="Length(2)")
 }
+
+///|
+test "flex shorthand accepts the basis before the flex factors" {
+  // css-flexbox-1 §7.2: [ <'flex-grow'> <'flex-shrink'>? ] || <'flex-basis'>
+  let s = leaf(".b { flex: 0% 1 }")
+  inspect(s.flex_grow, content="1")
+  inspect(s.flex_shrink, content="1")
+  inspect(s.flex_basis, content="Percent(0)")
+  let t = leaf(".b { flex: 30px 2 0 }")
+  inspect(t.flex_grow, content="2")
+  inspect(t.flex_shrink, content="0")
+  inspect(t.flex_basis, content="Length(30)")
+}
+
+///|
+test "flex shorthand rejects factors split by the basis" {
+  let s = leaf(".b { flex: 3 4 5px } .b { flex: 1 0% 1 }")
+  inspect(s.flex_grow, content="3")
+  inspect(s.flex_basis, content="Length(5)")
+}
+
+///|
+test "a unitless zero after two factors is the basis" {
+  let s = leaf(".b { flex: 2 3 0 }")
+  inspect(s.flex_grow, content="2")
+  inspect(s.flex_shrink, content="3")
+  inspect(s.flex_basis, content="Length(0)")
+}

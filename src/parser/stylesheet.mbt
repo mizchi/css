@@ -467,14 +467,16 @@ fn parse_keyframes_rule(
             _ =>
               match parse_rule_declaration(tokens, pos) {
                 Some((property, value, importance, new_pos)) => {
-                  declarations.push({
-                    property,
-                    value: @cascade.Value(value),
-                    origin: @cascade.Author,
-                    importance,
-                    specificity: { a: 0, b: 0, c: 0, },
-                    source_order: decl_order,
-                  })
+                  if is_valid_declaration(property, value) {
+                    declarations.push({
+                      property,
+                      value: @cascade.Value(value),
+                      origin: @cascade.Author,
+                      importance,
+                      specificity: { a: 0, b: 0, c: 0, },
+                      source_order: decl_order,
+                    })
+                  }
                   decl_order = decl_order + 1
                   pos = new_pos
                 }
@@ -601,7 +603,9 @@ fn parse_style_rule(
               specificity: { a: 0, b: 0, c: 0, }, // Will be set during cascade
               source_order: decl_order,
             }
-            declarations.push(decl)
+            if is_valid_declaration(property, value) {
+              declarations.push(decl)
+            }
             decl_order = decl_order + 1
             pos = new_pos
           }
@@ -816,7 +820,9 @@ fn extract_ampersand_nested_rules(
                         specificity: { a: 0, b: 0, c: 0, },
                         source_order: decl_order,
                       }
-                      nested_decls.push(decl)
+                      if is_valid_declaration(property, value) {
+                        nested_decls.push(decl)
+                      }
                       decl_order = decl_order + 1
                       if new_decl_pos > decl_pos {
                         decl_pos = new_decl_pos
@@ -1385,7 +1391,9 @@ fn parse_style_rule_with_diagnostics(
               specificity: { a: 0, b: 0, c: 0, },
               source_order: decl_order,
             }
-            declarations.push(decl)
+            if is_valid_declaration(property, value) {
+              declarations.push(decl)
+            }
             decl_order = decl_order + 1
             pos = new_pos
           }
@@ -1394,4 +1402,22 @@ fn parse_style_rule_with_diagnostics(
     }
   }
   Some((selectors, declarations, pos))
+}
+
+///|
+/// Declarations whose value is invalid for the property are dropped at parse
+/// time, so they never win the cascade over an earlier valid declaration.
+/// Values with var() are validated at computed-value time instead.
+fn is_valid_declaration(property : String, value : String) -> Bool {
+  if value.contains("var(") {
+    return true
+  }
+  match value.trim().to_lower() {
+    "inherit" | "initial" | "unset" | "revert" | "revert-layer" => return true
+    _ => ()
+  }
+  match property.to_lower() {
+    "flex" => @types.parse_flex_shorthand(value) is Some(_)
+    _ => true
+  }
 }

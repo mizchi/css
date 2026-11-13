@@ -2142,94 +2142,17 @@ fn apply_property(
       }
     }
     "order" => builder.order = parse_integer(value)
-    "flex" => {
-      // Parse flex shorthand: none | auto | <flex-grow> [<flex-shrink>] [<flex-basis>]
-      // Order must be: numbers first (grow, shrink), then optionally basis
-      // Invalid orders like "1 0% 1" (basis in middle) must be rejected
-      let v = value.trim()
-      if v == "none" {
-        builder.flex_grow = 0.0
-        builder.flex_shrink = 0.0
-        builder.flex_basis = @types.Dimension::Auto
-      } else if v == "auto" {
-        builder.flex_grow = 1.0
-        builder.flex_shrink = 1.0
-        builder.flex_basis = @types.Dimension::Auto
-      } else if v == "initial" {
-        builder.flex_grow = 0.0
-        builder.flex_shrink = 1.0
-        builder.flex_basis = @types.Dimension::Auto
-      } else {
-        // Try to parse as number(s) and optionally a basis
-        let parts : Array[StringView] = v
-          .split(" ")
-          .filter(fn(s) { !s.is_empty() })
-          .collect()
-        // Validate ordering: numbers first, then basis
-        // A value is a "number" if it's purely numeric (no % or units)
-        // A value is a "basis" if it has %, px, or is "auto"/"content"
-        let mut num_count = 0
-        let mut basis_found = false
-        let mut valid = true
-        for i = 0; i < parts.length(); i = i + 1 {
-          let p = parts[i].to_owned()
-          if is_flex_basis_value(p) {
-            if basis_found {
-              // Second basis value is invalid
-              valid = false
-            }
-            basis_found = true
-          } else if is_pure_number(p) {
-            if basis_found {
-              // Number after basis is invalid (e.g., "1 0% 1")
-              valid = false
-            }
-            num_count = num_count + 1
-          } else {
-            // Unknown token
-            valid = false
-          }
+    "flex" =>
+      // Invalid values were dropped by the parser; var() substitution happens
+      // before this point, so an invalid substituted value is ignored here.
+      match @types.parse_flex_shorthand(value) {
+        Some(flex) => {
+          builder.flex_grow = flex.grow
+          builder.flex_shrink = flex.shrink
+          builder.flex_basis = resolve_dimension(flex.basis, ctx)
         }
-        if valid {
-          match parts.length() {
-            1 =>
-              if num_count == 1 {
-                // flex: <number> = <number> 1 0%
-                builder.flex_grow = parse_number(parts[0].to_owned())
-                builder.flex_shrink = 1.0
-                builder.flex_basis = @types.Dimension::Percent(0.0)
-              } else if basis_found {
-                // flex: <basis> = 1 1 <basis>
-                builder.flex_grow = 1.0
-                builder.flex_shrink = 1.0
-                builder.flex_basis = resolve_dimension(parts[0].to_owned(), ctx)
-              }
-            2 =>
-              if num_count == 2 {
-                // flex: <grow> <shrink> = <grow> <shrink> 0%
-                builder.flex_grow = parse_number(parts[0].to_owned())
-                builder.flex_shrink = parse_number(parts[1].to_owned())
-                builder.flex_basis = @types.Dimension::Percent(0.0)
-              } else if num_count == 1 && basis_found {
-                // flex: <grow> <basis>
-                builder.flex_grow = parse_number(parts[0].to_owned())
-                builder.flex_shrink = 1.0
-                builder.flex_basis = resolve_dimension(parts[1].to_owned(), ctx)
-              }
-            3 =>
-              if num_count == 2 && basis_found {
-                // flex: <grow> <shrink> <basis>
-                builder.flex_grow = parse_number(parts[0].to_owned())
-                builder.flex_shrink = parse_number(parts[1].to_owned())
-                builder.flex_basis = resolve_dimension(parts[2].to_owned(), ctx)
-              }
-            // If num_count != 2 or basis not at end, it's invalid and we do nothing
-            _ => ()
-          }
-        }
-        // If not valid, we don't modify the builder (keep defaults)
+        None => ()
       }
-    }
     // flex-flow shorthand: <flex-direction> || <flex-wrap>
     "flex-flow" => {
       let parts : Array[StringView] = value
@@ -4913,28 +4836,6 @@ fn chars_to_string(chars : ArrayView[Char]) -> String {
     sb.write_char(c)
   }
   sb.to_string()
-}
-
-///|
-/// Check if a string is a flex-basis value (has units, % or is auto/content)
-fn is_flex_basis_value(s : String) -> Bool {
-  let v = s.trim().to_lower()
-  if v == "auto" || v == "content" {
-    return true
-  }
-  // Check for common dimension suffixes
-  v.has_suffix("%") ||
-  v.has_suffix("px") ||
-  v.has_suffix("em") ||
-  v.has_suffix("rem") ||
-  v.has_suffix("dvw") ||
-  v.has_suffix("svw") ||
-  v.has_suffix("lvw") ||
-  v.has_suffix("vw") ||
-  v.has_suffix("dvh") ||
-  v.has_suffix("svh") ||
-  v.has_suffix("lvh") ||
-  v.has_suffix("vh")
 }
 
 ///|
