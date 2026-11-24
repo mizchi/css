@@ -1913,6 +1913,12 @@ fn apply_property(
         builder.border_style_bottom = v
         builder.border_style_right = h
         builder.border_style_left = h
+      } else if parts.length() == 3 {
+        let h = parse_border_style_value(parts[1])
+        builder.border_style_top = parse_border_style_value(parts[0])
+        builder.border_style_right = h
+        builder.border_style_left = h
+        builder.border_style_bottom = parse_border_style_value(parts[2])
       } else if parts.length() >= 4 {
         builder.border_style_top = parse_border_style_value(parts[0])
         builder.border_style_right = parse_border_style_value(parts[1])

@@ -367,3 +367,14 @@ test "a border width inside a function is one value" {
     assert_eq(actual.to_string(), expected, msg=css + " " + side)
   }
 }
+
+///|
+test "three border styles are top, left and right, bottom" {
+  let style = styles_for(
+      ".a { border-width: 2px; border-style: solid none dotted }", 2,
+    )[1]
+  assert_eq(style.border.top.to_string(), "Length(2)")
+  assert_eq(style.border.left.to_string(), "Length(0)")
+  assert_eq(style.border.right.to_string(), "Length(0)")
+  assert_eq(style.border.bottom.to_string(), "Length(2)")
+}
