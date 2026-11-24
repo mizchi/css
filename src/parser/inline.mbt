@@ -4008,7 +4008,7 @@ fn apply_property(
         (
           (align_content, align_content_unsafe),
           (justify_content, justify_content_unsafe),
-        )
+        ),
       ) =>
         return {
           ..style,
