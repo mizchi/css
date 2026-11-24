@@ -3081,9 +3081,10 @@ fn resolve_border_width(
       _ => ()
     }
 
-    // Length-like token found in shorthand.
+    // Length-like token found in shorthand; a calc() below 0 is clamped to 0
+    // (border widths are non-negative).
     match resolve_dimension(part, ctx) {
-      @types.Length(px) => return @types.Length(px)
+      @types.Length(px) => return @types.Length(if px < 0.0 { 0.0 } else { px })
       _ => ()
     }
   }

@@ -358,6 +358,7 @@ test "a border width inside a function is one value" {
       "Length(9)",
     ),
     (".a { border-top: calc(2px + 2px) solid }", "top", "Length(4)"),
+    (".a { border-top: calc(2px - 4px) solid }", "top", "Length(0)"),
   ]
   for case in cases {
     let (css, side, expected) = case
