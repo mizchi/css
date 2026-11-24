@@ -3055,11 +3055,8 @@ fn resolve_border_width(
   let mut has_visible_style = false
   let mut has_none_style = false
 
-  let parts = v
-    .split(" ")
-    .map(fn(part) { part.to_owned().trim().to_owned() })
-    .filter(fn(part) { !part.is_empty() })
-    .collect()
+  // A function such as calc(7px + 2px) is one token.
+  let parts = split_css_whitespace_preserving_functions(v.to_owned())
 
   for part in parts {
     match part {

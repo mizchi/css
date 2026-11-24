@@ -349,3 +349,20 @@ test "logical border sides follow the writing mode and direction" {
     assert_eq(actual.to_string(), expected, msg=css + " " + side)
   }
 }
+
+///|
+test "a border width inside a function is one value" {
+  let cases : Array[(String, String, String)] = [
+    (
+      ".a { border-style: solid; border-inline-width: 4px calc(7px + 2px) }", "right",
+      "Length(9)",
+    ),
+    (".a { border-top: calc(2px + 2px) solid }", "top", "Length(4)"),
+  ]
+  for case in cases {
+    let (css, side, expected) = case
+    let border = styles_for(css, 2)[1].border
+    let actual = if side == "right" { border.right } else { border.top }
+    assert_eq(actual.to_string(), expected, msg=css + " " + side)
+  }
+}
