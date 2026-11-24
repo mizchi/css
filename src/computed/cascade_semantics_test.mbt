@@ -303,3 +303,49 @@ test "a logical border color with a spaced function sets both sides" {
     red.border_color.right.to_string(),
   )
 }
+
+///|
+test "logical border sides follow the writing mode and direction" {
+  let cases : Array[(String, String, String)] = [
+    (
+      ".a { writing-mode: vertical-rl; border: 5px solid; border-block-start-style: none }",
+      "top", "Length(5)",
+    ),
+    (
+      ".a { writing-mode: vertical-rl; border: 5px solid; border-block-start-style: none }",
+      "right", "Length(0)",
+    ),
+    (
+      ".a { writing-mode: vertical-lr; border-block-start: 2px solid }", "left",
+      "Length(2)",
+    ),
+    (
+      ".a { direction: rtl; border-inline-start: 2px solid }", "right", "Length(2)",
+    ),
+    (
+      ".a { direction: rtl; border-inline-start: 2px solid }", "left", "Length(0)",
+    ),
+    (
+      ".a { writing-mode: vertical-rl; direction: rtl; border-inline-start: 2px solid }",
+      "bottom", "Length(2)",
+    ),
+    (
+      ".a { border-style: solid; border-inline-width: calc(7px) 9px }", "left", "Length(7)",
+    ),
+    (
+      ".a { border-style: solid; border-inline-width: calc(7px) 9px }", "right",
+      "Length(9)",
+    ),
+  ]
+  for case in cases {
+    let (css, side, expected) = case
+    let border = styles_for(css, 2)[1].border
+    let actual = match side {
+      "left" => border.left
+      "right" => border.right
+      "top" => border.top
+      _ => border.bottom
+    }
+    assert_eq(actual.to_string(), expected, msg=css + " " + side)
+  }
+}

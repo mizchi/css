@@ -1972,12 +1972,8 @@ fn apply_property(
       let (start, end) = logical_border_sides(builder, parts[1].to_owned())
       if suffix == "-style" || suffix == "-width" || suffix == "-color" {
         // One value for both sides, or start then end (a function such as
-        // rgb(0 0 0) is read as one value).
-        let values = if value.contains("(") {
-          [value]
-        } else {
-          split_whitespace(value)
-        }
+        // rgb(0 0 0) or calc(1px + 2px) is one value).
+        let values = split_css_whitespace_preserving_functions(value)
         let first = if values.length() > 0 { values[0] } else { value }
         let second = if values.length() > 1 { values[1] } else { first }
         if suffix == "-width" {
@@ -2877,17 +2873,26 @@ fn parse_border_collapse(value : String) -> @style.BorderCollapse {
 }
 
 ///|
-/// The physical sides a logical border axis maps to, start then end (as the
-/// mapping here has been: block is top/bottom; inline is left/right, or
-/// top/bottom in a vertical writing mode).
+/// The physical sides a logical border axis maps to, start then end, from the
+/// writing mode and direction (CSS Logical 1 §4; text-orientation is not
+/// modeled). The values are those the builder holds when the logical property
+/// is applied.
 fn logical_border_sides(
   builder : StyleBuilder,
   axis : String,
 ) -> (String, String) {
-  if axis == "inline" && !builder.writing_mode.is_vertical() {
-    ("left", "right")
-  } else {
-    ("top", "bottom")
+  let rtl = builder.direction == @style.Direction::Rtl
+  match (axis, builder.writing_mode) {
+    ("block", @style.WritingMode::VerticalRl) => ("right", "left")
+    ("block", @style.WritingMode::VerticalLr) => ("left", "right")
+    ("block", _) => ("top", "bottom")
+    (_, @style.WritingMode::HorizontalTb) =>
+      if rtl {
+        ("right", "left")
+      } else {
+        ("left", "right")
+      }
+    _ => if rtl { ("bottom", "top") } else { ("top", "bottom") }
   }
 }
 
