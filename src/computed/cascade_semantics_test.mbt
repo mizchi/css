@@ -194,3 +194,28 @@ test "flex-flow resets the omitted longhand to its initial value" {
   inspect(u.flex_direction, content="Column")
   inspect(u.flex_wrap, content="Wrap")
 }
+
+///|
+/// CSS Backgrounds 3 §3.3: the computed border-*-width is 0 where the border-*-style
+/// that wins the cascade is none or hidden, and an omitted width is `medium` (3px,
+/// in Chromium, Firefox and WebKit). The style decides after the cascade, whatever
+/// the order the width and the style were declared in.
+test "border width computes from the final border style" {
+  let cases : Array[(String, String)] = [
+    (".a { border: 2px }", "Length(0)"),
+    (".a { border-width: 2px }", "Length(0)"),
+    (".a { border-style: none; border-width: 2px }", "Length(0)"),
+    (".a { border: 2px solid } .a { border-top-style: hidden }", "Length(0)"),
+    (".a { border-top: 2px } .a { border-top-style: solid }", "Length(2)"),
+    (".a { border-width: 2px } .a { border-style: solid }", "Length(2)"),
+    (".a { border: solid }", "Length(3)"),
+    (".a { border-style: solid }", "Length(3)"),
+    (".a { border-top: dashed red }", "Length(3)"),
+    (".a { border-width: 2px; border-style: solid }", "Length(2)"),
+  ]
+  for case in cases {
+    let (css, expected) = case
+    let styles = styles_for(css, 2)
+    assert_eq(styles[1].border.top.to_string(), expected, msg=css)
+  }
+}

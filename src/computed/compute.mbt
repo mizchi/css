@@ -331,10 +331,10 @@ fn StyleBuilder::new() -> StyleBuilder {
     padding_right: @types.Dimension::Length(0.0),
     padding_bottom: @types.Dimension::Length(0.0),
     padding_left: @types.Dimension::Length(0.0),
-    border_top: @types.Dimension::Length(0.0),
-    border_right: @types.Dimension::Length(0.0),
-    border_bottom: @types.Dimension::Length(0.0),
-    border_left: @types.Dimension::Length(0.0),
+    border_top: @types.Dimension::Length(3.0),
+    border_right: @types.Dimension::Length(3.0),
+    border_bottom: @types.Dimension::Length(3.0),
+    border_left: @types.Dimension::Length(3.0),
     border_style_top: @style.BorderStyle::None,
     border_style_right: @style.BorderStyle::None,
     border_style_bottom: @style.BorderStyle::None,
@@ -640,11 +640,16 @@ fn StyleBuilder::build(self : StyleBuilder) -> @style.Style {
       bottom: self.padding_bottom,
       left: self.padding_left,
     },
+    // The computed border width is 0 where the style that won the cascade is none or
+    // hidden (CSS Backgrounds 3 §3.3); the builder keeps the declared width until then.
     border: {
-      top: self.border_top,
-      right: self.border_right,
-      bottom: self.border_bottom,
-      left: self.border_left,
+      top: computed_border_width(self.border_top, self.border_style_top),
+      right: computed_border_width(self.border_right, self.border_style_right),
+      bottom: computed_border_width(
+        self.border_bottom,
+        self.border_style_bottom,
+      ),
+      left: computed_border_width(self.border_left, self.border_style_left),
     },
     border_style: {
       top: self.border_style_top,
@@ -1845,21 +1850,13 @@ fn apply_property(
     "border-top" => {
       let bs = extract_border_style_from_shorthand(value)
       builder.border_style_top = bs
-      builder.border_top = if is_none_border_style_enum(bs) {
-        @types.Length(0.0)
-      } else {
-        resolve_border_width(value, ctx)
-      }
+      builder.border_top = resolve_border_width(value, ctx)
       builder.border_color_top = extract_border_color_from_shorthand(value, ctx)
     }
     "border-right" => {
       let bs = extract_border_style_from_shorthand(value)
       builder.border_style_right = bs
-      builder.border_right = if is_none_border_style_enum(bs) {
-        @types.Length(0.0)
-      } else {
-        resolve_border_width(value, ctx)
-      }
+      builder.border_right = resolve_border_width(value, ctx)
       builder.border_color_right = extract_border_color_from_shorthand(
         value, ctx,
       )
@@ -1867,11 +1864,7 @@ fn apply_property(
     "border-bottom" => {
       let bs = extract_border_style_from_shorthand(value)
       builder.border_style_bottom = bs
-      builder.border_bottom = if is_none_border_style_enum(bs) {
-        @types.Length(0.0)
-      } else {
-        resolve_border_width(value, ctx)
-      }
+      builder.border_bottom = resolve_border_width(value, ctx)
       builder.border_color_bottom = extract_border_color_from_shorthand(
         value, ctx,
       )
@@ -1879,11 +1872,7 @@ fn apply_property(
     "border-left" => {
       let bs = extract_border_style_from_shorthand(value)
       builder.border_style_left = bs
-      builder.border_left = if is_none_border_style_enum(bs) {
-        @types.Length(0.0)
-      } else {
-        resolve_border_width(value, ctx)
-      }
+      builder.border_left = resolve_border_width(value, ctx)
       builder.border_color_left = extract_border_color_from_shorthand(
         value, ctx,
       )
@@ -1908,12 +1897,6 @@ fn apply_property(
         builder.border_style_right = s
         builder.border_style_bottom = s
         builder.border_style_left = s
-        if is_none_border_style(parts[0]) {
-          builder.border_top = @types.Length(0.0)
-          builder.border_right = @types.Length(0.0)
-          builder.border_bottom = @types.Length(0.0)
-          builder.border_left = @types.Length(0.0)
-        }
       } else if parts.length() == 2 {
         let v = parse_border_style_value(parts[0])
         let h = parse_border_style_value(parts[1])
@@ -1921,57 +1904,21 @@ fn apply_property(
         builder.border_style_bottom = v
         builder.border_style_right = h
         builder.border_style_left = h
-        if is_none_border_style(parts[0]) {
-          builder.border_top = @types.Length(0.0)
-          builder.border_bottom = @types.Length(0.0)
-        }
-        if is_none_border_style(parts[1]) {
-          builder.border_right = @types.Length(0.0)
-          builder.border_left = @types.Length(0.0)
-        }
       } else if parts.length() >= 4 {
         builder.border_style_top = parse_border_style_value(parts[0])
         builder.border_style_right = parse_border_style_value(parts[1])
         builder.border_style_bottom = parse_border_style_value(parts[2])
         builder.border_style_left = parse_border_style_value(parts[3])
-        if is_none_border_style(parts[0]) {
-          builder.border_top = @types.Length(0.0)
-        }
-        if is_none_border_style(parts[1]) {
-          builder.border_right = @types.Length(0.0)
-        }
-        if is_none_border_style(parts[2]) {
-          builder.border_bottom = @types.Length(0.0)
-        }
-        if is_none_border_style(parts[3]) {
-          builder.border_left = @types.Length(0.0)
-        }
       }
     }
-    "border-top-style" => {
+    "border-top-style" =>
       builder.border_style_top = parse_border_style_value(value)
-      if is_none_border_style(value) {
-        builder.border_top = @types.Length(0.0)
-      }
-    }
-    "border-right-style" => {
+    "border-right-style" =>
       builder.border_style_right = parse_border_style_value(value)
-      if is_none_border_style(value) {
-        builder.border_right = @types.Length(0.0)
-      }
-    }
-    "border-bottom-style" => {
+    "border-bottom-style" =>
       builder.border_style_bottom = parse_border_style_value(value)
-      if is_none_border_style(value) {
-        builder.border_bottom = @types.Length(0.0)
-      }
-    }
-    "border-left-style" => {
+    "border-left-style" =>
       builder.border_style_left = parse_border_style_value(value)
-      if is_none_border_style(value) {
-        builder.border_left = @types.Length(0.0)
-      }
-    }
     "border-color" => {
       let c = parse_color_with_ctx(value, ctx).or_default(@types.Color::black())
       builder.border_color_top = c
@@ -2929,6 +2876,18 @@ fn parse_border_collapse(value : String) -> @style.BorderCollapse {
 }
 
 ///|
+fn computed_border_width(
+  width : @types.Dimension,
+  style : @style.BorderStyle,
+) -> @types.Dimension {
+  if is_none_border_style_enum(style) {
+    @types.Length(0.0)
+  } else {
+    width
+  }
+}
+
+///|
 /// Border style keywords that suppress used border width.
 fn is_none_border_style_enum(style : @style.BorderStyle) -> Bool {
   style == @style.BorderStyle::None || style == @style.BorderStyle::Hidden
@@ -3009,7 +2968,9 @@ fn extract_border_style_from_shorthand(value : String) -> @style.BorderStyle {
   if found_style {
     result
   } else {
-    @style.BorderStyle::Solid // Default when only width/color specified
+    // An omitted style is the initial none (CSS Backgrounds 3 §3.5): `border: 2px red`
+    // draws no border in Chromium, Firefox and WebKit.
+    @style.BorderStyle::None
   }
 }
 
@@ -3038,7 +2999,7 @@ fn resolve_border_width(
   ctx : ComputeContext,
 ) -> @types.Dimension {
   let v = value.trim().to_lower()
-  if v == "none" || v == "hidden" || v == "0" {
+  if v == "0" {
     return @types.Length(0.0)
   }
 
@@ -3081,13 +3042,11 @@ fn resolve_border_width(
     }
   }
 
-  if has_none_style {
-    @types.Length(0.0)
-  } else if has_visible_style {
-    @types.Length(1.5)
-  } else {
-    @types.Length(0.0)
-  }
+  // No width in the shorthand: the initial `medium` (3px in Chromium, Firefox and
+  // WebKit), whatever the style; build() makes it 0 where the style is none or hidden.
+  ignore(has_none_style)
+  ignore(has_visible_style)
+  @types.Length(3.0)
 }
 
 ///|
