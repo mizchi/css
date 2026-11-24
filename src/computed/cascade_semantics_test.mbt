@@ -194,3 +194,187 @@ test "flex-flow resets the omitted longhand to its initial value" {
   inspect(u.flex_direction, content="Column")
   inspect(u.flex_wrap, content="Wrap")
 }
+
+///|
+/// CSS Backgrounds 3 §3.3: the computed border-*-width is 0 where the border-*-style
+/// that wins the cascade is none or hidden, and an omitted width is `medium` (3px,
+/// in Chromium, Firefox and WebKit). The style decides after the cascade, whatever
+/// the order the width and the style were declared in.
+test "border width computes from the final border style" {
+  let cases : Array[(String, String)] = [
+    (".a { border: 2px }", "Length(0)"),
+    (".a { border-width: 2px }", "Length(0)"),
+    (".a { border-style: none; border-width: 2px }", "Length(0)"),
+    (".a { border: 2px solid } .a { border-top-style: hidden }", "Length(0)"),
+    (".a { border-top: 2px } .a { border-top-style: solid }", "Length(2)"),
+    (".a { border-width: 2px } .a { border-style: solid }", "Length(2)"),
+    (".a { border: solid }", "Length(3)"),
+    (".a { border-style: solid }", "Length(3)"),
+    (".a { border-top: dashed red }", "Length(3)"),
+    (".a { border-width: 2px; border-style: solid }", "Length(2)"),
+  ]
+  for case in cases {
+    let (css, expected) = case
+    let styles = styles_for(css, 2)
+    assert_eq(styles[1].border.top.to_string(), expected, msg=css)
+  }
+}
+
+///|
+test "logical border shorthands set the style their widths compute from" {
+  let cases : Array[(String, String, String)] = [
+    (".a { border-inline: 2px solid }", "left", "Length(2)"),
+    (".a { border-inline: 2px solid }", "right", "Length(2)"),
+    (".a { border-block: 2px solid }", "top", "Length(2)"),
+    (".a { border-block: 2px solid }", "bottom", "Length(2)"),
+    (".a { border-inline-start: 2px solid }", "left", "Length(2)"),
+    (".a { border-inline-end: 2px solid }", "right", "Length(2)"),
+    (".a { border-block-start: 2px solid }", "top", "Length(2)"),
+    (".a { border-block-end: 2px solid }", "bottom", "Length(2)"),
+    (".a { border-inline: solid }", "left", "Length(3)"),
+    (".a { border-inline: 2px }", "left", "Length(0)"),
+    // The -width longhands leave the style alone.
+    (
+      ".a { border-style: solid; border-inline-width: 2px }", "left", "Length(2)",
+    ),
+    (".a { border-inline-width: 2px }", "left", "Length(0)"),
+    (".a { border-block-start-width: 2px }", "top", "Length(0)"),
+    // The -style longhands set the style; the width is kept.
+    (
+      ".a { border-width: 2px; border-inline-style: solid }", "left", "Length(2)",
+    ),
+    (
+      ".a { border-width: 2px; border-inline-style: solid none }", "right", "Length(0)",
+    ),
+    (
+      ".a { border: 2px solid; border-block-style: none }", "bottom", "Length(0)",
+    ),
+    (".a { border-width: 2px; border-block-style: dashed }", "top", "Length(2)"),
+    (
+      ".a { border-style: solid; border-inline-width: thin }", "left", "Length(1)",
+    ),
+  ]
+  for case in cases {
+    let (css, side, expected) = case
+    let border = styles_for(css, 2)[1].border
+    let actual = match side {
+      "left" => border.left
+      "right" => border.right
+      "top" => border.top
+      _ => border.bottom
+    }
+    assert_eq(actual.to_string(), expected, msg=css + " " + side)
+  }
+}
+
+///|
+test "a border style applied directly to a computed style starts from medium" {
+  let ctx = @computed.ComputeContext::new()
+  let solid = @computed.apply_property_direct(
+    @style.Style::default(),
+    "border-top-style",
+    "solid",
+    ctx,
+  )
+  assert_eq(solid.border.top.to_string(), "Length(3)")
+  let width = @computed.apply_property_direct(
+    solid, "border-top-width", "2px", ctx,
+  )
+  assert_eq(width.border.top.to_string(), "Length(2)")
+  let none = @computed.apply_property_direct(
+    width, "border-top-style", "none", ctx,
+  )
+  assert_eq(none.border.top.to_string(), "Length(0)")
+}
+
+///|
+test "a logical border color with a spaced function sets both sides" {
+  let style = styles_for(".a { border-inline-color: rgb(255 0 0) }", 2)[1]
+  let red = styles_for(
+      ".a { border-left-color: rgb(255 0 0); border-right-color: rgb(255 0 0) }",
+      2,
+    )[1]
+  assert_eq(
+    style.border_color.left.to_string(),
+    red.border_color.left.to_string(),
+  )
+  assert_eq(
+    style.border_color.right.to_string(),
+    red.border_color.right.to_string(),
+  )
+}
+
+///|
+test "logical border sides follow the writing mode and direction" {
+  let cases : Array[(String, String, String)] = [
+    (
+      ".a { writing-mode: vertical-rl; border: 5px solid; border-block-start-style: none }",
+      "top", "Length(5)",
+    ),
+    (
+      ".a { writing-mode: vertical-rl; border: 5px solid; border-block-start-style: none }",
+      "right", "Length(0)",
+    ),
+    (
+      ".a { writing-mode: vertical-lr; border-block-start: 2px solid }", "left",
+      "Length(2)",
+    ),
+    (
+      ".a { direction: rtl; border-inline-start: 2px solid }", "right", "Length(2)",
+    ),
+    (
+      ".a { direction: rtl; border-inline-start: 2px solid }", "left", "Length(0)",
+    ),
+    (
+      ".a { writing-mode: vertical-rl; direction: rtl; border-inline-start: 2px solid }",
+      "bottom", "Length(2)",
+    ),
+    (
+      ".a { border-style: solid; border-inline-width: calc(7px) 9px }", "left", "Length(7)",
+    ),
+    (
+      ".a { border-style: solid; border-inline-width: calc(7px) 9px }", "right",
+      "Length(9)",
+    ),
+  ]
+  for case in cases {
+    let (css, side, expected) = case
+    let border = styles_for(css, 2)[1].border
+    let actual = match side {
+      "left" => border.left
+      "right" => border.right
+      "top" => border.top
+      _ => border.bottom
+    }
+    assert_eq(actual.to_string(), expected, msg=css + " " + side)
+  }
+}
+
+///|
+test "a border width inside a function is one value" {
+  let cases : Array[(String, String, String)] = [
+    (
+      ".a { border-style: solid; border-inline-width: 4px calc(7px + 2px) }", "right",
+      "Length(9)",
+    ),
+    (".a { border-top: calc(2px + 2px) solid }", "top", "Length(4)"),
+    (".a { border-top: calc(2px - 4px) solid }", "top", "Length(0)"),
+  ]
+  for case in cases {
+    let (css, side, expected) = case
+    let border = styles_for(css, 2)[1].border
+    let actual = if side == "right" { border.right } else { border.top }
+    assert_eq(actual.to_string(), expected, msg=css + " " + side)
+  }
+}
+
+///|
+test "three border styles are top, left and right, bottom" {
+  let style = styles_for(
+      ".a { border-width: 2px; border-style: solid none dotted }", 2,
+    )[1]
+  assert_eq(style.border.top.to_string(), "Length(2)")
+  assert_eq(style.border.left.to_string(), "Length(0)")
+  assert_eq(style.border.right.to_string(), "Length(0)")
+  assert_eq(style.border.bottom.to_string(), "Length(2)")
+}

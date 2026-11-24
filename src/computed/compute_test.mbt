@@ -2322,7 +2322,10 @@ test "compute_inline border-style shorthand" {
 ///|
 test "compute_inline border-width shorthand 4-value" {
   let ctx = @computed.ComputeContext::new()
-  let style = @computed.compute_inline("border-width: 1px 2px 3px 4px", ctx)
+  // (With a style: the computed width is 0 where the style is none, the initial one.)
+  let style = @computed.compute_inline(
+    "border-width: 1px 2px 3px 4px; border-style: solid", ctx,
+  )
   inspect(style.border.top, content="Length(1)")
   inspect(style.border.right, content="Length(2)")
   inspect(style.border.bottom, content="Length(3)")
